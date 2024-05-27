@@ -7,7 +7,7 @@ parameter CAP_VOLTAGE = 320.0;
 parameter COIL_UH = 399.0;
 parameter FREQ_MHZ = 48;
 parameter PERIOD_NS = 20.8;
-parameter CAP_UF = 10.0;  // typicall 100uF
+parameter CAP_UF = 1.0;  // typicall 100uF
 parameter CURRENT = 2 	; // integer amps, 1 to 7
 
 logic arm, fire;
@@ -24,7 +24,7 @@ logic [3:0] data, data_n;
     initial begin
         clk = 1'b1;
         forever begin
-            #(20.8ns) clk = ~clk;
+            #(10.4ns) clk = ~clk;
         end 
     end
 	 
@@ -43,7 +43,7 @@ logic [3:0] data, data_n;
 	 // Simulation stop.
 	 
 	 initial begin
-        for( int ii = 0; ii < 10000; ii++ ) 
+        for( int ii = 0; ii < 80000; ii++ ) 
 				@(posedge clk);
         $stop;
 	 end
