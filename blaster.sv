@@ -71,7 +71,11 @@ always @(posedge clk) begin : _launch_sm
 		case( state_q ) 
 		S_IDLE : 
 			begin
-				state_q <= S_CHARGE; // Advance to charge state 
+				if( arm_button ) begin
+					state_q <= S_CHARGE; // Advance to charge state
+				end else begin
+					state_q <= S_IDLE; 
+				end
 			end
 		S_CHARGE :
 			begin
@@ -105,11 +109,19 @@ always @(posedge clk) begin : _launch_sm
 			end
 		S_DISCHARGE :
 			begin
-				state_q <= S_DISCHARGE; // terminal state
+				if( !arm_button ) begin
+					state_q <= S_IDLE; // Reset 
+				end else begin
+					state_q <= S_DISCHARGE; // terminal state
+				end
 			end
 		S_OCP :
 			begin
-				state_q <= S_OCP; // terminal state
+				if( !arm_button ) begin
+					state_q <= S_IDLE; // Reset 
+				end else begin
+					state_q <= S_OCP; // terminal state
+				end
 			end
 		default :
 			begin
