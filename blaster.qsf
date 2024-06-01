@@ -104,4 +104,24 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_n
 set_location_assignment PIN_33 -to clk_out
 set_location_assignment PIN_29 -to clk_in
 set_global_assignment -name QIP_FILE blast_pll.qip
+set_location_assignment PIN_120 -to arm_button
+set_location_assignment PIN_124 -to fire_button
+set_location_assignment PIN_127 -to iset[0]
+set_location_assignment PIN_130 -to iset[1]
+set_location_assignment PIN_131 -to iset[2]
+set_location_assignment PIN_132 -to arm_led_n
+set_location_assignment PIN_135 -to cont_led_n
+set_location_assignment PIN_140 -to speaker
+set_location_assignment PIN_141 -to speaker_n
+set_location_assignment PIN_61 -to lt3420_charge
+set_location_assignment PIN_62 -to lt3420_done
+set_location_assignment PIN_28 -to reset_n
+set_location_assignment PIN_65 -to pwm
+set_location_assignment PIN_66 -to cont_n
+set_location_assignment PIN_64 -to dump
+set_location_assignment PIN_90 -to ad_cs
+set_location_assignment PIN_93 -to ad_sdata_a[1]
+set_location_assignment PIN_89 -to ad_sdata_a[0]
+set_location_assignment PIN_91 -to ad_sdata_b[1]
+set_location_assignment PIN_88 -to ad_sdata_b[0]
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
