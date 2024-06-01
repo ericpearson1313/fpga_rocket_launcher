@@ -55,7 +55,15 @@ assign clk_out = clk_in; // loop to ADC, which uses the -ve edge.
 
 logic [3:0] reset_shift = 0; // initial value upon config
 always @(posedge clk) begin
-		reset_shift[3:0] <= { reset_shift[2:0], reset_n }; // shift in external reset_n
+		if( !reset_n ) begin
+			reset_shift <= 4'h0;
+		end else begin
+			if( reset_shift != 4'HF ) begin
+				reset_shift[3:0] <= reset_shift[3:0] + 4'h1;
+			end else begin
+				reset_shift[3:0] <= reset_shift[3:0];
+			end
+		end
 end
 
 assign int_reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted after all bit shifted in 
@@ -92,12 +100,12 @@ blaster _blaster (
 	.dump( dump ),
 
 	// Continuity feedback
-	.cont( cont),
+	.cont( cont ),
 	
 	// Current setting
 	.iset( iset  ),
 	
-	// External A/D Converters (2.5v)
+	// External A/D Converters
 	.ad_cs( ad_cs ),
 	.ad_sdata_a( ad_sdata_a[1:0] ),
 	.ad_sdata_b( ad_sdata_b[1:0] ),
