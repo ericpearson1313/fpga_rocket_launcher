@@ -39,7 +39,7 @@
 
 set_global_assignment -name FAMILY "MAX 10"
 set_global_assignment -name DEVICE 10M16SCE144I7G
-set_global_assignment -name TOP_LEVEL_ENTITY blaster_chip
+set_global_assignment -name TOP_LEVEL_ENTITY blaster
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 23.1STD.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:07:06  MAY 16, 2024"
 set_global_assignment -name LAST_QUARTUS_VERSION "23.1std.0 Lite Edition"
@@ -70,6 +70,29 @@ set_global_assignment -name EDA_TEST_BENCH_FILE testbench.sv -section_id testben
 set_global_assignment -name FLOW_ENABLE_POWER_ANALYZER ON
 set_global_assignment -name POWER_DEFAULT_INPUT_IO_TOGGLE_RATE "12.5 %"
 set_global_assignment -name SYSTEMVERILOG_FILE blaster_chip.sv
+set_location_assignment PIN_33 -to clk_out
+set_location_assignment PIN_29 -to clk_in
+set_global_assignment -name QIP_FILE blast_pll.qip
+set_location_assignment PIN_120 -to arm_button
+set_location_assignment PIN_124 -to fire_button
+set_location_assignment PIN_127 -to iset[0]
+set_location_assignment PIN_130 -to iset[1]
+set_location_assignment PIN_131 -to iset[2]
+set_location_assignment PIN_132 -to arm_led_n
+set_location_assignment PIN_135 -to cont_led_n
+set_location_assignment PIN_140 -to speaker
+set_location_assignment PIN_141 -to speaker_n
+set_location_assignment PIN_69 -to lt3420_charge
+set_location_assignment PIN_70 -to lt3420_done
+set_location_assignment PIN_28 -to reset_n
+set_location_assignment PIN_65 -to pwm
+set_location_assignment PIN_66 -to cont_n
+set_location_assignment PIN_64 -to dump
+set_location_assignment PIN_90 -to ad_cs
+set_location_assignment PIN_93 -to ad_sdata_a[1]
+set_location_assignment PIN_89 -to ad_sdata_a[0]
+set_location_assignment PIN_91 -to ad_sdata_b[1]
+set_location_assignment PIN_88 -to ad_sdata_b[0]
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
@@ -101,27 +124,4 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk_in
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk_out
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_led_n
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_n
-set_location_assignment PIN_33 -to clk_out
-set_location_assignment PIN_29 -to clk_in
-set_global_assignment -name QIP_FILE blast_pll.qip
-set_location_assignment PIN_120 -to arm_button
-set_location_assignment PIN_124 -to fire_button
-set_location_assignment PIN_127 -to iset[0]
-set_location_assignment PIN_130 -to iset[1]
-set_location_assignment PIN_131 -to iset[2]
-set_location_assignment PIN_132 -to arm_led_n
-set_location_assignment PIN_135 -to cont_led_n
-set_location_assignment PIN_140 -to speaker
-set_location_assignment PIN_141 -to speaker_n
-set_location_assignment PIN_61 -to lt3420_charge
-set_location_assignment PIN_62 -to lt3420_done
-set_location_assignment PIN_28 -to reset_n
-set_location_assignment PIN_65 -to pwm
-set_location_assignment PIN_66 -to cont_n
-set_location_assignment PIN_64 -to dump
-set_location_assignment PIN_90 -to ad_cs
-set_location_assignment PIN_93 -to ad_sdata_a[1]
-set_location_assignment PIN_89 -to ad_sdata_a[0]
-set_location_assignment PIN_91 -to ad_sdata_b[1]
-set_location_assignment PIN_88 -to ad_sdata_b[0]
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
