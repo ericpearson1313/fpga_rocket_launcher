@@ -264,6 +264,7 @@ assign iout[11:0] = ad_hold_a0;	// F4.8 0.0 to 15.992 amps
 // Very Simple initially +/-12.5% margin
 
 logic [11:0] lower_margin, upper_margin;
+logic [11:0] iout_est; // estimated
 
 assign lower_margin = {1'b0, iset[2:0], 8'b0000_0000} - {4'b0000, iset[2:0], 5'b0_0000 };
 assign upper_margin = {1'b0, iset[2:0], 8'b0000_0000} + {4'b0000, iset[2:0], 5'b0_0000 };
@@ -274,12 +275,16 @@ always @(posedge clk) begin
 	end else begin
 		if( state_q != S_FIRE ) begin
 			pwm <= 1'b0;
-		end else if( !adc_valid ) begin
-			pwm <= pwm;
-		end else if( pwm == 0 && iout <= lower_margin ) begin
+		end else if( pwm == 0 && iout_est <= lower_margin ) begin
 			pwm <= 1'b1;
-		end else if( pwm == 1 && iout >= upper_margin ) begin //  pwm == 1
+		end else if( pwm == 1 && iout_est >= upper_margin ) begin
 			pwm <= 1'b0;
+//		end else if( !adc_valid ) begin
+//			pwm <= pwm;
+//		end else if( pwm == 0 && iout <= lower_margin ) begin
+//			pwm <= 1'b1;
+//		end else if( pwm == 1 && iout >= upper_margin ) begin //  pwm == 1
+//			pwm <= 1'b0;
 		end else begin
 			pwm <= pwm;
 		end
@@ -310,5 +315,39 @@ assign dump = (state_q == S_DISCHARGE) ? 1'b1 : 1'b0;
 
 assign speaker = 1'b0;
 
+
+// Current Model assignments and accumulator
+// Multiply by 1/Lf
+logic [33:0] iest_corr, iest_cur, iest_hold, iest_next, i_acc;
+logic [12:0] deltav;
+logic [29:0] deltai;
+
+// Coil Model
+// Calc deltav across the coil (depends on PWM ) --> signed(10.3)
+assign deltav[12:0] = ( ( pwm ) ? { 1'b0, vcap[11:0] } : 13'h0000 ) - { 1'b0, vout[11:0] };
+// Scaled by 1/Cf --> signed(27.3) to by shifted >> 30
+assign deltai[29:0] = $signed( deltav[12:0] ) * $signed( { 1'b0, 16'd57358 } );
+
+// When samples come in, get difference from model at that time (iest_prev)
+assign iest_corr[33:0] = ( !adc_valid ) ? 34'b0 : ( {iout[11:0],22'h00_0000} - iest_hold[33:0]); // correction to be added
+
+// Iest current is signed 4.30
+assign iest_next[33:0] = i_acc[33:0] + {{4{deltai[29]}}, {3{deltai[29]}}, deltai[29:3] } + iest_corr[33:0];
+	
+
+
+// current accumulator
+always @(posedge clk) begin
+	if( reset ) begin
+		i_acc <= 34'b0;
+		iest_hold <= 3'b0;
+	end else begin		
+		i_acc <= iest_next;
+		iest_hold <= ( cs_delay[LOAD_SEL] ) ? iest_next : iest_hold; // Hold the model at ADC sample time
+	end
+end
+
+
+assign iout_est[11:0] = (  state_q == S_FIRE ) ? i_acc[33:22] : 0;
 
 endmodule
