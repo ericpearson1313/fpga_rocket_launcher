@@ -17,28 +17,57 @@ module blaster_chip
 	output logic speaker,
 	output logic speaker_n,
 	
-	// Charger
-	input  logic lt3420_done,
+	// Bank 1A: Analog Inputs / IO
+	input [8:1] anain,
+	
+	// Bank 7, future serial port
+	input [6:0] digio,
+	
+	// Bank 1B Rs232
+	input 		rx232,
+	output 		tx232,
+	
+	// High Voltage 
 	output logic lt3420_charge,
-
-	// Voltage Controls
-	output logic pwm,
+	input  logic lt3420_done,
+	output logic pwm,	
 	output logic dump,
-
-	// Continuity feedback
 	input  logic cont_n,
 	
 	// External A/D Converters (2.5v)
 	output logic        ad_cs,
+	output logic		  ad_sclk,
 	input  logic  [1:0] ad_sdata_a,
 	input  logic  [1:0] ad_sdata_b,
-
+	input  logic        CIdiag,
+	input  logic        CVdiag,
+	input  logic        LIdiag,
+	input  logic 		  LVdiag,
+	
 	// External Current Control Input
 	input	 logic  [2:0] iset, // Current target in unit amps  
 	
+	// SPI8 Bus
+	inout  wire [7:0]  spi8_data_pad,   //   pad_io.export
+	output logic spi_clk0,
+	output logic spi_ncs,
+	inout  wire  spi_ds,
+	
+	// HDMI Output 1 (Tru LVDS)
+	output logic		hdmi_d0,
+	output logic		hdmi_d1,
+	output logic		hdmi_d2,
+	output logic      hdmi_ck,
+
+	// HDMI Output 2 (Tru LVDS)
+	output logic		hdmi2_d0,
+	output logic		hdmi2_d1,
+	output logic		hdmi2_d2,
+	output logic      hdmi2_ck,
+	
 	// Input clock, reset
-	input logic clk_in,
-	output logic clk_out,
+	output logic clk_out, // Differential output
+	input logic clk_in,	// Reference 48Mhz or other
 	input logic reset_n
 );
 
@@ -46,9 +75,21 @@ module blaster_chip
 
 // Clock , direct connect now, pll later
 
-logic clk;
-assign clk = clk_in; // use external clock
-assign clk_out = clk_in; // loop to ADC, which uses the -ve edge.
+logic clk;	// global 48Mhz clock
+logic clk4; // global 192MhZ spi8 clk
+
+spi8_pll _pll(
+	.inclk0 (clk_in),		// External clock input
+	.c0     (clk_out), 	// External clock output differential
+	.c1	  (clk),			// Global Clock ADC rate 48 Mhz
+	.c2	  (clk4),		// Global Clock SPI8 rate 192 Mhz
+	.c3	  (),
+	.c4	  (),
+	);
+	
+
+assign spi_clk0 = clk4;
+assign ad_sclk  = clk;
 
 
 // delayed from fpga config and external reset d-assert
@@ -115,5 +156,42 @@ blaster _blaster (
 	.reset( int_reset )
 );
 
+// SPI 8 Memory interface
+
+	logic [15:0] spi_dout; 
+	logic [15:0] spi_din;       
+	logic spi_oe;       
+
+	spi8ddr _spi8ddr (
+		.inclock         (clk4),    //  inclock.export
+		.outclock        (clk4),    // outclock.export
+		.dout            (spi_dout[15:0]),        //     dout.export
+		.din             (spi_din[15:0]),         //      din.export
+		.pad_io          (spi8_data_pad),      //   pad_io.export
+		.oe              ({8{oe}}),          //       oe.export
+	);
+
+// HDMI DDR LVDS Output
+
+	logic [7:0] hdmi_data;
+	
+	hdmi_out _hdmi_out (
+		.outclock( clk4 ),
+		.din( hdmi_data ),
+		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
+		.pad_out_b( ), // true differential, _b not req
+	);
+
+// HDMI DDR LVDS Output
+
+	logic [7:0] hdmi2_data;
+	
+	hdmi_out _hdmi2_out (
+		.outclock( clk4 ),
+		.din( hdmi2_data ),
+		.pad_out( {hdmi2_d2, hdmi2_d1, hdmi2_d0, hdmi2_ck} ), 
+		.pad_out_b( ), // true differential, _b not req
+	);
+	
 endmodule
 
