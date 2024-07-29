@@ -77,17 +77,26 @@ module blaster_chip
 
 logic clk;	// global 48Mhz clock
 logic clk4; // global 192MhZ spi8 clk
+logic hdmi_clk; 	// Pixel clk, apparentlyi can support 720p
+logic hdmi_clk5;  // 5x pixel clk clock for data xmit, 10b*3=30/3lanes=10ddr=5 
 
-spi8_pll _pll(
+spi8_pll _spll(
 	.inclk0 (clk_in),		// External clock input
 	.c0     (clk_out), 	// External clock output differential
 	.c1	  (clk),			// Global Clock ADC rate 48 Mhz
 	.c2	  (clk4),		// Global Clock SPI8 rate 192 Mhz
-	.c3	  (),
-	.c4	  (),
+	.c3	  (hdmi_clk),
+	.c4	  (hdmi_clk5),
 	);
 	
-
+//hdmi_pll _hpll(
+//	.inclk0 (clk_in),		// External clock input
+//	.c0     (hdmi_clk), // HDMI clk
+//	.c1	  (hdmi_clk5),		// Global Clock ADC rate 48 Mhz
+//	.c2	  (),		// Global Clock SPI8 rate 192 Mhz
+//	.c3	  (),
+//	.c4	  (),
+//	);
 assign spi_clk0 = clk4;
 assign ad_sclk  = clk;
 
@@ -174,9 +183,10 @@ blaster _blaster (
 // HDMI DDR LVDS Output
 
 	logic [7:0] hdmi_data;
-	
+	assign hdmi_data[1:0] = 2'b10;
+		
 	hdmi_out _hdmi_out (
-		.outclock( clk4 ),
+		.outclock( hdmi_clk5 ),
 		.din( hdmi_data ),
 		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
 		.pad_out_b( ), // true differential, _b not req
@@ -185,9 +195,10 @@ blaster _blaster (
 // HDMI DDR LVDS Output
 
 	logic [7:0] hdmi2_data;
+	assign hdmi2_data[1:0] = 2'b10;
 	
 	hdmi_out _hdmi2_out (
-		.outclock( clk4 ),
+		.outclock( hdmi_clk5 ),
 		.din( hdmi2_data ),
 		.pad_out( {hdmi2_d2, hdmi2_d1, hdmi2_d0, hdmi2_ck} ), 
 		.pad_out_b( ), // true differential, _b not req

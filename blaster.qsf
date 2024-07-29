@@ -135,12 +135,6 @@ set_location_assignment PIN_87 -to spi_ds
 set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_ds
 set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_ncs
 set_location_assignment PIN_78 -to spi_ncs
-set_global_assignment -name QSYS_FILE globclk.qsys
-set_global_assignment -name QIP_FILE spi8ddr.qip
-set_global_assignment -name SYSTEMVERILOG_FILE blaster.sv
-set_global_assignment -name SYSTEMVERILOG_FILE testbench.sv
-set_global_assignment -name SYSTEMVERILOG_FILE blaster_chip.sv
-set_global_assignment -name QIP_FILE spi8_pll.qip
 set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_clk0
 set_location_assignment PIN_85 -to spi_clk0
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sclk
@@ -153,8 +147,6 @@ set_location_assignment PIN_105 -to CIdiag
 set_location_assignment PIN_106 -to CVdiag
 set_location_assignment PIN_101 -to LIdiag
 set_location_assignment PIN_102 -to LVdiag
-set_global_assignment -name QIP_FILE hdmi_out.qip
-set_global_assignment -name SIP_FILE hdmi_out.sip
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi_ck
 set_location_assignment PIN_47 -to hdmi_ck
 set_location_assignment PIN_46 -to "hdmi_ck(n)"
@@ -214,4 +206,12 @@ set_location_assignment PIN_56 -to hdmi2_d1
 set_location_assignment PIN_55 -to "hdmi2_d1(n)"
 set_location_assignment PIN_58 -to hdmi2_d2
 set_location_assignment PIN_57 -to "hdmi2_d2(n)"
+set_global_assignment -name QSYS_FILE globclk.qsys
+set_global_assignment -name QIP_FILE spi8ddr.qip
+set_global_assignment -name SYSTEMVERILOG_FILE blaster.sv
+set_global_assignment -name SYSTEMVERILOG_FILE testbench.sv
+set_global_assignment -name SYSTEMVERILOG_FILE blaster_chip.sv
+set_global_assignment -name QIP_FILE spi8_pll.qip
+set_global_assignment -name QIP_FILE hdmi_out.qip
+set_global_assignment -name SIP_FILE hdmi_out.sip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
