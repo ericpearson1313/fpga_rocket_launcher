@@ -73,7 +73,7 @@ module blaster_chip
 
 
 
-// Clock , direct connect now, pll later
+// PLL (only 1 PLL in E144 package!)
 
 logic clk;	// global 48Mhz clock
 logic clk4; // global 192MhZ spi8 clk
@@ -85,18 +85,10 @@ spi8_pll _spll(
 	.c0     (clk_out), 	// External clock output differential
 	.c1	  (clk),			// Global Clock ADC rate 48 Mhz
 	.c2	  (clk4),		// Global Clock SPI8 rate 192 Mhz
-	.c3	  (hdmi_clk),
-	.c4	  (hdmi_clk5),
+	.c3	  (hdmi_clk),	// HDMI pixel clk
+	.c4	  (hdmi_clk5), // HDMI ddr clock 5x
 	);
 	
-//hdmi_pll _hpll(
-//	.inclk0 (clk_in),		// External clock input
-//	.c0     (hdmi_clk), // HDMI clk
-//	.c1	  (hdmi_clk5),		// Global Clock ADC rate 48 Mhz
-//	.c2	  (),		// Global Clock SPI8 rate 192 Mhz
-//	.c3	  (),
-//	.c4	  (),
-//	);
 assign spi_clk0 = clk4;
 assign ad_sclk  = clk;
 
