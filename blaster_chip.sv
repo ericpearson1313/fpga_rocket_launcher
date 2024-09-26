@@ -52,6 +52,7 @@ module blaster_chip
 	output logic spi_clk0,
 	output logic spi_ncs,
 	inout  wire  spi_ds,
+	output logic spi_nrst,
 	
 	// HDMI Output 1 (Tru LVDS)
 	output logic		hdmi_d0,
@@ -86,7 +87,7 @@ spi8_pll _spll(
 	.c1	  (clk),			// Global Clock ADC rate 48 Mhz
 	.c2	  (clk4),		// Global Clock SPI8 rate 192 Mhz
 	.c3	  (hdmi_clk),	// HDMI pixel clk
-	.c4	  (hdmi_clk5), // HDMI ddr clock 5x
+	.c4	  (hdmi_clk5)  // HDMI ddr clock 5x
 	);
 	
 assign spi_clk0 = clk4;
@@ -108,6 +109,10 @@ always @(posedge clk) begin
 		end
 end
 
+
+
+
+logic int_reset;
 assign int_reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted after all bit shifted in 
 
 // LEDs active low
@@ -169,7 +174,7 @@ blaster _blaster (
 		.dout            (spi_dout[15:0]),        //     dout.export
 		.din             (spi_din[15:0]),         //      din.export
 		.pad_io          (spi8_data_pad),      //   pad_io.export
-		.oe              ({8{oe}}),          //       oe.export
+		.oe              ({8{spi_oe}})           //       oe.export
 	);
 
 // HDMI DDR LVDS Output
@@ -181,7 +186,7 @@ blaster _blaster (
 		.outclock( hdmi_clk5 ),
 		.din( hdmi_data ),
 		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
-		.pad_out_b( ), // true differential, _b not req
+		.pad_out_b( )  // true differential, _b not req
 	);
 
 // HDMI DDR LVDS Output
@@ -193,7 +198,7 @@ blaster _blaster (
 		.outclock( hdmi_clk5 ),
 		.din( hdmi2_data ),
 		.pad_out( {hdmi2_d2, hdmi2_d1, hdmi2_d0, hdmi2_ck} ), 
-		.pad_out_b( ), // true differential, _b not req
+		.pad_out_b( )  // true differential, _b not req
 	);
 	
 endmodule
