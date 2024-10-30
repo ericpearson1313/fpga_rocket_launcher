@@ -18,7 +18,7 @@ module blaster_chip
 	output logic speaker_n,
 	
 	// Bank 1A: Analog Inputs / IO
-	input [8:1] anain,
+	output [8:1] anain,
 	
 	// Bank 7, future serial port
 	input [6:0] digio,
@@ -118,8 +118,17 @@ assign int_reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserte
 // LEDs active low
 logic arm_led;
 logic cont_led;
-assign arm_led_n = !arm_led;
+assign arm_led_n = 1'b0; //!arm_led;
 assign cont_led_n = !cont_led;
+
+// AIN
+assign anain[3:1] = iset[2:0];
+assign anain[4] = reset_n;
+logic [24:0] count;
+always @(posedge clk) begin
+	count <= count + 1;
+end
+assign anain[8:5] = count[24:21];
 
 // Continuity active low
 logic cont;
