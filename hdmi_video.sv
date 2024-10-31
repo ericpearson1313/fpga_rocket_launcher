@@ -11,10 +11,11 @@ input clk // pixel clock
 );
 endmodule
 
-module TDMS_encoder // from VHDL by MikeField <hamster@snap.net.nz>
+module TDMS_encoder 
+// translated from VHDL orginally by MikeField <hamster@snap.net.nz>
 (
-	input clk, // pixel clock
-	input [7:0] data, // raw video 0 to 255
+	input clk,        // pixel rate clock
+	input [7:0] data, // raw 8 bit video
 	input [1:0] cont, // control bits {c1,c0}
 	input blank, // video blanking
 	output encoded[9:0] // encoded pixel
@@ -99,4 +100,89 @@ always @(posedge clk) begin
 	end
 end
 												
-endmodule
+endmodule // TDMS_encoder
+
+//////////////////////////////////////////
+
+module video_encoder
+// Convert RGB video and sync into HDMI data for output to DDR I/O
+(
+	// Clock
+	input clk,	// Pixel clk
+	input clk5,	// 5x pixel clock for DVI output (2x)
+	input reset,
+
+	// HDMI Output
+	output [7:0] hdmi_data, // ddr data for the HDMI port, sync with 5x hdmi clk
+	
+	// Video Sync Interface, pix clock sync
+	input blank,
+	input hsync,
+	input vsync,
+	
+	// VGA baseband pixel data
+	input [7:0] red,
+	input [7:0] green,
+	input [7:0] blue
+);
+
+endmodule // video_encoder
+
+module vga_sync
+// Generate a video sync
+(
+	// Clock
+	input clk,	// Pixel clk
+	input reset,
+	
+	// Video Sync Interface, pix clock sync
+	output blank,
+	output hsync,
+	output vsync
+);
+
+endmodule // vga_sync
+
+module test_pattern
+// Create a test patern
+(
+	// Clock
+	input clk,	// Pixel clk
+	input reset,
+
+	// Video Sync Interface, pix clock sync
+	input blank,
+	input hsync,
+	input vsync,
+	
+	// VGA baseband pixel data
+	output [7:0] red,
+	output [7:0] green,
+	output [7:0] blue
+);
+
+logic [9:0] xcnt, ycnt;
+logic hsync_d1;
+
+always @(posedge clk) begin
+	hsync_d1 <= hsync;
+	if ( reset ) begin
+		xcnt <= 0;
+		ycnt <= 0;
+	end else begin
+		if( hsync_d1 && !hsync ) begin // hsync cycle
+			xcnt <= 0;
+			ycnt <= ( vsync ) ? 0 : ycnt + 1;
+		end else begin
+			xcnt <= xcnt + 1; // X pos
+		end
+	end
+end
+
+// Color outputs a function of location
+
+assign red   = {8{xcnt[5]}};
+assign green = {8{xcnt[6]}};
+assign blue  = {8{xcnt[7]}};
+
+endmodule // test_pattern
