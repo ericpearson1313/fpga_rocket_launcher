@@ -122,13 +122,14 @@ assign arm_led_n = 1'b0; //!arm_led;
 assign cont_led_n = !cont_led;
 
 // AIN
-assign anain[3:1] = iset[2:0];
-assign anain[4] = reset_n;
+assign anain[3:1] = iset[2:0]; // active low switch inputs
+assign anain[4] = !int_reset;
 logic [24:0] count;
 always @(posedge clk) begin
 	count <= count + 1;
 end
 assign anain[8:5] = count[24:21];
+assign speaker = count[13];
 
 // Continuity active low
 logic cont;
@@ -145,7 +146,7 @@ blaster _blaster (
 	// Output LED/SPK
 	.arm_led( arm_led ),
 	.cont_led( cont_led ),
-	.speaker( speaker ),
+	.speaker( /*speaker*/ ),
 	
 	// Charger
 	.lt3420_done( lt3420_done ),
