@@ -21,7 +21,7 @@ module blaster_chip
 	output [8:1] anain,
 	
 	// Bank 7, future serial port
-	input [6:0] digio,
+	output [6:0] digio,
 	
 	// Bank 1B Rs232
 	input 		rx232,
@@ -109,11 +109,32 @@ always @(posedge clk) begin
 		end
 end
 
-
-
-
 logic int_reset;
 assign int_reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted after all bit shifted in 
+
+
+/////////////////////////////////////////////////////////
+
+// Dig I/O divided clocks
+logic [9:0] div_in, div_c0, div_c1, div_c2, div_c3, div_c4, div_c5;
+
+always @(posedge clk_in		) div_in <= div_in + 1;
+always @(posedge clk_out   ) div_c0 <= div_c0 + 1;
+always @(posedge clk   		) div_c1 <= div_c1 + 1;
+always @(posedge clk4   	) div_c2 <= div_c2 + 1;
+always @(posedge hdmi_clk  ) div_c3 <= div_c3 + 1;
+always @(posedge hdmi_clk5 ) div_c4 <= div_c4 + 1;
+always @(posedge clk 		) div_c5 <= div_c5 + 1;
+
+assign digio[6:0] = { 1'b0,
+							 div_c5[9],
+						    div_c4[9],
+						    div_c3[9],
+						    div_c2[9],
+						    div_c1[9],
+						    div_c0[9],
+						    div_in[9] };
+
 
 // LEDs active low
 logic arm_led;
@@ -129,12 +150,16 @@ always @(posedge clk) begin
 	count <= count + 1;
 end
 assign anain[8:5] = count[24:21];
-assign speaker = count[13];
+assign speaker = count[13]  & !iset[0];
+assign dump = !iset[0];
+
+////////////////////////////////
+//////////////////////////////
 
 // Continuity active low
 logic cont;
-assign cont = !cont_n & !iset[0];
-assign dump = !iset[0];
+assign cont = !cont_n;
+
 
 // Speaker is differential out gives 6Vp-p
 assign speaker_n = !speaker;
