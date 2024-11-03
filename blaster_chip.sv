@@ -133,10 +133,13 @@ assign speaker = count[13];
 
 // Continuity active low
 logic cont;
-assign cont = !cont_n;
+assign cont = !cont_n & !iset[0];
+assign dump = !iset[0];
 
 // Speaker is differential out gives 6Vp-p
 assign speaker_n = !speaker;
+
+
 
 blaster _blaster (
 	// Input Buttons
@@ -154,7 +157,7 @@ blaster _blaster (
 
 	// Voltage Controls
 	.pwm( pwm ),
-	.dump( dump ),
+	.dump( /*dump*/ ),
 
 	// Continuity feedback
 	.cont( cont ),
