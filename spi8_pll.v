@@ -146,7 +146,7 @@ module spi8_pll (
 		altpll_component.port_extclk1 = "PORT_UNUSED",
 		altpll_component.port_extclk2 = "PORT_UNUSED",
 		altpll_component.port_extclk3 = "PORT_UNUSED",
-		altpll_component.vco_post_scale = 2,
+		altpll_component.vco_post_scale = 1,
 		altpll_component.width_clock = 5,
 		altpll_component.c0_high = 6,
 		altpll_component.c0_initial = 1,
