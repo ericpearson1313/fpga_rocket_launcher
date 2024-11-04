@@ -126,6 +126,36 @@ module video_encoder
 	input [7:0] blue
 );
 
+// TDMS encode each channel.
+
+	logic [9:0] enc_red, enc_green, enc_blue;
+	
+	TDMS_encoder _enc_red(   .clk( clk ),.data( red ),  .c( 2'b00 ),         .blank( blank ),.encoded( enc_red   ) );
+	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ hsync, vsync }),.blank( blank ),.encoded( enc_blue  ) );
+	TDMS_encoder _enc_green( .clk( clk ),.data( green ),.c( 2'b00 ),         .blank( blank ),.encoded( enc_green ) );
+
+// Determine clk5 load phase;
+	logic toggle; // cross phase signal
+	always @(posedge clk) toggle <= !toggle;
+	
+	logic [5:0] tdelay;
+	logic [9:0] shift_d2, shift_d1, shift_d0, shift_ck;
+	always @(posedge clk5) begin
+			tdelay[5:0] <= { tdelay[4:0], toggle };
+			if( tdelay[3] ^ tdelay[4] ) begin // load
+				shift_d2[9:0] <= enc_red;
+				shift_d1[9:0] <= enc_blue;
+				shift_d0[9:0] <= enc_green;
+				shift_ck[9:0] <= 10'd0000011111;
+			end else begin
+				shift_d2[9:0] <= { 2'b00, shift_d2[9:2] };
+				shift_d1[9:0] <= { 2'b00, shift_d1[9:2] };
+				shift_d0[9:0] <= { 2'b00, shift_d0[9:2] };
+				shift_ck[9:0] <= { 2'b00, shift_ck[9:2] };
+			end
+	end
+	assign hdmi_data = { shift_d2[1], shift_d1[1], shift_d0[1], shift_ck[1], 
+	                     shift_d2[0], shift_d1[0], shift_d0[0], shift_ck[0] };	
 endmodule // video_encoder
 
 module vga_sync
