@@ -168,16 +168,16 @@ module spi8_pll (
 		altpll_component.c2_ph = 0,
 		altpll_component.clk2_counter = "c2",
 
-		altpll_component.c3_high = 50,
+		altpll_component.c3_high = 45,
 		altpll_component.c3_initial = 1,
-		altpll_component.c3_low = 50,
+		altpll_component.c3_low = 45,
 		altpll_component.c3_mode = "even",
 		altpll_component.c3_ph = 0,
 		altpll_component.clk3_counter = "c3",
 
-		altpll_component.c4_high = 10,
+		altpll_component.c4_high = 9,
 		altpll_component.c4_initial = 1,
-		altpll_component.c4_low = 10,
+		altpll_component.c4_low = 9,
 		altpll_component.c4_mode = "even",
 		altpll_component.c4_ph = 0,
 		altpll_component.clk4_counter = "c4";
