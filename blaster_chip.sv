@@ -153,10 +153,11 @@ always @(posedge clk) begin
 	count <= count + 1;
 end
 assign anain[8:5] = count[24:21];
-assign speaker = count[13]  & !iset[0];
+assign speaker = count[14]  & !iset[0];
 assign dump = !iset[0];
-assign cont_led = cont; // hookup continuity led
+assign cont_led = !iset[1]; 
 assign arm_led = !fire_button;
+assign lt3420_charge = 1'b0;
 
 ////////////////////////////////
 //////////////////////////////
@@ -180,7 +181,7 @@ blaster _blaster (
 	
 	// Charger
 	.lt3420_done( lt3420_done ),
-	.lt3420_charge( lt3420_charge ),
+	.lt3420_charge( /*lt3420_charge*/ ),
 
 	// Voltage Controls
 	.pwm( pwm ),
