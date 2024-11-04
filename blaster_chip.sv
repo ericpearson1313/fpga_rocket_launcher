@@ -220,12 +220,33 @@ blaster _blaster (
 
 // HDMI DDR LVDS Output
 
+	logic [3:0] hcnt;
+	logic [7:0] hout;
+	always @(posedge hdmi_clk5) begin
+		hcnt <= hcnt + 1;
+		hout <= ( hcnt[3:0] == 4'h0 ) ? 8'b11_11_11_11 :
+		        ( hcnt[3:0] == 4'h1 ) ? 8'b11_11_11_01 :
+		        ( hcnt[3:0] == 4'h2 ) ? 8'b11_11_11_11 :
+		        ( hcnt[3:0] == 4'h3 ) ? 8'b11_11_00_01 :
+		        ( hcnt[3:0] == 4'h4 ) ? 8'b11_11_11_11 :
+		        ( hcnt[3:0] == 4'h5 ) ? 8'b11_11_11_01 :
+		        ( hcnt[3:0] == 4'h6 ) ? 8'b11_00_11_11 :
+		        ( hcnt[3:0] == 4'h7 ) ? 8'b11_00_00_01 :
+		        ( hcnt[3:0] == 4'h8 ) ? 8'b11_11_11_11 :
+		        ( hcnt[3:0] == 4'h9 ) ? 8'b11_11_11_01 :
+		        ( hcnt[3:0] == 4'hA ) ? 8'b11_11_11_11 :
+		        ( hcnt[3:0] == 4'hB ) ? 8'b11_11_00_01 :
+		        ( hcnt[3:0] == 4'hC ) ? 8'b00_11_11_11 :
+		        ( hcnt[3:0] == 4'hD ) ? 8'b00_11_11_01 :
+		        ( hcnt[3:0] == 4'hE ) ? 8'b00_00_11_11 :
+		       /*(hcnt[3:0] == 4'hF)?*/ 8'b00_00_00_01 ;
+	end
+
 	logic [7:0] hdmi_data;
-	assign hdmi_data[1:0] = 2'b10;
 		
 	hdmi_out _hdmi_out (
 		.outclock( hdmi_clk5 ),
-		.din( hdmi_data ),
+		.din( hout/*hdmi_data*/ ),
 		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
 		.pad_out_b( )  // true differential, _b not req
 	);
@@ -233,7 +254,6 @@ blaster _blaster (
 // HDMI DDR LVDS Output
 
 	logic [7:0] hdmi2_data;
-	assign hdmi2_data[1:0] = 2'b10;
 	
 	hdmi_out _hdmi2_out (
 		.outclock( hdmi_clk5 ),
