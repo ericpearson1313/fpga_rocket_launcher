@@ -112,6 +112,9 @@ end
 logic int_reset;
 assign int_reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted after all bit shifted in 
 
+// Continuity active low
+logic cont;
+assign cont = !cont_n;
 
 /////////////////////////////////////////////////////////
 
@@ -139,7 +142,7 @@ assign digio[6:0] = { 1'b0,
 // LEDs active low
 logic arm_led;
 logic cont_led;
-assign arm_led_n = 1'b0; //!arm_led;
+assign arm_led_n = !arm_led;
 assign cont_led_n = !cont_led;
 
 // AIN
@@ -152,13 +155,12 @@ end
 assign anain[8:5] = count[24:21];
 assign speaker = count[13]  & !iset[0];
 assign dump = !iset[0];
+assign cont_led = cont; // hookup continuity led
+assign arm_led = !fire_button;
 
 ////////////////////////////////
 //////////////////////////////
 
-// Continuity active low
-logic cont;
-assign cont = !cont_n;
 
 
 // Speaker is differential out gives 6Vp-p
@@ -172,8 +174,8 @@ blaster _blaster (
 	.fire_button( fire_button ), // active high
 
 	// Output LED/SPK
-	.arm_led( arm_led ),
-	.cont_led( cont_led ),
+	.arm_led( /*arm_led*/ ),
+	.cont_led( /*cont_led*/ ),
 	.speaker( /*speaker*/ ),
 	
 	// Charger
