@@ -13,11 +13,12 @@ endmodule
 
 module TDMS_encoder 
 // translated from VHDL orginally by MikeField <hamster@snap.net.nz>
+// re-written to closer match DVI-1.0 spec
 (
 	input clk,        // pixel rate clock
 	input [7:0] data, // raw 8 bit video
-	input [1:0] cont, // control bits {c1,c0}
-	input blank, // video blanking
+	input [1:0] c, 	// control bits {c1,c0}
+	input blank,      // !den == video blanking
 	output encoded[9:0] // encoded pixel
 );
 
@@ -61,7 +62,6 @@ assign ones[3:0]  = (({ 3'b000, data[0] }
  
 // Decide which encoding to use
 assign data_word = ( ones > 4'd4 || ( ones == 4'd4 && data[0] == 1'b0 )) ? xnored : xored;
-assign data_word_inv = ~data_word; // inverse 
 
 // Work out the DC bias of the dataword;
 assign data_word_disparity[3:0]  = (({ 3'b110, data_word[0] } 
@@ -73,28 +73,28 @@ assign data_word_disparity[3:0]  = (({ 3'b110, data_word[0] }
 											+  ({ 3'b000, data_word[6] } 
 											+   { 3'b000, data_word[7] }));		
 	
-	
-	
 // Now work out what the output should be
 always @(posedge clk) begin
 	if( blank == 1'b1 ) begin
-		encoded <=  ( cont == 2'b00 ) ? 10'b1101010100 :
-						( cont == 2'b01 ) ? 10'b0010101011 :
-						( cont == 2'b10 ) ? 10'b0101010100 : 
-					   /*cont == 2'b11*/   10'b1010101011 ;
-		dc_bias <= 4'b0000;
+		encoded <=  ( c[1:0] == 2'b00 ) ? 10'b0010101011 :
+						( c[1:0] == 2'b01 ) ? 10'b1101010100 :
+						( c[1:0] == 2'b10 ) ? 10'b0010101010 : 
+					   /*c[1:0] == 2'b11*/   10'b1101010101 ;
+		dc_bias <= 4'd0;
 	end else begin 
-		if( dc_bias == 0 || data_word_disparity == 0 ) begin // ataword has no disparity
-			encoded <= ( data_word[8] )? { 2'b01, data_word[7:0] } : { 2'b10, data_word_inv[7:0] };
-			dc_bias <= ( data_word[8] ) ? dc_bias + data_word_disparity : dc_bias - data_word_disparity;
+		if( dc_bias == 4'd0 || data_word_disparity == 4'd0 ) begin // dataword has no disparity
+			encoded <= ( data_word[8] ) ? { 2'b01,  data_word[7:0] } : 
+			                              { 2'b10, ~data_word[7:0] } ;
+			dc_bias <= ( data_word[8] ) ? dc_bias + data_word_disparity : 
+			                              dc_bias - data_word_disparity;
 	   end else begin
 		   if( ( dc_bias[3] == 1'b0 && data_word_disparity[3] == 1'b0 ) ||
 		       ( dc_bias[3] == 1'b1 && data_word_disparity[3] == 1'b1 ) ) begin
-				encoded <= { 1'b1, data_word[8], data_word_inv[7:0] };
-				dc_bias <= dc_bias + data_word[8] - data_word_disparity;
+				encoded <= { 1'b1, data_word[8], ~data_word[7:0] };
+				dc_bias <= dc_bias + {3'b000,  data_word[8]} - data_word_disparity;
 		   end else begin
-				encoded <= { 1'b0, data_word[8:0] };
-				dc_bias <= dc_bias - data_word[8] + data_word_disparity;
+				encoded <= { 1'b0, data_word[8],  data_word[7:0] };
+				dc_bias <= dc_bias - {3'b000, ~data_word[8]} + data_word_disparity;
 			end
 		end
 	end
