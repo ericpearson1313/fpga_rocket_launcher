@@ -209,28 +209,26 @@ module test_pattern
 );
 
 logic [9:0] xcnt, ycnt;
-logic hsync_d1;
+logic blank_d1;
 
 always @(posedge clk) begin
-	hsync_d1 <= hsync;
 	if ( reset ) begin
 		xcnt <= 0;
 		ycnt <= 0;
+		blank_d1 <= 0;
 	end else begin
-		if( hsync_d1 && !hsync ) begin // hsync cycle
-			xcnt <= 0;
-			ycnt <= ( vsync ) ? 0 : ycnt + 1;
-		end else begin
-			xcnt <= xcnt + 1; // X pos
-		end
+		blank_d1 <= blank;
+		xcnt <= ( blank ) ? 0 : xcnt + 1;
+		ycnt <= ( vsync ) ? 0 : 
+		        ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
 	end
 end
 
 // Color outputs a function of location
 
-assign red   = {8{xcnt[5]}};
-assign green = {8{xcnt[6]}};
-assign blue  = {8{xcnt[7]}};
+assign red   = {8{xcnt[6]}};
+assign green = {8{xcnt[7]}};
+assign blue  = {8{xcnt[8]}};
 
 endmodule // test_pattern
 
