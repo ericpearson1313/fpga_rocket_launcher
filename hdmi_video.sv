@@ -1,15 +1,5 @@
 
-module video
-(
 
-// Video Pixel Clock
-input clk // pixel clock
-// Outputs
-
-
-
-);
-endmodule
 
 module TDMS_encoder 
 // translated from VHDL orginally by MikeField <hamster@snap.net.nz>
@@ -19,7 +9,7 @@ module TDMS_encoder
 	input [7:0] data, // raw 8 bit video
 	input [1:0] c, 	// control bits {c1,c0}
 	input blank,      // !den == video blanking
-	output encoded[9:0] // encoded pixel
+	output [9:0] encoded // encoded pixel
 );
 
 logic [8:0] xored, xnored;
@@ -158,20 +148,47 @@ module video_encoder
 	                     shift_d2[0], shift_d1[0], shift_d0[0], shift_ck[0] };	
 endmodule // video_encoder
 
-module vga_sync
-// Generate a video sync
+module vga_sync // Generate a video sync
 (
-	// Clock
 	input clk,	// Pixel clk
 	input reset,
-	
-	// Video Sync Interface, pix clock sync
 	output blank,
 	output hsync,
 	output vsync
 );
 
+// hcnt, vcnt - free running raw counters for 800x525 video frame (including hvsync)
+logic [9:0] hcnt, vcnt;
+always @(posedge clk) begin
+	if( reset ) begin
+		hcnt <= 0;
+		vcnt <= 0;
+		hsync <= 1'b0;
+		vsync <= 1'b0;
+		blank <= 1'b0; // 1?
+	end else begin 
+		// free run hcnt vcnt 800 x 525
+		if( hcnt < (800-1) ) begin
+			hcnt <= hcnt + 1;
+			vcnt <= vcnt;
+		end else begin
+			hcnt <= 0;
+			if( vcnt < (525-1)) begin 
+				vcnt <= vcnt + 1;
+			end else begin
+				vcnt <= 0;
+			end
+		end
+		// Derive sync and blanking signals from the counters
+		blank <= ( hcnt >= 640 || vcnt >= 480 ) ? 1'b1 : 1'b0;
+		hsync <= ( hcnt >= 656 && hcnt < 752 ) ? 1'b1 : 1'b0;
+		vsync <= ( vcnt >= 490 && vcnt < 492 ) ? 1'b1 : 1'b0;
+	end
+end
 endmodule // vga_sync
+
+
+
 
 module test_pattern
 // Create a test patern
@@ -216,3 +233,52 @@ assign green = {8{xcnt[6]}};
 assign blue  = {8{xcnt[7]}};
 
 endmodule // test_pattern
+
+module video
+(
+	input	clk,
+	input clk5,
+	input reset,
+	output [7:0] hdmi_data
+);
+
+	
+	// sych generator
+	vga_sync _sync
+	(
+		.clk(   clk   ),	
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync )
+	);
+	
+	// test pattern gen
+	test_pattern _testgen 
+	(
+		.clk( clk     ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.red	( red   ),
+		.green( green ),
+		.blue	( blue  )
+	);
+	
+	// video encoder
+	video_encoder _encode
+	(
+		.clk( clk     ),
+		.clk5( clk5   ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.red	( red   ),
+		.green( green ),
+		.blue	( blue  ),
+		.hdmi_data( hdmi_data )
+	);
+	
+endmodule

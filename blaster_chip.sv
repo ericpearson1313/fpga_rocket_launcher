@@ -242,22 +242,47 @@ blaster _blaster (
 		       /*(hcnt[3:0] == 4'hF)?*/ 8'b0000_0001 ; //8'b00_00_00_01 ;
 	end
 
+	// HDMI reset
+	logic [3:0] hdmi_reg;
+	always @(posedge hdmi_clk) begin
+		hdmi_reg[3:0] <= { hdmi_reg[2:0], int_reset };
+	end
+	logic hdmi_reset;
+	assign hdmi_reset = hdmi_reg[3];
+
+
+	// HDMI #1
+	
 	logic [7:0] hdmi_data;
-		
-	hdmi_out _hdmi_out (
+	
+	video _video1 (
+		.clk( 		hdmi_clk  ),
+		.clk5( 		hdmi_clk5 ),
+		.reset( 		hdmi_reset ),
+		.hdmi_data( hdmi_data )
+	);
+
+	hdmi_out _hdmi_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
-		.din( hout/*hdmi_data*/ ),
+		.din( /*hout*/hdmi_data ),
 		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
 		.pad_out_b( )  // true differential, _b not req
 	);
 
-// HDMI DDR LVDS Output
+	// HDMI #2
 
 	logic [7:0] hdmi2_data;
 	
-	hdmi_out _hdmi2_out (
+	video _video2 (
+		.clk( 		hdmi_clk  ),
+		.clk5( 		hdmi_clk5 ),
+		.reset( 		hdmi_reset ),
+		.hdmi_data( hdmi2_data )
+	);
+								 
+	hdmi_out _hdmi2_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
-		.din( ~hout/*hdmi2_data*/ ),
+		.din( hdmi2_data ),
 		.pad_out( {hdmi2_d2, hdmi2_d1, hdmi2_d0, hdmi2_ck} ), 
 		.pad_out_b( )  // true differential, _b not req
 	);
