@@ -131,7 +131,7 @@ module video_encoder
 	logic [9:0] enc_red, enc_green, enc_blue;
 	
 	TDMS_encoder _enc_red(   .clk( clk ),.data( red ),  .c( 2'b00 ),         .blank( blank ),.encoded( enc_red   ) );
-	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ hsync, vsync }),.blank( blank ),.encoded( enc_blue  ) );
+	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ vsync, hsync }),.blank( blank ),.encoded( enc_blue  ) );
 	TDMS_encoder _enc_green( .clk( clk ),.data( green ),.c( 2'b00 ),         .blank( blank ),.encoded( enc_green ) );
 
 // Determine clk5 load phase;
@@ -143,9 +143,9 @@ module video_encoder
 	always @(posedge clk5) begin
 			tdelay[5:0] <= { tdelay[4:0], toggle };
 			if( tdelay[3] ^ tdelay[4] ) begin // load
+				shift_d0[9:0] <= enc_blue;
+				shift_d1[9:0] <= enc_green;
 				shift_d2[9:0] <= enc_red;
-				shift_d1[9:0] <= enc_blue;
-				shift_d0[9:0] <= enc_green;
 				shift_ck[9:0] <= 10'd0000011111;
 			end else begin
 				shift_d2[9:0] <= { 2'b00, shift_d2[9:2] };
