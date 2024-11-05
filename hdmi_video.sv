@@ -66,10 +66,10 @@ assign data_word_disparity[3:0]  = (({ 3'b110, data_word[0] }
 // Now work out what the output should be
 always @(posedge clk) begin
 	if( blank == 1'b1 ) begin
-		encoded <=  ( c[1:0] == 2'b00 ) ? 10'b0010101011 :
-						( c[1:0] == 2'b01 ) ? 10'b1101010100 :
-						( c[1:0] == 2'b10 ) ? 10'b0010101010 : 
-					   /*c[1:0] == 2'b11*/   10'b1101010101 ;
+		encoded <=  ( c[1:0] == 2'b00 ) ? 10'b1101010100 :
+						( c[1:0] == 2'b01 ) ? 10'b0010101011 :
+						( c[1:0] == 2'b10 ) ? 10'b0101010100 : 
+					   /*c[1:0] == 2'b11*/   10'b1010101011 ;
 		dc_bias <= 4'd0;
 	end else begin 
 		if( dc_bias == 4'd0 || data_word_disparity == 4'd0 ) begin // dataword has no disparity
@@ -121,7 +121,7 @@ module video_encoder
 	logic [9:0] enc_red, enc_green, enc_blue;
 	
 	TDMS_encoder _enc_red(   .clk( clk ),.data( red ),  .c( 2'b00 ),         .blank( blank ),.encoded( enc_red   ) );
-	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ vsync, hsync }),.blank( blank ),.encoded( enc_blue  ) );
+	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ !vsync, !hsync }),.blank( blank ),.encoded( enc_blue  ) );
 	TDMS_encoder _enc_green( .clk( clk ),.data( green ),.c( 2'b00 ),         .blank( blank ),.encoded( enc_green ) );
 
 // Determine clk5 load phase;
@@ -136,7 +136,7 @@ module video_encoder
 				shift_d0[9:0] <= enc_blue;
 				shift_d1[9:0] <= enc_green;
 				shift_d2[9:0] <= enc_red;
-				shift_ck[9:0] <= 10'd0000011111;
+				shift_ck[9:0] <= 10'b0000011111;
 			end else begin
 				shift_d2[9:0] <= { 2'b00, shift_d2[9:2] };
 				shift_d1[9:0] <= { 2'b00, shift_d1[9:2] };
@@ -146,7 +146,7 @@ module video_encoder
 	end
 	assign hdmi_data = { shift_d2[1], shift_d1[1], shift_d0[1], shift_ck[1], 
 	                     shift_d2[0], shift_d1[0], shift_d0[0], shift_ck[0] };	
-endmodule // video_encoder
+endmodule // video_encoder0
 
 module vga_sync // Generate a video sync
 (
@@ -226,9 +226,9 @@ end
 
 // Color outputs a function of location
 
-assign red   = {8{xcnt[6]}};
-assign green = {8{xcnt[7]}};
-assign blue  = {8{xcnt[8]}};
+assign red   = {xcnt[6],{7{ycnt[5]}}};
+assign green = {xcnt[7],{7{ycnt[6]}}};
+assign blue  = {xcnt[8],{7{ycnt[7]}}};
 
 endmodule // test_pattern
 
@@ -239,7 +239,9 @@ module video
 	input reset,
 	output [7:0] hdmi_data
 );
-
+	
+	logic [7:0] red, green, blue;
+	logic blank, hsync, vsync;
 	
 	// sych generator
 	vga_sync _sync
