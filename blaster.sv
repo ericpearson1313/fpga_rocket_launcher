@@ -31,6 +31,13 @@ module blaster
 	output logic        ad_cs,
 	input  logic  [1:0] ad_sdata_a,
 	input  logic  [1:0] ad_sdata_b,
+	
+	// ADC monitor outputs
+	output [11:0] ad_a0,
+	output [11:0] ad_a1,
+	output [11:0] ad_b0,
+	output [11:0] ad_b1,
+	
 
 	// External Current Control Input
 	input	 logic  [2:0] iset, // Current target in unit amps  
@@ -188,14 +195,14 @@ reg [4:0] sample_div;
 always @(posedge clk) begin
 	if( reset ) begin
 		sample_div <= ADC_CYCLES - 5'd1;
-	end else if( state_q == S_FIRE ) begin
+	end else if( 1/*state_q == S_FIRE*/ ) begin
 		sample_div <= (sample_div == 0) ? (ADC_CYCLES - 5'd1) : sample_div - 5'd1;
 	end else begin
 		sample_div <= sample_div;
 	end
 end
 
-assign ad_cs = ( state_q == S_FIRE && sample_div == 5'd0 ) ? 1'b1 : 1'b0;
+assign ad_cs = ( /*state_q == S_FIRE &&*/ sample_div == 5'd0 ) ? 1'b1 : 1'b0;
 
 // CS pipeline to trigger everything
 logic [20:0] cs_delay;
@@ -250,6 +257,12 @@ always @(posedge clk) begin
 end
 
 assign adc_valid = cs_delay[VALID_SEL];
+
+// Monitor outputs
+assign ad_a0 = ad_hold_a0;
+assign ad_a1 = ad_hold_a1;
+assign ad_b0 = ad_hold_b0;
+assign ad_b1 = ad_hold_b1;
 
 // ADC Mapping
 

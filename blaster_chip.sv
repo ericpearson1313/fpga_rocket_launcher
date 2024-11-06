@@ -167,7 +167,7 @@ assign pwm = 0;
 
 // Speaker is differential out gives 6Vp-p
 assign speaker_n = !speaker;
-
+logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
 
 
 blaster _blaster (
@@ -198,6 +198,10 @@ blaster _blaster (
 	.ad_cs( ad_cs ),
 	.ad_sdata_a( ad_sdata_a[1:0] ),
 	.ad_sdata_b( ad_sdata_b[1:0] ),
+	.ad_a0( ad_a0 ),
+	.ad_a1( ad_a1 ),
+	.ad_b0( ad_b0 ),
+	.ad_b1( ad_b1 ),
 
 	// Input clock
 	.clk( clk ),
@@ -261,7 +265,11 @@ blaster _blaster (
 		.clk( 		hdmi_clk  ),
 		.clk5( 		hdmi_clk5 ),
 		.reset( 		hdmi_reset ),
-		.hdmi_data( hdmi_data )
+		.hdmi_data( hdmi_data ),
+		.ad_a0( ad_a0 ),
+		.ad_a1( ad_a1 ),
+		.ad_b0( ad_b0 ),
+		.ad_b1( ad_b1 )
 	);
 
 	hdmi_out _hdmi_out ( // LDVS DDR outputs
@@ -279,7 +287,11 @@ blaster _blaster (
 		.clk( 		hdmi_clk  ),
 		.clk5( 		hdmi_clk5 ),
 		.reset( 		hdmi_reset ),
-		.hdmi_data( hdmi2_data )
+		.hdmi_data( hdmi2_data ),
+		.ad_a0( ad_a0 ),
+		.ad_a1( ad_a1 ),
+		.ad_b0( ad_b0 ),
+		.ad_b1( ad_b1 )		
 	);
 								 
 	hdmi_out _hdmi2_out ( // LDVS DDR outputs

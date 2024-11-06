@@ -256,7 +256,11 @@ module video
 	input	clk,
 	input clk5,
 	input reset,
-	output [7:0] hdmi_data
+	output [7:0] hdmi_data,
+	input [11:0] ad_a0,
+	input [11:0] ad_a1,
+	input [11:0] ad_b0,
+	input [11:0] ad_b1
 );
 	
 	logic [7:0] red, green, blue;
@@ -324,10 +328,10 @@ module video
 	logic [11:0] value_1, value_2, value_3, value_4, value_5;
 	always @(posedge clk) begin
 		if( vsync ) begin
-			value_1[11:0] <= 12'habc;
-			value_2[11:0] <= 12'h123;
-			value_3[11:0] <= 12'h456;
-			value_4[11:0] <= 12'h789;
+			value_1[11:0] <= ad_a0;
+			value_2[11:0] <= ad_a1;
+			value_3[11:0] <= ad_b0;
+			value_4[11:0] <= ad_b1;
 			value_5[11:0] <= 12'hdef;
 		end
 	end
