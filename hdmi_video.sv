@@ -226,7 +226,7 @@ always @(posedge clk) begin
 		ycnt <= ( vsync ) ? 0 : 
 		        ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
 	end
-ends
+end
 
 // Color outputs a function of location
 assign { red, green, blue } = // smpte color bars
@@ -285,6 +285,39 @@ module video
 		.blue	( blue  )
 	);
 	
+	// Font Generator
+	logic [6:0] char_x, char_y;
+	logic [15:0] char_data;
+	
+	font57 _font
+	(
+		.clk( clk ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.char_x( char_x ), // 0 to 105 chars horizontally
+		.char_y( char_y ), // o to 59 rows vertically
+		.char_data( char_data )
+	);
+	
+	assign char_bit = ( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h0 ) ? char_data['h0] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h1 ) ? char_data['h1] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h2 ) ? char_data['h2] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h3 ) ? char_data['h3] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h4 ) ? char_data['h4] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h5 ) ? char_data['h5] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h6 ) ? char_data['h6] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h7 ) ? char_data['h7] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h8 ) ? char_data['h8] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h9 ) ? char_data['h9] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hA ) ? char_data['hA] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hB ) ? char_data['hB] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hC ) ? char_data['hC] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hD ) ? char_data['hD] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hE ) ? char_data['hE] :
+							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hF ) ? char_data['hF] : 0;
+		
 	// video encoder
 	video_encoder _encode
 	(
@@ -294,9 +327,9 @@ module video
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( red   ),
-		.green( green ),
-		.blue	( blue  ),
+		.red	( red   | {8{char_bit}}),
+		.green( green | {8{char_bit}}),
+		.blue	( blue  | {8{char_bit}}),
 		.hdmi_data( hdmi_data )
 	);
 	
