@@ -317,7 +317,40 @@ module video
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1D ) ? char_data['hD] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1E ) ? char_data['hE] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1F ) ? char_data['hF] : 0;
-		
+	
+
+	
+	// snapshot display values during vsync
+	logic [11:0] value_1, value_2, value_3, value_4, value_5;
+	always @(posedge clk) begin
+		if( vsync ) begin
+			value_1[11:0] <= 12'habc;
+			value_2[11:0] <= 12'h123;
+			value_3[11:0] <= 12'h456;
+			value_4[11:0] <= 12'h789;
+			value_5[11:0] <= 12'hdef;
+		end
+	end
+	
+	// 12bit hex overlays(4)
+	logic hex_str;
+	assign hex_str = 	( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h1B ) ? char_data[value_1[11:8]] :
+							( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h1C ) ? char_data[value_1[ 7:4]] :
+							( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h1D ) ? char_data[value_1[ 3:0]] :
+							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h1B ) ? char_data[value_2[11:8]] :
+							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h1C ) ? char_data[value_2[ 7:4]] :
+							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h1D ) ? char_data[value_2[ 3:0]] :
+							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h1B ) ? char_data[value_3[11:8]] :
+							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h1C ) ? char_data[value_3[ 7:4]] :
+							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h1D ) ? char_data[value_3[ 3:0]] :
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h1B ) ? char_data[value_4[11:8]] :
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h1C ) ? char_data[value_4[ 7:4]] :
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h1D ) ? char_data[value_4[ 3:0]] :
+							( char_y[6:0] == 7'h1D && char_x[6:0] == 7'h1B ) ? char_data[value_5[11:8]] :
+							( char_y[6:0] == 7'h1D && char_x[6:0] == 7'h1C ) ? char_data[value_5[ 7:4]] :
+							( char_y[6:0] == 7'h1D && char_x[6:0] == 7'h1D ) ? char_data[value_5[ 3:0]] : 0;
+
+	
 	// video encoder
 	video_encoder _encode
 	(
@@ -327,9 +360,9 @@ module video
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( red   | {8{char_bit}}),
-		.green( green | {8{char_bit}}),
-		.blue	( blue  | {8{char_bit}}),
+		.red	( red   | {8{char_bit}} | {8{hex_str}} ),
+		.green( green | {8{char_bit}} | {8{hex_str}} ),
+		.blue	( blue  | {8{char_bit}} | {8{hex_str}} ),
 		.hdmi_data( hdmi_data )
 	);
 	
