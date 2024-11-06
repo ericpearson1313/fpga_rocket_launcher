@@ -301,22 +301,22 @@ module video
 		.char_data( char_data )
 	);
 	
-	assign char_bit = ( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h0 ) ? char_data['h0] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h1 ) ? char_data['h1] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h2 ) ? char_data['h2] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h3 ) ? char_data['h3] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h4 ) ? char_data['h4] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h5 ) ? char_data['h5] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h6 ) ? char_data['h6] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h7 ) ? char_data['h7] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h8 ) ? char_data['h8] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'h9 ) ? char_data['h9] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hA ) ? char_data['hA] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hB ) ? char_data['hB] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hC ) ? char_data['hC] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hD ) ? char_data['hD] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hE ) ? char_data['hE] :
-							( char_x[6:0] == 7'h5 && char_y[6:0] == 7'hF ) ? char_data['hF] : 0;
+	assign char_bit = ( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h10 ) ? char_data['h0] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h11 ) ? char_data['h1] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h12 ) ? char_data['h2] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h13 ) ? char_data['h3] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h14 ) ? char_data['h4] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h15 ) ? char_data['h5] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h16 ) ? char_data['h6] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h17 ) ? char_data['h7] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h18 ) ? char_data['h8] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h19 ) ? char_data['h9] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1A ) ? char_data['hA] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1B ) ? char_data['hB] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1C ) ? char_data['hC] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1D ) ? char_data['hD] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1E ) ? char_data['hE] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1F ) ? char_data['hF] : 0;
 		
 	// video encoder
 	video_encoder _encode
