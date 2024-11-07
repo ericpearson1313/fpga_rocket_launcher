@@ -336,6 +336,27 @@ module video
 		end
 	end
 	
+	// 4ch Oscilloscope mem & vga display
+	logic [7:0] scope_red, scope_green, scope_blue;
+	vga_scope _scope(
+		.clk(   clk ),
+		.reset( reset ),
+		// video sync 
+		.blank( blank ), 
+		.hsync( hsync ),
+		.vsync( vsync ),
+		// capture inputs
+		.ad_a0( ad_a0 ),
+		.ad_a1( ad_a1 ),
+		.ad_b0( ad_b0 ),
+		.ad_b1( ad_b1 ),
+		// video output
+		.red(   scope_red ),
+		.green( scope_green ),
+		.blue(  scope_blue )
+	);
+	
+	
 	// 12bit hex overlays(4)
 	logic hex_str;
 	assign hex_str = 	( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h1B ) ? char_data[value_1[11:8]] :
@@ -364,9 +385,9 @@ module video
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( red   | {8{char_bit}} | {8{hex_str}} ),
-		.green( green | {8{char_bit}} | {8{hex_str}} ),
-		.blue	( blue  | {8{char_bit}} | {8{hex_str}} ),
+		.red	( red   | {8{char_bit}} | {8{hex_str}} | scope_red   ),
+		.green( green | {8{char_bit}} | {8{hex_str}} | scope_green ),
+		.blue	( blue  | {8{char_bit}} | {8{hex_str}} | scope_blue  ),
 		.hdmi_data( hdmi_data )
 	);
 	
