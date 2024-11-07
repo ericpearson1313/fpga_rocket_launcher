@@ -110,14 +110,14 @@ module vga_scope
 		.char_data( char_data )
 	);
 	
-	assign char_bit = ( char_y[6:0] == 7'd44 && char_x[6:0] == 7'h10 ) ? char_data['hA] :
-							( char_y[6:0] == 7'd44 && char_x[6:0] == 7'h11 ) ? char_data['h0] :
-							( char_y[6:0] == 7'd45 && char_x[6:0] == 7'h10 ) ? char_data['hA] :
-							( char_y[6:0] == 7'd45 && char_x[6:0] == 7'h11 ) ? char_data['h1] :
-							( char_y[6:0] == 7'd46 && char_x[6:0] == 7'h10 ) ? char_data['hB] :
-							( char_y[6:0] == 7'd46 && char_x[6:0] == 7'h11 ) ? char_data['h0] :
-							( char_y[6:0] == 7'd47 && char_x[6:0] == 7'h10 ) ? char_data['hB] :
-							( char_y[6:0] == 7'd47 && char_x[6:0] == 7'h11 ) ? char_data['h1] : 0;
+	assign char_bit = ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
+							( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
+							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
+							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h19 ) ? char_data['h1] :
+							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h18 ) ? char_data['hB] :
+							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h18 ) ? char_data['hB] :
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
 	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
@@ -126,9 +126,9 @@ module vga_scope
 					( pel_b0 ) ? 24'h00ff00 :
 					( pel_b1 ) ? 24'h0000ff :
 					( pel_gd ) ? 24'h808080 : 
-					( char_bit && char_y[1:0] == 2'b00 ) ? 24'hFFFFFF :
-					( char_bit && char_y[1:0] == 2'b01 ) ? 24'hff0000 :
-					( char_bit && char_y[1:0] == 2'b10 ) ? 24'h00ff00 :
-					( char_bit && char_y[1:0] == 2'b11 ) ? 24'h0000ff : 24'h000000;
+					( char_bit && char_y[2:1] == 2'b10 ) ? 24'hFFFFFF :
+					( char_bit && char_y[2:1] == 2'b11 ) ? 24'hff0000 :
+					( char_bit && char_y[2:1] == 2'b00 ) ? 24'h00ff00 :
+					( char_bit && char_y[2:1] == 2'b01 ) ? 24'h0000ff : 24'h000000;
 	
 endmodule

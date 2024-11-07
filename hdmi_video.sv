@@ -374,7 +374,57 @@ module video
 							( char_y[6:0] == 7'h1D && char_x[6:0] == 7'h1B ) ? char_data[value_5[11:8]] :
 							( char_y[6:0] == 7'h1D && char_x[6:0] == 7'h1C ) ? char_data[value_5[ 7:4]] :
 							( char_y[6:0] == 7'h1D && char_x[6:0] == 7'h1D ) ? char_data[value_5[ 3:0]] : 0;
-
+					
+	// dump binary		
+	logic bin_str;
+	assign bin_str = ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h20 ) ? char_data[{3'b000,value_1[11]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h21 ) ? char_data[{3'b000,value_1[10]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h22 ) ? char_data[{3'b000,value_1[09]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h23 ) ? char_data[{3'b000,value_1[08]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h24 ) ? char_data[{3'b000,value_1[07]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h25 ) ? char_data[{3'b000,value_1[06]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h26 ) ? char_data[{3'b000,value_1[05]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h27 ) ? char_data[{3'b000,value_1[04]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_1[03]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_1[02]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_1[01]}] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_1[00]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h20 ) ? char_data[{3'b000,value_2[11]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h21 ) ? char_data[{3'b000,value_2[10]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h22 ) ? char_data[{3'b000,value_2[09]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h23 ) ? char_data[{3'b000,value_2[08]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h24 ) ? char_data[{3'b000,value_2[07]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h25 ) ? char_data[{3'b000,value_2[06]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h26 ) ? char_data[{3'b000,value_2[05]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h27 ) ? char_data[{3'b000,value_2[04]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_2[03]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_2[02]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_2[01]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_2[00]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h20 ) ? char_data[{3'b000,value_3[11]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h21 ) ? char_data[{3'b000,value_3[10]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h22 ) ? char_data[{3'b000,value_3[09]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h23 ) ? char_data[{3'b000,value_3[08]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h24 ) ? char_data[{3'b000,value_3[07]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h25 ) ? char_data[{3'b000,value_3[06]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h26 ) ? char_data[{3'b000,value_3[05]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h27 ) ? char_data[{3'b000,value_3[04]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_3[03]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_3[02]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_3[01]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_3[00]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h20 ) ? char_data[{3'b000,value_4[11]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h21 ) ? char_data[{3'b000,value_4[10]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h22 ) ? char_data[{3'b000,value_4[09]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h23 ) ? char_data[{3'b000,value_4[08]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h24 ) ? char_data[{3'b000,value_4[07]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h25 ) ? char_data[{3'b000,value_4[06]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h26 ) ? char_data[{3'b000,value_4[05]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h27 ) ? char_data[{3'b000,value_4[04]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_4[03]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_4[02]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_4[01]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_4[00]}] : 0;
 	
 	// video encoder
 	video_encoder _encode
@@ -385,9 +435,9 @@ module video
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( red   | {8{char_bit}} | {8{hex_str}} | scope_red   ),
-		.green( green | {8{char_bit}} | {8{hex_str}} | scope_green ),
-		.blue	( blue  | {8{char_bit}} | {8{hex_str}} | scope_blue  ),
+		.red	( red   | {8{char_bit}} | {8{hex_str | bin_str}} | scope_red   ),
+		.green( green | {8{char_bit}} | {8{hex_str | bin_str}} | scope_green ),
+		.blue	( blue  | {8{char_bit}} | {8{hex_str | bin_str}} | scope_blue  ),
 		.hdmi_data( hdmi_data )
 	);
 	
