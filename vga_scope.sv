@@ -55,10 +55,10 @@ module vga_scope
 
 	// Srams to hold the data
 
-	sram1024x8 _a0_mem (.clock(clk),.data(ad_a0[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0));
-	sram1024x8 _a1_mem (.clock(clk),.data(ad_a1[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1));
-	sram1024x8 _b0_mem (.clock(clk),.data(ad_b0[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0));
-	sram1024x8 _b1_mem (.clock(clk),.data(ad_b1[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1));
+	sram1024x8 _a0_mem (.clock(clk),.data(ad_a0[9:2]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0));
+	sram1024x8 _a1_mem (.clock(clk),.data(ad_a1[9:2]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1));
+	sram1024x8 _b0_mem (.clock(clk),.data(ad_b0[9:2]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0));
+	sram1024x8 _b1_mem (.clock(clk),.data(ad_b1[9:2]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1));
 	
 	// Display Logic rd_data vs ycnt to give veritcal axis
 	// Scope screen is 256 rows on bottom 480 line display and takes the full 640 width. 
@@ -127,8 +127,8 @@ module vga_scope
 					( pel_b1 ) ? 24'h0000ff :
 					( pel_gd ) ? 24'h808080 : 
 					( char_bit && char_y[1:0] == 2'b00 ) ? 24'hFFFFFF :
-					( char_bit && char_y[1:0] == 2'b00 ) ? 24'hff0000 :
-					( char_bit && char_y[1:0] == 2'b00 ) ? 24'h00ff00 :
-					( char_bit && char_y[1:0] == 2'b00 ) ? 24'h0000ff : 24'h000000;
+					( char_bit && char_y[1:0] == 2'b01 ) ? 24'hff0000 :
+					( char_bit && char_y[1:0] == 2'b10 ) ? 24'h00ff00 :
+					( char_bit && char_y[1:0] == 2'b11 ) ? 24'h0000ff : 24'h000000;
 	
 endmodule
