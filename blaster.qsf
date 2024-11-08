@@ -39,7 +39,7 @@
 
 set_global_assignment -name FAMILY "MAX 10"
 set_global_assignment -name DEVICE 10M04SCE144C8G
-set_global_assignment -name TOP_LEVEL_ENTITY blaster
+set_global_assignment -name TOP_LEVEL_ENTITY blaster_chip
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 23.1STD.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:07:06  MAY 16, 2024"
 set_global_assignment -name LAST_QUARTUS_VERSION "23.1std.1 Lite Edition"
@@ -160,72 +160,72 @@ set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -
 set_global_assignment -name SYSTEMVERILOG_FILE font57.sv
 set_global_assignment -name QIP_FILE sram1024x8.qip
 set_global_assignment -name SYSTEMVERILOG_FILE vga_scope.sv
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
-set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_b[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_b[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to arm_button
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to dump
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to fire_button
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[2]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lt3420_charge
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lt3420_done
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to pwm
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to speaker
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CIdiag
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CVdiag
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LIdiag
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LVdiag
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_cs
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to speaker_n
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to reset_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sclk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_b[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_b[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to arm_button
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to arm_led_n
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk_in
 set_instance_assignment -name IO_STANDARD LVDS_E_3R -to clk_out
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_led_n
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_n
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[7]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[6]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[5]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[4]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[3]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[2]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[1]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[0]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_ds
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_ncs
-set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_clk0
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sclk
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CIdiag
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CVdiag
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LIdiag
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LVdiag
-set_instance_assignment -name IO_STANDARD LVDS -to hdmi_ck
-set_instance_assignment -name IO_STANDARD LVDS -to hdmi_d0
-set_instance_assignment -name IO_STANDARD LVDS -to hdmi_d1
-set_instance_assignment -name IO_STANDARD LVDS -to hdmi_d2
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[7]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[8]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[6]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[5]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[4]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[2]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[6]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[5]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[4]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[2]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to tx232
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rx232
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to dump
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to fire_button
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi2_ck
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi2_d0
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi2_d1
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi2_d2
+set_instance_assignment -name IO_STANDARD LVDS -to hdmi_ck
+set_instance_assignment -name IO_STANDARD LVDS -to hdmi_d0
+set_instance_assignment -name IO_STANDARD LVDS -to hdmi_d1
+set_instance_assignment -name IO_STANDARD LVDS -to hdmi_d2
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lt3420_charge
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lt3420_done
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to pwm
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to reset_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rx232
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to speaker
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to speaker_n
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[0]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[1]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[2]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[3]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[4]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[5]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[6]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[7]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_clk0
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_ds
+set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_ncs
 set_instance_assignment -name IO_STANDARD "1.8 V" -to spi_nrst
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to tx232
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
