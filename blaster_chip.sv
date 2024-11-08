@@ -91,7 +91,7 @@ spi8_pll _spll(
 	);
 	
 assign spi_clk0 = clk4;
-assign ad_sclk  = !clk;
+assign ad_sclk  = clk;
 
 
 // delayed from fpga config and external reset d-assert
