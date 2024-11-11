@@ -4,7 +4,7 @@
 
 FPGA based model rocket digital launch controller.
 
-![Assembled and testing](pcb_v0_assy.jpg "Digital Launch Controller Prototype")
+![Assembled and testing](pcb_v0_8_assy.jpg "Digital Launch Controller Prototype")
 
 Digital constant current capacitive discharge launch controller.
 
