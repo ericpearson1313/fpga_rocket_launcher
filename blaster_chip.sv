@@ -112,6 +112,8 @@ end
 logic int_reset;
 assign int_reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted after all bit shifted in 
 
+assign spi_nrst = reset_n; 
+
 // Continuity active low
 logic cont;
 assign cont = !cont_n;

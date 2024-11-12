@@ -25,7 +25,7 @@ module adc_mem_fifo
     wire [ADDR_WIDTH-1:0]   rcnt_plus1; 
     wire [ADDR_WIDTH-1:0]   raddr;
     
-	 assign almost_empty = ( depth >= 8 ) ? 1'b1 : 1'b0;
+	 assign almost_empty = ( depth < 8 ) ? 1'b1 : 1'b0;
     assign empty = (depth == 0) ? 1'b1 : 1'b0;
     assign full  = (depth >= DATA_WORDS-3) ? 1'b1 : 1'b0;
     assign q = ( state[0] ) ? oreg : ( rwflag ) ? rwreg : ram_q; // select oreg if its holding data
