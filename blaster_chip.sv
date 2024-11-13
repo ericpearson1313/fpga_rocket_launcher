@@ -160,7 +160,7 @@ assign dump = !iset[1];
 assign cont_led = !iset[1] | cont; 
 assign arm_led = fire_button | lt3420_done ;
 assign lt3420_charge = !iset[2];
-assign pwm = 0;
+assign pwm = (fire_button && count[15:6] == 0) ? 1'b1 : 1'b0;
 
 ////////////////////////////////
 //////////////////////////////
