@@ -212,12 +212,23 @@ blaster _blaster (
 	.reset( int_reset )
 );
 
+// Digio pads.
+	logic [6:0] digio_in, digio_out;
+	ioe_pads7 _digio_pads (
+		.dout( digio_in ), 
+		.din( digio_out ),  
+		.pad_io( digio ),
+		.oe ( 7'b1101010 ) // Row drive 1653, col sense 204
+	);
+		
+		
 // Keyboard Scanner
 	logic [4:0] key;
 	key_scan( 
 		.clk( clk ),
 		.reset( reset ),
-		.keypad( digio ),
+		.keypad_in( digio_in ),
+		.keypad_out( digio_out ),
 		.key( key )
 	);
 
@@ -319,7 +330,8 @@ blaster _blaster (
 endmodule
 
 module key_scan( 
-	inout [6:0] keypad,
+	input [6:0] keypad_in,
+	output [6:0] keypad_out,
 	input	clk,
 	input reset,
 	output [4:0] key
@@ -338,19 +350,19 @@ module key_scan(
 		end else begin
 			div <= div + 1;
 			// drive 4 rows
-			keypad[1] <= ( div[11:10] == 0 ) ? 1'b1 : 1'b0;
-			keypad[6] <= ( div[11:10] == 1 ) ? 1'b1 : 1'b0;
-			keypad[5] <= ( div[11:10] == 2 ) ? 1'b1 : 1'b0;
-			keypad[3] <= ( div[11:10] == 3 ) ? 1'b1 : 1'b0;
+			keypad_out[1] <= ( div[11:10] == 0 ) ? 1'b1 : 1'b0;
+			keypad_out[6] <= ( div[11:10] == 1 ) ? 1'b1 : 1'b0;
+			keypad_out[5] <= ( div[11:10] == 2 ) ? 1'b1 : 1'b0;
+			keypad_out[3] <= ( div[11:10] == 3 ) ? 1'b1 : 1'b0;
 			// capture columns
 			if( div[9:0] == 10'h3F0 ) begin
-				col[2] <= keypad[2];
-				col[1] <= keypad[0];
-				col[0] <= keypad[4];
-				row[0] <= keypad[1];
-				row[1] <= keypad[6];
-				row[2] <= keypad[5];
-				row[3] <= keypad[3];
+				col[2] <= keypad_in[2];
+				col[1] <= keypad_in[0];
+				col[0] <= keypad_in[4];
+				row[0] <= keypad_in[1];
+				row[1] <= keypad_in[6];
+				row[2] <= keypad_in[5];
+				row[3] <= keypad_in[3];
 			end else begin
 				col <= col;
 				row <= row;

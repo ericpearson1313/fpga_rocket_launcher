@@ -138,16 +138,7 @@ set_location_assignment PIN_58 -to hdmi2_d1
 set_location_assignment PIN_57 -to "hdmi2_d1(n)"
 set_location_assignment PIN_60 -to hdmi2_d2
 set_location_assignment PIN_59 -to "hdmi2_d2(n)"
-set_global_assignment -name QSYS_FILE globclk.qsys
-set_global_assignment -name QIP_FILE spi8ddr.qip
-set_global_assignment -name SYSTEMVERILOG_FILE blaster.sv
-set_global_assignment -name SYSTEMVERILOG_FILE testbench.sv
-set_global_assignment -name SYSTEMVERILOG_FILE blaster_chip.sv
-set_global_assignment -name QIP_FILE spi8_pll.qip
-set_global_assignment -name QIP_FILE hdmi_out.qip
-set_global_assignment -name SIP_FILE hdmi_out.sip
 set_location_assignment PIN_80 -to spi_nrst
-set_global_assignment -name SYSTEMVERILOG_FILE hdmi_video.sv
 set_global_assignment -name ENABLE_OCT_DONE OFF
 set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
 set_global_assignment -name USE_CONFIGURATION_DEVICE ON
@@ -157,9 +148,6 @@ set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
 set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
-set_global_assignment -name SYSTEMVERILOG_FILE font57.sv
-set_global_assignment -name QIP_FILE sram1024x8.qip
-set_global_assignment -name SYSTEMVERILOG_FILE vga_scope.sv
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CIdiag
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CVdiag
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LIdiag
@@ -185,13 +173,13 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk_in
 set_instance_assignment -name IO_STANDARD LVDS_E_3R -to clk_out
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_led_n
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_n
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[2]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[4]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[5]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to digio[6]
+set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[0]
+set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[1]
+set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[2]
+set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[3]
+set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[4]
+set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[5]
+set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[6]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to dump
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to fire_button
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi2_ck
@@ -228,4 +216,17 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to tx232
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name VERILOG_FILE ioe_pads7.v
+set_global_assignment -name QSYS_FILE globclk.qsys
+set_global_assignment -name QIP_FILE spi8ddr.qip
+set_global_assignment -name SYSTEMVERILOG_FILE blaster.sv
+set_global_assignment -name SYSTEMVERILOG_FILE testbench.sv
+set_global_assignment -name SYSTEMVERILOG_FILE blaster_chip.sv
+set_global_assignment -name QIP_FILE spi8_pll.qip
+set_global_assignment -name QIP_FILE hdmi_out.qip
+set_global_assignment -name SIP_FILE hdmi_out.sip
+set_global_assignment -name SYSTEMVERILOG_FILE hdmi_video.sv
+set_global_assignment -name SYSTEMVERILOG_FILE font57.sv
+set_global_assignment -name QIP_FILE sram1024x8.qip
+set_global_assignment -name SYSTEMVERILOG_FILE vga_scope.sv
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
