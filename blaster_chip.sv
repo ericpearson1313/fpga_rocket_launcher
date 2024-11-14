@@ -350,20 +350,19 @@ module key_scan(
 		end else begin
 			div <= div + 1;
 			// drive 4 rows
-			keypad_out[1] <= ( div[11:10] == 0 ) ? 1'b1 : 1'b0;
-			keypad_out[6] <= ( div[11:10] == 1 ) ? 1'b1 : 1'b0;
-			keypad_out[5] <= ( div[11:10] == 2 ) ? 1'b1 : 1'b0;
-			keypad_out[3] <= ( div[11:10] == 3 ) ? 1'b1 : 1'b0;
+			keypad_out[1] <= ( div[11:10] == 0 ) ? 1'b0 : 1'b1;
+			keypad_out[6] <= ( div[11:10] == 1 ) ? 1'b0 : 1'b1;
+			keypad_out[5] <= ( div[11:10] == 2 ) ? 1'b0 : 1'b1;
+			keypad_out[3] <= ( div[11:10] == 3 ) ? 1'b0 : 1'b1;
 			// capture columns
-
-				if( div[9:0] == 10'h3F0 && { keypad_in[2], keypad_in[0], keypad_in[4]} != 0 ) begin // key pressed
-					col[2] <= keypad_in[2];
-					col[1] <= keypad_in[0];
-					col[0] <= keypad_in[4];
-					row[0] <= keypad_in[1];
-					row[1] <= keypad_in[6];
-					row[2] <= keypad_in[5];
-					row[3] <= keypad_in[3];
+				if( div[9:0] == 10'h3F0 && { keypad_in[2], keypad_in[0], keypad_in[4]} != 3'd111 ) begin // key pressed
+					col[2] <= !keypad_in[2];
+					col[1] <= !keypad_in[0];
+					col[0] <= !keypad_in[4];
+					row[0] <= !keypad_in[1];
+					row[1] <= !keypad_in[6];
+					row[2] <= !keypad_in[5];
+					row[3] <= !keypad_in[3];
 				end else begin
 					col <= col;
 					row <= row;
