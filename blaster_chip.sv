@@ -341,12 +341,14 @@ module key_scan(
 	logic [11:0] div;
 	logic [2:0] col;
 	logic [3:0] row;
+	logic flag;
 	always @(posedge clk) begin
 		if( reset ) begin
 			key <= 0;
 			div <= 0;
 			col <= 0;
 			row <= 0;
+			flag <= 0;
 		end else begin
 			div <= div + 1;
 			// drive 4 rows
@@ -355,7 +357,15 @@ module key_scan(
 			keypad_out[5] <= ( div[11:10] == 2 ) ? 1'b0 : 1'b1;
 			keypad_out[3] <= ( div[11:10] == 3 ) ? 1'b0 : 1'b1;
 			// capture columns
-				if( div[9:0] == 10'h3F0 && { keypad_in[2], keypad_in[0], keypad_in[4]} != 3'd111 ) begin // key pressed
+				if( div[11:0] == 0 ) begin
+					flag <= 0;
+					col <= col;
+					row <= row;
+				end else if( div[11:0] == 12'hfff && flag == 0 ) begin
+					col <= 0;
+					row <= 0;
+				end else if( div[9:0] == 10'h3F0 && { keypad_in[2], keypad_in[0], keypad_in[4]} != 3'd111 ) begin // key pressed
+					flag  <= 1;
 					col[2] <= !keypad_in[2];
 					col[1] <= !keypad_in[0];
 					col[0] <= !keypad_in[4];
@@ -364,10 +374,10 @@ module key_scan(
 					row[2] <= !keypad_in[5];
 					row[3] <= !keypad_in[3];
 				end else begin
+					flag <= flag;
 					col <= col;
 					row <= row;
 				end
-
 			key <= ( col[2:0] == 3'b001 && row[0] ) ? 5'h13 :
 					 ( col[2:0] == 3'b001 && row[1] ) ? 5'h16 :
 					 ( col[2:0] == 3'b001 && row[2] ) ? 5'h19 :
