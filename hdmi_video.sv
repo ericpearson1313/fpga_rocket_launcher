@@ -260,7 +260,8 @@ module video
 	input [11:0] ad_a0,
 	input [11:0] ad_a1,
 	input [11:0] ad_b0,
-	input [11:0] ad_b1
+	input [11:0] ad_b1,
+	input [4:0] key
 );
 	
 	logic [7:0] red, green, blue;
@@ -304,6 +305,20 @@ module video
 		.char_y( char_y ), // o to 59 rows vertically
 		.char_data( char_data )
 	);
+
+	// snapshot display values during vsync
+	logic [11:0] value_1, value_2, value_3, value_4, value_5;
+	logic [4:0] key_reg;
+	always @(posedge clk) begin
+		if( vsync ) begin
+			value_1[11:0] <= ad_a0;
+			value_2[11:0] <= ad_a1;
+			value_3[11:0] <= ad_b0;
+			value_4[11:0] <= ad_b1;
+			value_5[11:0] <= 12'hdef;
+			key_reg <= key;
+		end
+	end
 	
 	assign char_bit = ( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h10 ) ? char_data['h0] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h11 ) ? char_data['h1] :
@@ -320,21 +335,12 @@ module video
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1C ) ? char_data['hC] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1D ) ? char_data['hD] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1E ) ? char_data['hE] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1F ) ? char_data['hF] : 0;
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1F ) ? char_data['hF] : 
+							( char_y[6:0] == 7'h5 && char_x[6:0] == 7'h10 && key_reg[4] == 1 ) ? char_data[key_reg[3:0]] : 0;
 	
 
 	
-	// snapshot display values during vsync
-	logic [11:0] value_1, value_2, value_3, value_4, value_5;
-	always @(posedge clk) begin
-		if( vsync ) begin
-			value_1[11:0] <= ad_a0;
-			value_2[11:0] <= ad_a1;
-			value_3[11:0] <= ad_b0;
-			value_4[11:0] <= ad_b1;
-			value_5[11:0] <= 12'hdef;
-		end
-	end
+
 	
 	// 4ch Oscilloscope mem & vga display
 	logic [7:0] scope_red, scope_green, scope_blue;

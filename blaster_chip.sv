@@ -21,7 +21,7 @@ module blaster_chip
 	output [8:1] anain,
 	
 	// Bank 7, future serial port
-	output [6:0] digio,
+	inout [6:0] digio,
 	
 	// Bank 1B Rs232
 	input 		rx232,
@@ -131,14 +131,14 @@ always @(posedge hdmi_clk  ) div_c3 <= div_c3 + 1;
 always @(posedge hdmi_clk5 ) div_c4 <= div_c4 + 1;
 always @(posedge clk 		) div_c5 <= div_c5 + 1;
 
-assign digio[6:0] = { 1'b0,
-							 div_c5[9],
-						    div_c4[9],
-						    div_c3[9],
-						    div_c2[9],
-						    div_c1[9],
-						    div_c0[9],
-						    div_in[9] };
+//assign digio[6:0] = { 1'b0,
+//							 div_c5[9],
+//						    div_c4[9],
+//						    div_c3[9],
+//						    div_c2[9],
+//						    div_c1[9],
+//						    div_c0[9],
+//						    div_in[9] };
 
 
 // LEDs active low
@@ -155,6 +155,8 @@ always @(posedge clk) begin
 	count <= count + 1;
 end
 assign anain[8:5] = count[24:21];
+assign anain[8]=count[24];
+
 assign speaker = count[14]  & !iset[0];
 assign dump = !iset[1];
 assign cont_led = !iset[1] | cont; 
@@ -209,6 +211,15 @@ blaster _blaster (
 	.clk( clk ),
 	.reset( int_reset )
 );
+
+// Keyboard Scanner
+	logic [4:0] key;
+	key_scan( 
+		.clk( clk ),
+		.reset( reset ),
+		.keypad( digio ),
+		.key( key )
+	);
 
 // SPI 8 Memory interface
 
@@ -271,7 +282,8 @@ blaster _blaster (
 		.ad_a0( ad_a0 ),
 		.ad_a1( ad_a1 ),
 		.ad_b0( ad_b0 ),
-		.ad_b1( ad_b1 )
+		.ad_b1( ad_b1 ),
+		.key( key[4:0] )
 	);
 
 	hdmi_out _hdmi_out ( // LDVS DDR outputs
@@ -293,7 +305,8 @@ blaster _blaster (
 		.ad_a0( ad_a0 ),
 		.ad_a1( ad_a1 ),
 		.ad_b0( ad_b0 ),
-		.ad_b1( ad_b1 )		
+		.ad_b1( ad_b1 ),
+		.key( key[4:0] )
 	);
 								 
 	hdmi_out _hdmi2_out ( // LDVS DDR outputs
@@ -305,3 +318,56 @@ blaster _blaster (
 	
 endmodule
 
+module key_scan( 
+	inout [6:0] keypad,
+	input	clk,
+	input reset,
+	output [4:0] key
+	);
+	
+	
+	logic [11:0] div;
+	logic [2:0] col;
+	logic [3:0] row;
+	always @(posedge clk) begin
+		if( reset ) begin
+			key <= 0;
+			div <= 0;
+			col <= 0;
+			row <= 0;
+		end else begin
+			div <= div + 1;
+			// drive 4 rows
+			keypad[1] <= ( div[11:10] == 0 ) ? 1'b1 : 1'b0;
+			keypad[6] <= ( div[11:10] == 1 ) ? 1'b1 : 1'b0;
+			keypad[5] <= ( div[11:10] == 2 ) ? 1'b1 : 1'b0;
+			keypad[3] <= ( div[11:10] == 3 ) ? 1'b1 : 1'b0;
+			// capture columns
+			if( div[9:0] == 10'h3F0 ) begin
+				col[2] <= keypad[2];
+				col[1] <= keypad[0];
+				col[0] <= keypad[4];
+				row[0] <= keypad[1];
+				row[1] <= keypad[6];
+				row[2] <= keypad[5];
+				row[3] <= keypad[3];
+			end else begin
+				col <= col;
+				row <= row;
+			end
+			key <= ( col[2:0] == 3'b000 ) ? 5'h00 :
+					 ( col[2:0] == 3'b001 && row[0] ) ? 5'h13 :
+					 ( col[2:0] == 3'b001 && row[1] ) ? 5'h16 :
+					 ( col[2:0] == 3'b001 && row[2] ) ? 5'h19 :
+					 ( col[2:0] == 3'b001 && row[3] ) ? 5'h1B :
+					 ( col[2:1] == 3'b01  && row[0] ) ? 5'h12 :
+					 ( col[2:1] == 3'b01  && row[1] ) ? 5'h15 :
+					 ( col[2:1] == 3'b01  && row[2] ) ? 5'h18 :
+					 ( col[2:1] == 3'b01  && row[3] ) ? 5'h10 :
+					 ( col[2  ] == 3'b1   && row[0] ) ? 5'h11 :
+					 ( col[2  ] == 3'b1   && row[1] ) ? 5'h14 :
+					 ( col[2  ] == 3'b1   && row[2] ) ? 5'h17 :
+					 ( col[2  ] == 3'b1   && row[3] ) ? 5'h1A : 5'h0;		
+		end
+	end	
+endmodule
