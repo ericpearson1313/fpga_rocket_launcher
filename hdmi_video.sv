@@ -336,7 +336,7 @@ module video
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1D ) ? char_data['hD] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1E ) ? char_data['hE] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1F ) ? char_data['hF] : 
-							( char_y[6:0] == 7'h5 && char_x[6:0] == 7'h10 && key_reg[4] == 1 ) ? char_data[key_reg[3:0]] : 0;
+							( char_y[6:0] == 7'h5 && char_x[6:0] == 7'h1D && key_reg[4] == 1 ) ? char_data[key_reg[3:0]] : 0;
 	
 
 	

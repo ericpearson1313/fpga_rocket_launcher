@@ -355,20 +355,21 @@ module key_scan(
 			keypad_out[5] <= ( div[11:10] == 2 ) ? 1'b1 : 1'b0;
 			keypad_out[3] <= ( div[11:10] == 3 ) ? 1'b1 : 1'b0;
 			// capture columns
-			if( div[9:0] == 10'h3F0 ) begin
-				col[2] <= keypad_in[2];
-				col[1] <= keypad_in[0];
-				col[0] <= keypad_in[4];
-				row[0] <= keypad_in[1];
-				row[1] <= keypad_in[6];
-				row[2] <= keypad_in[5];
-				row[3] <= keypad_in[3];
-			end else begin
-				col <= col;
-				row <= row;
-			end
-			key <= ( col[2:0] == 3'b000 ) ? 5'h00 :
-					 ( col[2:0] == 3'b001 && row[0] ) ? 5'h13 :
+
+				if( div[9:0] == 10'h3F0 && { keypad_in[2], keypad_in[0], keypad_in[4]} != 0 ) begin // key pressed
+					col[2] <= keypad_in[2];
+					col[1] <= keypad_in[0];
+					col[0] <= keypad_in[4];
+					row[0] <= keypad_in[1];
+					row[1] <= keypad_in[6];
+					row[2] <= keypad_in[5];
+					row[3] <= keypad_in[3];
+				end else begin
+					col <= col;
+					row <= row;
+				end
+
+			key <= ( col[2:0] == 3'b001 && row[0] ) ? 5'h13 :
 					 ( col[2:0] == 3'b001 && row[1] ) ? 5'h16 :
 					 ( col[2:0] == 3'b001 && row[2] ) ? 5'h19 :
 					 ( col[2:0] == 3'b001 && row[3] ) ? 5'h1B :
@@ -379,7 +380,7 @@ module key_scan(
 					 ( col[2  ] == 3'b1   && row[0] ) ? 5'h11 :
 					 ( col[2  ] == 3'b1   && row[1] ) ? 5'h14 :
 					 ( col[2  ] == 3'b1   && row[2] ) ? 5'h17 :
-					 ( col[2  ] == 3'b1   && row[3] ) ? 5'h1A : 5'h0;		
+					 ( col[2  ] == 3'b1   && row[3] ) ? 5'h1A : 5'h00;		
 		end
 	end	
 endmodule
