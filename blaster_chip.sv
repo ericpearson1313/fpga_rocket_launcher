@@ -90,9 +90,7 @@ spi8_pll _spll(
 	.c4	  (hdmi_clk5)  // HDMI ddr clock 5x
 	);
 	
-assign spi_clk0 = clk4;
 assign ad_sclk  = !clk;
-
 
 // delayed from fpga config and external reset d-assert
 
@@ -112,7 +110,6 @@ end
 logic int_reset;
 assign int_reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted after all bit shifted in 
 
-assign spi_nrst = reset_n; 
 
 // Continuity active low
 logic cont;
