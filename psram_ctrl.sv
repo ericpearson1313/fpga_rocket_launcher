@@ -12,12 +12,15 @@ module psram_ctrl(
 		// Run on Clk4x
 		output [7:0] 	spi_data_out,
 		output   		spi_data_oe,
+		output [1:0]   spi_le_out, // match delay
 		input  [7:0] 	spi_data_in,
+		input  [1:0]	spi_le_in, // match IO registering
 		output			spi_clk,
 		output			spi_cs,
 		output			spi_rwds_out,
 		output			spi_rsds_oe,
 		input				spi_rwds_in,
+
 		
 		// Status
 		output			psram_ready,	// Indicates control is ready to accept requests
@@ -347,6 +350,35 @@ module psram_ctrl(
 			delay <= delay - 1;
 		end
    end
+
+
+/////////////////////
+//  Read Data Latch
+/////////////////////
+
+	
+		logic [1:0] le_inreg
+		logic [7:0] data_inreg;
+		logic [7:0] data_le0_reg;
+		logic [15:0] data_le1_reg;
+		logic [3:0] delay_le1;
+		
+		always @(posedge clk4) begin
+			// register LE and data inputs 
+			le_inreg <= spi_le_in;
+			data_inreg <= spi_data_in;
+			// Latch data
+			data_le0_reg <= ( le_inreg[0] ) ? data_inreg : data_le0_reg;
+			data_le1_reg <= ( le_inreg[1] ) ? { data_le0_reg, data_inreg };
+			// LE1 delay chain
+			delay_le1[3:0] <= { |delay_le[2:0] | le_inreg[1], delay_le1[1:0], le_inreg[1] };
+		end
+		
+		always @(posedge clk) begin
+			rdata <= ( delay_le1[3] ) ? data_le1_reg ? rdata;
+			rvalid <=  delay_le1[3];
+		end
+
 	
 endmodule
 	
