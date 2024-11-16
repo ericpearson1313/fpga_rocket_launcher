@@ -5,11 +5,11 @@ module psram_ctrl(
 		// System
 		
 		input clk,
-		input clkx4,
+		input clk4,
 		input reset,
 
 		// Psram spi8 interface
-		// Run on Clk4x
+		// Run on Clk4. Wire up to pads (registered)
 		output [7:0] 	spi_data_out,
 		output   		spi_data_oe,
 		output [1:0]   spi_le_out, // match delay
@@ -21,7 +21,6 @@ module psram_ctrl(
 		output			spi_rsds_oe,
 		input				spi_rwds_in,
 
-		
 		// Status
 		output			psram_ready,	// Indicates control is ready to accept requests
 		output [31:0]	dev_id,			// Should be should be 32'h0E96_0001
@@ -357,7 +356,7 @@ module psram_ctrl(
 /////////////////////
 
 	
-		logic [1:0] le_inreg
+		logic [1:0] le_inreg;
 		logic [7:0] data_inreg;
 		logic [7:0] data_le0_reg;
 		logic [15:0] data_le1_reg;
@@ -369,14 +368,14 @@ module psram_ctrl(
 			data_inreg <= spi_data_in;
 			// Latch data
 			data_le0_reg <= ( le_inreg[0] ) ? data_inreg : data_le0_reg;
-			data_le1_reg <= ( le_inreg[1] ) ? { data_le0_reg, data_inreg };
+			data_le1_reg <= ( le_inreg[1] ) ? { data_le0_reg, data_inreg } : data_le1_reg;
 			// LE1 delay chain
-			delay_le1[3:0] <= { |delay_le[2:0] | le_inreg[1], delay_le1[1:0], le_inreg[1] };
+			delay_le1[3:0] <= { |delay_le1[2:0] | le_inreg[1], delay_le1[1:0], le_inreg[1] };
 		end
 		
 		always @(posedge clk) begin
-			rdata <= ( delay_le1[3] ) ? data_le1_reg ? rdata;
-			rvalid <=  delay_le1[3];
+			rdata  <= ( delay_le1[3] ) ? data_le1_reg : rdata;
+			rvalid <=   delay_le1[3];
 		end
 
 	

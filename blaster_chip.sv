@@ -49,10 +49,10 @@ module blaster_chip
 	
 	// SPI8 Bus
 	inout  wire [7:0]  spi8_data_pad,   //   pad_io.export
-	output logic spi_clk0,
-	output logic spi_ncs,
-	inout  wire  spi_ds,
-	output logic spi_nrst,
+	inout  wire spi_clk0,
+	inout  wire spi_ncs,
+	inout  wire spi_ds,
+	inout  wire spi_nrst,
 	
 	// HDMI Output 1 (Tru LVDS)
 	output logic		hdmi_d0,
@@ -234,19 +234,39 @@ blaster _blaster (
 
 // SPI 8 Memory interface
 
-	logic [15:0] spi_dout; 
-	logic [15:0] spi_din;       
-	logic spi_oe;       
+	logic [7:0] 	spi_data_out;
+	logic   			spi_data_oe;
+	logic [1:0]   	spi_le_out; // match delay
+	logic [7:0] 	spi_data_in;
+	logic [1:0]		spi_le_in; // match IO registering
+	logic				spi_clk;
+	logic				spi_cs;
+	logic				spi_rwds_out;
+	logic				spi_rsds_oe;
+	logic				spi_rwds_in;
+	
+	// feedback delay le 2 cycles to match IO
+	logic [1:0] 	spi_le_reg;
+	always @(posedge clk4) spi_le_reg <= spi_le_out;
+	always @(posedge clk4) spi_le_in  <= spi_le_reg;
+	
+	// Registered I/O pad interfaces
+	reg_ioe _spi_d0 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[0] ), .din( spi_data_out[0] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[0] ) );
+	reg_ioe _spi_d1 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[1] ), .din( spi_data_out[1] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[1] ) );
+	reg_ioe _spi_d2 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[2] ), .din( spi_data_out[2] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[2] ) );
+	reg_ioe _spi_d3 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[3] ), .din( spi_data_out[3] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[3] ) );
+	reg_ioe _spi_d4 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[4] ), .din( spi_data_out[4] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[4] ) );
+	reg_ioe _spi_d5 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[5] ), .din( spi_data_out[5] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[5] ) );
+	reg_ioe _spi_d6 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[6] ), .din( spi_data_out[6] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[6] ) );
+	reg_ioe _spi_d7 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[7] ), .din( spi_data_out[7] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[7] ) );
+	reg_ioe _spi_ds ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_rwds_in    ), .din( spi_rwds_out    ), .oe( spi_rwds_oe ), .pad_io( spi_ds ) );
+	reg_ioe _spi_clk( .inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( spi_clk  ), .oe( 1'b1 ), .pad_io( spi_clk0 ) );
+	reg_ioe _spi_ncs( .inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( !spi_cs  ), .oe( 1'b1 ), .pad_io( spi_ncs  ) ); // invert CS on output
+	reg_ioe _spi_nrst(.inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( n_reset  ), .oe( 1'b1 ), .pad_io( spi_nrst ) ); // send out nreset
 
-	spi8ddr _spi8ddr (
-		.inclock         (clk4),    //  inclock.export
-		.outclock        (clk4),    // outclock.export
-		.dout            (spi_dout[15:0]),        //     dout.export
-		.din             (spi_din[15:0]),         //      din.export
-		.pad_io          (spi8_data_pad),      //   pad_io.export
-		.oe              ({8{spi_oe}})           //       oe.export
-	);
-
+	
+	
+	
 // HDMI DDR LVDS Output
 
 	logic [3:0] hcnt;
