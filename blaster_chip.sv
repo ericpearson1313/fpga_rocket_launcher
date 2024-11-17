@@ -107,8 +107,8 @@ always @(posedge clk) begin
 		end
 end
 
-logic int_reset;
-assign int_reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted after all bit shifted in 
+logic reset;
+assign reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted after all bit shifted in 
 
 
 // Continuity active low
@@ -146,7 +146,7 @@ assign cont_led_n = !cont_led;
 
 // AIN
 assign anain[3:1] = iset[2:0]; // active low switch inputs
-assign anain[4] = !int_reset;
+assign anain[4] = !reset;
 logic [24:0] count;
 always @(posedge clk) begin
 	count <= count + 1;
@@ -206,7 +206,7 @@ blaster _blaster (
 
 	// Input clock
 	.clk( clk ),
-	.reset( int_reset )
+	.reset( reset )
 );
 
 // Digio pads.
@@ -228,6 +228,8 @@ blaster _blaster (
 		.keypad_out( digio_out ),
 		.key( key )
 	);
+	
+	
 
 // SPI 8 Memory interface
 
@@ -239,9 +241,64 @@ blaster _blaster (
 	logic				spi_clk;
 	logic				spi_cs;
 	logic				spi_rwds_out;
-	logic				spi_rsds_oe;
+	logic				spi_rwds_oe;
 	logic				spi_rwds_in;
 	
+	// SPI Controller
+	
+	logic psram_ready;
+	logic [17:0] rdata;
+	logic rvalid;
+	
+	psram_ctrl _psram_ctl(
+		// System
+		.clk		( clk ),
+		.clk4		( clk4 ),
+		.reset	( reset ),
+		// Psram spi8 interface
+		.spi_data_out( spi_data_out ),
+		.spi_data_oe(  spi_data_oe  ),
+		.spi_le_out( 	spi_le_out 	 ),
+		.spi_data_in( 	spi_data_in  ),
+		.spi_le_in( 	spi_le_in 	 ),
+		.spi_clk( 		spi_clk 		 ),
+		.spi_cs( 		spi_cs 		 ),
+		.spi_rwds_out( spi_rwds_out ),
+		.spi_rwds_oe( 	spi_rwds_oe  ),
+		.spi_rwds_in( 	spi_rwds_in  ),
+		// Status
+		.psram_ready( psram_ready ),	// Indicates control is ready to accept requests
+		// AXI4 R/W port
+		// Write Data
+		.wdata( 16'h0000 ),
+		.wvalid( 1'b1 ), // always avail)
+		.wready(      ),
+		// Write Addr
+		.awaddr( 25'h000_0000 ),
+		.awlen( 8'h08 ),	// assumed 8
+		.awvalid( 1'b0 ), // write valid
+		.awready( ),
+		// Write Response
+		.bready( 1'b1 ),	// Assume 1, non blocking
+		.bvalid(  ),
+		.bresp(  ),
+		// Read Addr
+		.araddr( 25'h000_0000 ),
+		.arlen( 8'h04 ),	// assumed 4
+		.arvalid( 1'b0 ), // read valid	
+		.arready(),
+		// Read Data
+		.rdata( rdata[17:0] ),
+		.rvalid( rvalid ),
+		.rready( 1'b1 ) // Assumed 1, non blocking
+	);	
+
+	// Capture ID regs 
+	logic [35:0] id_reg;
+	always @(posedge clk) begin
+		id_reg <= ( !psram_ready && rvalid ) ? { id_reg[17:0], rdata[17:0] } : id_reg;
+	end
+		
 	// feedback delay le 2 cycles to match IO
 	logic [1:0] 	spi_le_reg;
 	always @(posedge clk4) spi_le_reg <= spi_le_out;
@@ -260,9 +317,6 @@ blaster _blaster (
 	reg_ioe _spi_clk( .inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( spi_clk  ), .oe( 1'b1 ), .pad_io( spi_clk0 ) );
 	reg_ioe _spi_ncs( .inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( !spi_cs  ), .oe( 1'b1 ), .pad_io( spi_ncs  ) ); // invert CS on output
 	reg_ioe _spi_nrst(.inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( n_reset  ), .oe( 1'b1 ), .pad_io( spi_nrst ) ); // send out nreset
-
-	
-	
 	
 // HDMI DDR LVDS Output
 
@@ -292,7 +346,7 @@ blaster _blaster (
 	// HDMI reset
 	logic [3:0] hdmi_reg;
 	always @(posedge hdmi_clk) begin
-		hdmi_reg[3:0] <= { hdmi_reg[2:0], int_reset };
+		hdmi_reg[3:0] <= { hdmi_reg[2:0], reset };
 	end
 	logic hdmi_reset;
 	assign hdmi_reset = hdmi_reg[3];

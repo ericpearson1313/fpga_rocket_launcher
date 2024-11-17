@@ -12,47 +12,58 @@ module psram_ctrl(
 		// Run on Clk4. Wire up to pads (registered)
 		output [7:0] 	spi_data_out,
 		output   		spi_data_oe,
-		output [1:0]   	spi_le_out, // match delay
+		output [1:0]   spi_le_out, // match delay
 		input  [7:0] 	spi_data_in,
 		input  [1:0]	spi_le_in, // match IO registering
 		output			spi_clk,
 		output			spi_cs,
 		output			spi_rwds_out,
 		output			spi_rwds_oe,
-		input			spi_rwds_in,
+		input				spi_rwds_in,
 
 		// Status
 		output			psram_ready,	// Indicates control is ready to accept requests
-		output [31:0]	dev_id,			// Should be should be 32'h0E96_0001
 		
 		// AXI4 R/W port
 		// Write Data
 		input	[15:0]	wdata,
-		input			wvalid,	// assumed 1, non blocking, data is available
+		input				wvalid,	// assumed 1, non blocking, data is available
 		output			wready,
 		// Write Addr
 		input	[24:0]	awaddr,
-		input	[7:0]	awlen,	// assumed 8
-		input			awvalid, 
+		input	[7:0]		awlen,	// assumed 8
+		input				awvalid, 
 		output			awready,
 		// Write Response
-		input			bready,	// Assume 1, non blocking
+		input				bready,	// Assume 1, non blocking
 		output			bvalid,
 		output	[1:0]	bresp,
 		// Read Addr
 		input	[24:0]	araddr,
 		input	[7:0] 	arlen,	// assumed 4
-		input			arvalid,	
+		input				arvalid,	
 		output			arready,
 		// Read Data
 		output [15:0]	rdata,
 		output 			rvalid,
-		input			rready // Assumed 1, non blocking
+		input			   rready // Assumed 1, non blocking
 		);
 	
 	// Store clocked commands;
-	logic [4:0][0:8][0:24][15:0] cmds;
+	//     CMD  SIG State phase Nib  (input)
+	logic [0:4][0:8][0:24][0:3][3:0] cmds;
+	// Command shift registers
+	logic [0:4][0:24] cmd_sreg, cmd_sreg_d;
 	
+	// Anded command reg and command bits, ready for Reduction OR
+	//     SIG   Nib phase CMD State   (output)
+	logic  [0:8][3:0][0:3][0:4][0:24] gated_cmds;
+	logic  [0:8][3:0][0:3]            cmds_reg;
+	logic  [0:8][3:0]						 cmds_x4;
+	
+	// AXI address registers
+	logic [24:0] awaddr_reg;
+	logic [24:0] araddr_reg;
 	
 	// Commands
 	parameter CRESET = 0;
@@ -70,93 +81,192 @@ module psram_ctrl(
 	parameter ISOE = 6; // { RWDS, OE } for rwds signal
 	parameter ILST = 7; // Last 
 	parameter IRDY = 8; // Input write data ready signal
-   
-   //                                | Reset_En        | Soft Reset and then delay
-	//                                | CMD    | CS     | CMD    |
-	//                                | 0      | 1      | 2      |
-	assign cmds[CRESET][ICLK][0:02] = {16'h0110,16'h0000,16'h0110};
-	assign cmds[CRESET][ICS ][0:02] = {16'h1111,16'h0000,16'h1111};
-	assign cmds[CRESET][IDOE][0:02] = {16'h1111,16'h0000,16'h1111};
-	assign cmds[CRESET][IDQH][0:02] = {16'h6666,16'h0000,16'h9999};
-	assign cmds[CRESET][IDQL][0:02] = {16'h6666,16'h0000,16'h9999};
-	assign cmds[CRESET][ILE ][0:02] = 0;
-	assign cmds[CRESET][ISOE][0:02] = 0;
-	assign cmds[CRESET][ILST][0:02] = {16'h0000,16'h0000,16'h1111};
-	assign cmds[CRESET][IRDY][0:02] = 0;
 	
-    //                                | Read ID Lat=7
-	//                                | CMD    | A0     | A1     | L1     | L2     | L3     | L4     | L5     | L6     | L7     | L1     | L2     | L3     | L4     | L5     | L6     | L7     | ID0    | ID1    | del    |
-	//                                | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      | 8      | 9      | 10     | 11     | 12     | 13     | 14     | 15     | 16     | 17     | 18     | 19     |
-	assign cmds[CRDID7][ICLK][0:19] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0000};
-	assign cmds[CRDID7][ICS ][0:19] = {16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000};
-	assign cmds[CRDID7][IDOE][0:19] = {16'h1111,16'h1111,16'h1111,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
-	assign cmds[CRDID7][IDQH][0:19] = {16'h9999,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
-	assign cmds[CRDID7][IDQL][0:19] = {16'hFFFF,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
-	assign cmds[CRDID7][ILE ][0:19] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0010,16'h2010,16'h2000};
-	assign cmds[CRDID7][ISOE][0:19] = 0;
-	assign cmds[CRDID7][ILST][0:19] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
-	assign cmds[CRDID7][IRDY][0:19] = 0;
+	// Re-arrange Read address for command insertion
+	logic [7:0][3:0] ar;  // 8 byte aligned read address
+	logic [15:0] arh0, arl0, arh1, arl1;
+	assign ar   = { 7'h00, araddr_reg[24:3], 3'b000 };  // 8 byte aligned read address
+	assign arh0 = { ar[7], ar[7], ar[5], ar[5] };
+	assign arl0 = { ar[6], ar[6], ar[4], ar[4] };
+	assign arh1 = { ar[3], ar[3], ar[1], ar[1] };
+	assign arl1 = { ar[2], ar[2], ar[0], ar[0] };
+	
+	// Re-arrange write address for command insertion
+	logic [7:0][3:0] aw;
+	logic [15:0] awh0, awl0, awh1, awl1;
+	assign aw   = { 7'h00, awaddr_reg[24:4], 4'b0000 };  // 16 byte aligned write address	
+	assign awh0 = { aw[7], aw[7], aw[5], aw[5] };
+	assign awl0 = { aw[6], aw[6], aw[4], aw[4] };
+	assign awh1 = { aw[3], aw[3], aw[1], aw[1] };
+	assign awl1 = { aw[2], aw[2], aw[0], aw[0] };	
+	
+	// Re-arrange write data for command insertion
+	logic [15:0] d, dh, dl;
+	assign d = wdata;
+	assign dh = { {2{d[15:12]}}, {2{d[7:4]}} };
+	assign dl = { {2{d[11: 8]}}, {2{d[3:0]}} };   
+	
+	///////////////////////
+	/// Command Chains
+	///////////////////////
+	
+	always_comb begin : _command_decode
+		// default inputs to zero
+		cmds = 0; 
+		//   						      | Reset_En        | Soft Reset and then delay
+		//   RESET   	            | CMD    | CS     | CMD    |
+		//                         | 0      | 1      | 2      |
+		cmds[CRESET][ICLK][0:02] = {16'h0110,16'h0000,16'h0110};
+		cmds[CRESET][ICS ][0:02] = {16'h1111,16'h0000,16'h1111};
+		cmds[CRESET][IDOE][0:02] = {16'h1111,16'h0000,16'h1111};
+		cmds[CRESET][IDQH][0:02] = {16'h6666,16'h0000,16'h9999};
+		cmds[CRESET][IDQL][0:02] = {16'h6666,16'h0000,16'h9999};
+		cmds[CRESET][ILE ][0:02] = 0;
+		cmds[CRESET][ISOE][0:02] = 0;
+		cmds[CRESET][ILST][0:02] = {16'h0000,16'h0000,16'h1111};
+		cmds[CRESET][IRDY][0:02] = 0;
+		//                         | Read ID Lat=7
+		//   READ ID	            | CMD    | A0     | A1     | L1     | L2     | L3     | L4     | L5     | L6     | L7     | L1     | L2     | L3     | L4     | L5     | L6     | L7     | ID0    | ID1    | del    |
+		//                         | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      | 8      | 9      | 10     | 11     | 12     | 13     | 14     | 15     | 16     | 17     | 18     | 19     |
+		cmds[CRDID7][ICLK][0:19] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0000};
+		cmds[CRDID7][ICS ][0:19] = {16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000};
+		cmds[CRDID7][IDOE][0:19] = {16'h1111,16'h1111,16'h1111,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
+		cmds[CRDID7][IDQH][0:19] = {16'h9999,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
+		cmds[CRDID7][IDQL][0:19] = {16'hFFFF,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
+		cmds[CRDID7][ILE ][0:19] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0010,16'h2010,16'h2000};
+		cmds[CRDID7][ISOE][0:19] = 0;
+		cmds[CRDID7][ILST][0:19] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
+		cmds[CRDID7][IRDY][0:19] = 0;
+		//                         | WriteEn|        | Write CR0 = 8FEF to give LAT=3
+		//   WRITE Latency 3       | CMD    | CS     | CMD    | A0     | A1     | CR     
+		//                         | 0      | 1      | 2      | 3      | 4      | 5      
+		cmds[CWRLAT][ICLK][0:05] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110};
+		cmds[CWRLAT][ICS ][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
+		cmds[CWRLAT][IDOE][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
+		cmds[CWRLAT][IDQH][0:05] = {16'h0000,16'h0000,16'h7777,16'h0000,16'h0000,16'h88EE};
+		cmds[CWRLAT][IDQL][0:05] = {16'h6666,16'h0000,16'h1111,16'h0000,16'h0000,16'hFFFF};
+		cmds[CWRLAT][ILE ][0:05] = 0;
+		cmds[CWRLAT][ISOE][0:05] = 0;
+		cmds[CWRLAT][ILST][0:05] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
+		cmds[CWRLAT][IRDY][0:05] = 0;
+		//                         | Read Mem, BL=8
+		//   Read Burst 8          | CMD    | A0     | A1     | L1     | L2     | L3     | L1     | L2     | L3     | R0     | R1     | R2     | R3     | del   |
+		//                         | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      | 8      | 9      | 10     | 11     | 12     | 13     |
+		cmds[CRDMEM][ICLK][0:13] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0000};
+		cmds[CRDMEM][ICS ][0:13] = {16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000};
+		cmds[CRDMEM][IDOE][0:13] = {16'h1111,16'h1111,16'h1111,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
+		cmds[CRDMEM][IDQH][0:13] = {16'hEEEE, arh0   , arh1   ,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
+		cmds[CRDMEM][IDQL][0:13] = {16'hEEEE, arl0   , arl1   ,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
+		cmds[CRDMEM][ILE ][0:13] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0010,16'h2010,16'h2010,16'h2010,16'h2000};
+		cmds[CRDMEM][ISOE][0:13] = 0;
+		cmds[CRDMEM][ILST][0:13] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
+		cmds[CRDMEM][IRDY][0:13] = 0;
+		//                         | Write Mem, BL=16
+		//   WRITE Burst           | CMD    | A0     | A1     | L1     | L2     | L3     | L1     | L2     | L3     | W0     | W1     | W2     | W3     | W4     | W5     | W6     | W7     |
+		//                         | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      | 8      | 9      | 10     | 11     | 12     | 13     | 14     | 15     | 16     |
+		cmds[CWRMEM][ICLK][0:16] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110};
+		cmds[CWRMEM][ICS ][0:16] = {16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111};
+		cmds[CWRMEM][IDOE][0:16] = {16'h1111,16'h1111,16'h1111,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111};
+		cmds[CWRMEM][IDQH][0:16] = {16'hDDDD, awh0   , awh1   ,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,  dh    ,  dh    ,  dh    ,  dh    ,  dh    ,  dh    ,  dh    ,  dh    };
+		cmds[CWRMEM][IDQL][0:16] = {16'hEEEE, awl0   , awl1   ,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,  dl    ,  dl    ,  dl    ,  dl    ,  dl    ,  dl    ,  dl    ,  dl    };
+		cmds[CWRMEM][ILE ][0:16] = 0;
+		cmds[CWRMEM][ISOE][0:16] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111};
+		cmds[CWRMEM][ILST][0:16] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
+		cmds[CWRMEM][IRDY][0:16] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000};
+	end
+	
+	
+	// Add command gating and pack for Reduction 
+	always_comb begin : _cmd_gate
+		for( int cmd_idx = 0; cmd_idx <= 4; cmd_idx++ )
+			for( int sig_idx = 0; sig_idx <= 8; sig_idx++ )
+				for( int st_idx = 0; st_idx <= 24; st_idx++ )
+					for( int ph_idx = 0; ph_idx <= 3; ph_idx++ )
+						for( int nib_idx = 0; nib_idx <= 3; nib_idx++ ) begin
+							gated_cmds[sig_idx][nib_idx][ph_idx][cmd_idx][st_idx] = cmd_sreg[cmd_idx][st_idx] & cmds[cmd_idx][sig_idx][st_idx][ph_idx][nib_idx];
+						end
+	end
+	
+	// Registered Reduction ORs
+	always @(posedge clk) begin : _cmd_reduction_regs
+		for( int sig_idx = 0; sig_idx <= 8; sig_idx++ )
+			for( int ph_idx = 0; ph_idx <= 3; ph_idx++ )
+				for( int nib_idx = 0; nib_idx <= 3; nib_idx++ ) begin
+							cmds_reg[sig_idx][nib_idx][ph_idx] <= |gated_cmds[sig_idx][nib_idx][ph_idx]; // Reduction OR 
+				end
+	end
+
+	// Determine clk4 phase  0.1.2.3 in order
+	logic [3:0] ph; 
+	phase4 _phase4 ( .clk(clk), .clk4(clk4), .phase(ph) );
+
+	// Phase Muxing to 4x rate
+	always_comb begin : _cmd_phase_mux
+		for( int sig_idx = 0; sig_idx <= 8; sig_idx++ )
+			for( int nib_idx = 0; nib_idx <= 3; nib_idx++ ) begin
+				cmds_x4[sig_idx][nib_idx] = ph[0] & cmds_reg[sig_idx][nib_idx][0] |
+													 ph[1] & cmds_reg[sig_idx][nib_idx][1] |
+													 ph[2] & cmds_reg[sig_idx][nib_idx][2] |
+													 ph[3] & cmds_reg[sig_idx][nib_idx][3] ;
+			end
+	end
 		
-	//                                | WriteEn|        | Write CR0 = 8FEF to give LAT=3
-	//                                | CMD    | CS     | CMD    | A0     | A1     | CR     
-	//                                | 0      | 1      | 2      | 3      | 4      | 5      
-	assign cmds[CWRLAT][ICLK][0:05] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110};
-	assign cmds[CWRLAT][ICS ][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
-	assign cmds[CWRLAT][IDOE][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
-	assign cmds[CWRLAT][IDQH][0:05] = {16'h0000,16'h0000,16'h7777,16'h0000,16'h0000,16'h88EE};
-	assign cmds[CWRLAT][IDQL][0:05] = {16'h6666,16'h0000,16'h1111,16'h0000,16'h0000,16'hFFFF};
-	assign cmds[CWRLAT][ILE ][0:05] = 0;
-	assign cmds[CWRLAT][ISOE][0:05] = 0;
-	assign cmds[CWRLAT][ILST][0:05] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
-    assign cmds[CWRLAT][IRDY][0:05] = 0;
-
-	logic [7:0][3:0] ar   = { 7'h00, araddr[24:3], 3'b000 };  // 8 byte aligned read address
-	logic [15:0] arh0 = { ar[7], ar[7], ar[5], ar[5] };
-	logic [15:0] arl0 = { ar[6], ar[6], ar[4], ar[4] };
-	logic [15:0] arh1 = { ar[3], ar[3], ar[1], ar[1] };
-	logic [15:0] arl1 = { ar[2], ar[2], ar[0], ar[0] };
-	
-
-	//                                | Read Mem, BL=8
-	//                                | CMD    | A0     | A1     | L1     | L2     | L3     | L1     | L2     | L3     | R0     | R1     | R2     | R3     | del   |
-	//                                | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      | 8      | 9      | 10     | 11     | 12     | 13     |
-	assign cmds[CRDMEM][ICLK][0:13] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0000};
-	assign cmds[CRDMEM][ICS ][0:13] = {16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000};
-	assign cmds[CRDMEM][IDOE][0:13] = {16'h1111,16'h1111,16'h1111,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
-	assign cmds[CRDMEM][IDQH][0:13] = {16'hEEEE, arh0   , arh1   ,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
-	assign cmds[CRDMEM][IDQL][0:13] = {16'hEEEE, arl0   , arl1   ,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000};
-	assign cmds[CRDMEM][ILE ][0:13] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0010,16'h2010,16'h2010,16'h2010,16'h2000};
-	assign cmds[CRDMEM][ISOE][0:13] = 0;
-	assign cmds[CRDMEM][ILST][0:13] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
-    assign cmds[CRDMEM][IRDY][0:13] = 0;
-	
-
-	logic [7:0][3:0] aw   = { 7'h00, awaddr[24:4], 4'b0000 };  // 16 byte aligned write address	
-	logic [15:0] awh0 = { aw[7], aw[7], aw[5], aw[5] };
-	logic [15:0] awl0 = { aw[6], aw[6], aw[4], aw[4] };
-	logic [15:0] awh1 = { aw[3], aw[3], aw[1], aw[1] };
-	logic [15:0] awl1 = { aw[2], aw[2], aw[0], aw[0] };
-
-	
-	logic [15:0] d = wdata;
-	logic [15:0] dh = { {2{d[15:12]}}, {2{d[7:4]}} };
-	logic [15:0] dl = { {2{d[11: 8]}}, {2{d[3:0]}} };
-	
-	//                                | Write Mem, BL=16
-	//                                | CMD    | A0     | A1     | L1     | L2     | L3     | L1     | L2     | L3     | W0     | W1     | W2     | W3     | W4     | W5     | W6     | W7     |
-	//                                | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      | 8      | 9      | 10     | 11     | 12     | 13     | 14     | 15     | 16     |
-	assign cmds[CWRMEM][ICLK][0:13] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110};
-	assign cmds[CWRMEM][ICS ][0:13] = {16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111};
-	assign cmds[CWRMEM][IDOE][0:13] = {16'h1111,16'h1111,16'h1111,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111};
-	assign cmds[CWRMEM][IDQH][0:13] = {16'hDDDD, awh0   , awh1   ,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,  dh    ,  dh    ,  dh    ,  dh    ,  dh    ,  dh    ,  dh    ,  dh    };
-	assign cmds[CWRMEM][IDQL][0:13] = {16'hEEEE, awl0   , awl1   ,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,  dl    ,  dl    ,  dl    ,  dl    ,  dl    ,  dl    ,  dl    ,  dl    };
-	assign cmds[CWRMEM][ILE ][0:13] = 0;
-	assign cmds[CWRMEM][ISOE][0:13] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111};
-	assign cmds[CWRMEM][ILST][0:13] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
-	assign cmds[CWRMEM][IRDY][0:13] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000};
-
-	
+	// Connect up Last 
 	logic lastq; // registered flag for last.
+	assign lastq = cmds_reg[ILST][0][0];
+	
+	// Wire up phase reduction
+
+	// Connect UP spi outputs
+	always @(posedge clk4) begin : _spi_oregs
+		if( reset ) begin
+			spi_data_out[7:0] <= 0;
+			spi_data_oe			<= 0;
+			spi_le_out[1:0]	<= 0;
+			spi_clk				<= 0;
+			spi_cs				<= 0;
+			spi_rwds_out		<= 0;
+			spi_rwds_oe			<= 0;
+		end else begin
+			spi_clk				<= cmds_x4[ICLK][0];
+			spi_cs				<= cmds_x4[ICS ][0];	
+			spi_rwds_out		<= cmds_x4[ISOE][1];
+			spi_rwds_oe			<= cmds_x4[ISOE][0];
+			spi_le_out			<= cmds_x4[ILE ][1:0];
+			spi_data_oe			<= cmds_x4[IDOE][0];
+			spi_data_out[7:4] <= cmds_x4[IDQH][3:0];
+			spi_data_out[3:0] <= cmds_x4[IDQL][3:0];		
+		end
+	end
+	
+	
+	/////////////////////
+	/// Command shift Regs
+	//////////////////////
+	
+
+
+
+	// Connect up shift registers
+	always_comb begin : _cmd_sregisters
+		// default zero
+		cmd_sreg_d = 0;
+		// Connect inputs, inserts pulses
+		cmd_sreg_d[CRESET][0] = ( state == STATE_CMD_RESET ) ? 1'b1 : 1'b0;
+		cmd_sreg_d[CRDID7][0] = ( state == STATE_CMD_RDID7 ) ? 1'b1 : 1'b0;
+		cmd_sreg_d[CWRLAT][0] = ( state == STATE_CMD_WRLAT ) ? 1'b1 : 1'b0;
+		cmd_sreg_d[CRDMEM][0] = ( state == STATE_CMD_RDMEM ) ? 1'b1 : 1'b0;
+		cmd_sreg_d[CWRMEM][0] = ( state == STATE_CMD_WRMEM ) ? 1'b1 : 1'b0;
+		// connect up chains
+		for( int idx = 1; idx < 3; idx++ ) cmd_sreg_d[CRESET][idx] = cmd_sreg[CRESET][idx-1];
+		for( int idx = 1; idx <20; idx++ ) cmd_sreg_d[CRDID7][idx] = cmd_sreg[CRDID7][idx-1];
+		for( int idx = 1; idx < 6; idx++ ) cmd_sreg_d[CWRLAT][idx] = cmd_sreg[CWRLAT][idx-1];
+		for( int idx = 1; idx <14; idx++ ) cmd_sreg_d[CRDMEM][idx] = cmd_sreg[CRDMEM][idx-1];
+		for( int idx = 1; idx <17; idx++ ) cmd_sreg_d[CWRMEM][idx] = cmd_sreg[CWRMEM][idx-1];
+	end
+	
+	always @(posedge clk) cmd_sreg <= cmd_sreg_d;	
+
 	
 	/////////////////////////////////
 	// State Machine
@@ -230,6 +340,38 @@ module psram_ctrl(
 		end
 	end
 
+	// PSRAM_READY after STATE_READY
+	always @(posedge clk) begin
+		if( reset ) begin
+			psram_ready <= 0;
+		end else begin
+			psram_ready <= ( state == STATE_READY ) ? 1'b1 : psram_ready;
+		end
+	end
+
+	/////////////////////
+	// AXI4 Ports
+	/////////////////////
+	
+		// Write Data
+		assign wready = cmds_reg[IRDY][0][0];	
+		
+		// register addressed
+
+		
+		always @(posedge clk) begin
+			awaddr_reg <= ( awvalid && awready ) ? awaddr : awaddr_reg;
+			araddr_reg <= ( arvalid && arready ) ? araddr : araddr_reg;
+		end
+
+		assign awready = ( state == STATE_READY && next_state == STATE_CMD_WRMEM ) ? 1'b1 : 1'b0;
+		assign arready = ( state == STATE_READY && next_state == STATE_CMD_RDMEM ) ? 1'b1 : 1'b0;
+		
+		// Write Response
+		assign bvalid = ( state == STATE_CMD_WRLAT_WAIT && lastq ) ? 1'b1 : 1'b0;
+		assign bresp = 2'b00;
+
+		// Read Data (connected below in read data latch)
 
 /////////////////////
 //  Read Data Latch
@@ -253,7 +395,7 @@ module psram_ctrl(
 			delay_le1[3:0] <= { |delay_le1[2:0] | le_inreg[1], delay_le1[1:0], le_inreg[1] };
 		end
 		
-		// AXI Read Data Port
+		// AXI4 Read Data Port
 		
 		always @(posedge clk) begin
 			rdata  <= ( delay_le1[3] ) ? data_le1_reg : rdata;
@@ -262,4 +404,24 @@ module psram_ctrl(
 
 	
 endmodule
+
+module phase4( 
+	input clk,
+	input clk4,
+	output [3:0] phase
+	);
+	
+	logic toggle, toggle_del;
+	
+	always @(posedge clk) toggle <= !toggle;
+	
+	always @(posedge clk4 ) begin
+		toggle_del <= toggle;
+		phase[1] <= toggle ^ toggle_del;
+		phase[2] <= phase[1];
+		phase[3] <= phase[2];
+		phase[0] <= phase[3];
+	end
+endmodule
+	
 	
