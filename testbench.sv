@@ -18,10 +18,10 @@ module testbench( );
         clk = 1'b1;
 		  clk4 = 1'b1;
         forever begin
-				#(2.6ns) clk4 = 0;
-				#(2.6ns) clk4 = 1;
-				#(2.6ns) clk4 = 0;
-				#(2.6ns) begin clk4 = 1; clk = ~clk; end
+				#(2.5ns) clk4 = 0;
+				#(2.5ns) clk4 = 1;
+				#(2.5ns) clk4 = 0;
+				#(2.5ns) begin clk4 = 1; clk = ~clk; end
         end 
     end
 	 
@@ -75,7 +75,7 @@ module testbench( );
 	assign spi_le_in = spi_le_out;
 	assign spi_rwds_in = spi_rwds_out;
 	
-	psram_ctrl _psram_ctl(
+	psram_ctrl _uut (
 		// System
 		.clk		( clk ),
 		.clk4		( clk4 ),

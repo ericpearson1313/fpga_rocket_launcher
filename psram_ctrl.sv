@@ -4,49 +4,49 @@
 module psram_ctrl(
 		// System
 		
-		input clk,
-		input clk4,
-		input reset,
+		input  logic	clk,
+		input  logic 	clk4,
+		input  logic	reset,
 
 		// Psram spi8 interface
 		// Run on Clk4. Wire up to pads (registered)
-		output [7:0] 	spi_data_out,
-		output   		spi_data_oe,
-		output [1:0]   spi_le_out, // match delay
-		input  [7:0] 	spi_data_in,
-		input  [1:0]	spi_le_in, // match IO registering
-		output			spi_clk,
-		output			spi_cs,
-		output			spi_rwds_out,
-		output			spi_rwds_oe,
-		input				spi_rwds_in,
+		output logic [7:0] 	spi_data_out,
+		output logic   		spi_data_oe,
+		output logic [1:0]   spi_le_out, // match delay
+		input  logic [7:0] 	spi_data_in,
+		input  logic [1:0]	spi_le_in, // match IO registering
+		output logic 			spi_clk,
+		output logic 			spi_cs,
+		output logic 			spi_rwds_out,
+		output logic 			spi_rwds_oe,
+		input	 logic 			spi_rwds_in,
 
 		// Status
-		output			psram_ready,	// Indicates control is ready to accept requests
+		output logic			psram_ready,	// Indicates control is ready to accept requests
 		
 		// AXI4 R/W port
 		// Write Data
-		input	[15:0]	wdata,
-		input				wvalid,	// assumed 1, non blocking, data is available
-		output			wready,
+		input	 logic [15:0]	wdata,
+		input	 logic 			wvalid,	// assumed 1, non blocking, data is available
+		output logic 			wready,
 		// Write Addr
-		input	[24:0]	awaddr,
-		input	[7:0]		awlen,	// assumed 8
-		input				awvalid, 
-		output			awready,
+		input	 logic [24:0]	awaddr,
+		input	 logic [7:0]	awlen,	// assumed 8
+		input	 logic 			awvalid, 
+		output logic 			awready,
 		// Write Response
-		input				bready,	// Assume 1, non blocking
-		output			bvalid,
-		output	[1:0]	bresp,
+		input	 logic 			bready,	// Assume 1, non blocking
+		output logic			bvalid,
+		output logic	[1:0]	bresp,
 		// Read Addr
-		input	[24:0]	araddr,
-		input	[7:0] 	arlen,	// assumed 4
-		input				arvalid,	
-		output			arready,
+		input	 logic [24:0]	araddr,
+		input	 logic [7:0] 	arlen,	// assumed 4
+		input	 logic 			arvalid,	
+		output logic 			arready,
 		// Read Data
-		output [17:0]	rdata,   // {2{ rwds, data[7:0}}}
-		output 			rvalid,
-		input			   rready // Assumed 1, non blocking
+		output logic [17:0]	rdata,   // {2{ rwds, data[7:0}}}
+		output logic 			rvalid,
+		input	 logic 		   rready // Assumed 1, non blocking
 		);
 	
 	// Store clocked commands;
@@ -141,7 +141,7 @@ module psram_ctrl(
 		//                         | WriteEn|        | Write CR0 = 8FEF to give LAT=3
 		//   WRITE Latency 3       | CMD    | CS     | CMD    | A0     | A1     | CR     
 		//                         | 0      | 1      | 2      | 3      | 4      | 5      
-		cmds[CWRLAT][ICLK][0:05] = {16'h0110,16'h0110,16'h0110,16'h0110,16'h0110,16'h0110};
+		cmds[CWRLAT][ICLK][0:05] = {16'h0110,16'h0000,16'h0110,16'h0110,16'h0110,16'h0110};
 		cmds[CWRLAT][ICS ][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
 		cmds[CWRLAT][IDOE][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
 		cmds[CWRLAT][IDQH][0:05] = {16'h0000,16'h0000,16'h7777,16'h0000,16'h0000,16'h88EE};
@@ -241,32 +241,7 @@ module psram_ctrl(
 	end
 	
 	
-	/////////////////////
-	/// Command shift Regs
-	//////////////////////
-	
 
-
-
-	// Connect up shift registers
-	always_comb begin : _cmd_sregisters
-		// default zero
-		cmd_sreg_d = 0;
-		// Connect inputs, inserts pulses
-		cmd_sreg_d[CRESET][0] = ( state == STATE_CMD_RESET ) ? 1'b1 : 1'b0;
-		cmd_sreg_d[CRDID7][0] = ( state == STATE_CMD_RDID7 ) ? 1'b1 : 1'b0;
-		cmd_sreg_d[CWRLAT][0] = ( state == STATE_CMD_WRLAT ) ? 1'b1 : 1'b0;
-		cmd_sreg_d[CRDMEM][0] = ( state == STATE_CMD_RDMEM ) ? 1'b1 : 1'b0;
-		cmd_sreg_d[CWRMEM][0] = ( state == STATE_CMD_WRMEM ) ? 1'b1 : 1'b0;
-		// connect up chains
-		for( int idx = 1; idx < 3; idx++ ) cmd_sreg_d[CRESET][idx] = cmd_sreg[CRESET][idx-1];
-		for( int idx = 1; idx <20; idx++ ) cmd_sreg_d[CRDID7][idx] = cmd_sreg[CRDID7][idx-1];
-		for( int idx = 1; idx < 6; idx++ ) cmd_sreg_d[CWRLAT][idx] = cmd_sreg[CWRLAT][idx-1];
-		for( int idx = 1; idx <14; idx++ ) cmd_sreg_d[CRDMEM][idx] = cmd_sreg[CRDMEM][idx-1];
-		for( int idx = 1; idx <17; idx++ ) cmd_sreg_d[CWRMEM][idx] = cmd_sreg[CWRMEM][idx-1];
-	end
-	
-	always @(posedge clk) cmd_sreg <= cmd_sreg_d;	
 
 	
 	/////////////////////////////////
@@ -287,6 +262,7 @@ module psram_ctrl(
 		
 	State state;		
 	State next_state;
+	logic [12:0] delay;
 	
    always_comb begin
       if(reset) begin
@@ -326,12 +302,12 @@ module psram_ctrl(
       state <= next_state;
 	end
 	
-	logic [12:0] delay;
+
 	always @(posedge clk) begin
 		if( reset ) begin
-			delay <= 13'd7200; // 150usec with 48 Mhz clk
+			delay <= 50; //13'd7200; // 150usec with 48 Mhz clk
 		end else if ( state == STATE_IDLE ) begin
-			delay <= 13'd7200; // 150usec with 48 Mhz clk
+			delay <= 50;//13'd7200; // 150usec with 48 Mhz clk
 		end else if ( state == STATE_CMD_RESET_DELAY ) begin
 			delay <= 13'd20; // 400 nSec on 48Mhz clk
 		end else if ( delay == 0 ) begin
@@ -373,6 +349,36 @@ module psram_ctrl(
 		assign bresp = 2'b00;
 
 		// Read Data (connected below in read data latch)
+		
+////////////////////
+/// Command shift Regs
+//////////////////////
+
+	// Connect up shift registers
+	always_comb begin : _cmd_sregisters
+		// default zero
+		cmd_sreg_d = 0;
+		// Connect inputs, inserts pulses
+		cmd_sreg_d[CRESET][0] = ( state == STATE_CMD_RESET ) ? 1'b1 : 1'b0;
+		cmd_sreg_d[CRDID7][0] = ( state == STATE_CMD_RDID7 ) ? 1'b1 : 1'b0;
+		cmd_sreg_d[CWRLAT][0] = ( state == STATE_CMD_WRLAT ) ? 1'b1 : 1'b0;
+		cmd_sreg_d[CRDMEM][0] = ( state == STATE_CMD_RDMEM ) ? 1'b1 : 1'b0;
+		cmd_sreg_d[CWRMEM][0] = ( state == STATE_CMD_WRMEM ) ? 1'b1 : 1'b0;
+		// connect up chains
+		for( int idx = 1; idx < 3; idx++ ) cmd_sreg_d[CRESET][idx] = cmd_sreg[CRESET][idx-1];
+		for( int idx = 1; idx <20; idx++ ) cmd_sreg_d[CRDID7][idx] = cmd_sreg[CRDID7][idx-1];
+		for( int idx = 1; idx < 6; idx++ ) cmd_sreg_d[CWRLAT][idx] = cmd_sreg[CWRLAT][idx-1];
+		for( int idx = 1; idx <14; idx++ ) cmd_sreg_d[CRDMEM][idx] = cmd_sreg[CRDMEM][idx-1];
+		for( int idx = 1; idx <17; idx++ ) cmd_sreg_d[CWRMEM][idx] = cmd_sreg[CWRMEM][idx-1];
+	end
+	
+	always @(posedge clk) begin
+		if( reset ) begin
+			cmd_sreg <= 0;
+		end else begin
+			cmd_sreg <= cmd_sreg_d;	
+		end
+	end
 
 /////////////////////
 //  Read Data Latch
@@ -407,12 +413,13 @@ module psram_ctrl(
 endmodule
 
 module phase4( 
-	input clk,
-	input clk4,
-	output [3:0] phase
+	input  logic clk,
+	input  logic clk4,
+	output logic [3:0] phase
 	);
 	
-	logic toggle, toggle_del;
+	logic toggle = 0;
+	logic toggle_del;
 	
 	always @(posedge clk) toggle <= !toggle;
 	
