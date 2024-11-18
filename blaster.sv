@@ -37,6 +37,7 @@ module blaster
 	output [11:0] ad_a1,
 	output [11:0] ad_b0,
 	output [11:0] ad_b1,
+	output ad_strobe,
 	
 
 	// External Current Control Input
@@ -263,6 +264,7 @@ assign ad_a0 = ad_hold_a0;
 assign ad_a1 = ad_hold_a1;
 assign ad_b0 = ad_hold_b0;
 assign ad_b1 = ad_hold_b1;
+assign ad_strobe = adc_valid;
 
 // ADC Mapping
 

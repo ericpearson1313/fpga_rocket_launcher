@@ -261,6 +261,8 @@ module video
 	input [11:0] ad_a1,
 	input [11:0] ad_b0,
 	input [11:0] ad_b1,
+	input ad_strobe,
+	input ad_clk,
 	input	[35:0] id,
 	input [4:0] key
 );
@@ -306,6 +308,9 @@ module video
 		.char_y( char_y ), // o to 59 rows vertically
 		.char_data( char_data )
 	);
+	
+	// Process ADC values accumulating min and max
+	
 
 	// snapshot display values during vsync
 	logic [11:0] value_1, value_2, value_3, value_4, value_5;
@@ -356,6 +361,8 @@ module video
 		.ad_a1( ad_a1 ),
 		.ad_b0( ad_b0 ),
 		.ad_b1( ad_b1 ),
+		.ad_strobe( ad_strobe ),
+		.ad_clk( ad_clk ),
 		// video output
 		.red(   scope_red ),
 		.green( scope_green ),

@@ -1,5 +1,8 @@
 Simulatio is awkward.
-Need toput test bench in dialog box.
+Need to put test bench in dialog box.
+and select the UUT as the top level design, and then run sim.
+
+
 Biggest thing is re-running a sim.
 
 To Add waves and then re-run do: (no compile)

@@ -9,6 +9,8 @@ module vga_scope
 	input [11:0] ad_a1,
 	input [11:0] ad_b0,
 	input [11:0] ad_b1,
+	input ad_strobe,
+	input ad_clk,
 	output [7:0] red,
 	output [7:0] green,
 	output [7:0] blue
@@ -24,6 +26,84 @@ module vga_scope
 	logic [9:0] xcnt, ycnt;
 	
 	
+	// AD CLK based state machine, gets Min,Max and latches at rising vsync.
+	logic [3:0] vsync_del;
+	logic [11:0] ad_a0_min_cur, ad_a0_max_cur;
+	logic [11:0] ad_a1_min_cur, ad_a1_max_cur;
+	logic [11:0] ad_b0_min_cur, ad_b0_max_cur;
+	logic [11:0] ad_b1_min_cur, ad_b1_max_cur;
+	logic [11:0] ad_a0_min, ad_a0_max;
+	logic [11:0] ad_a1_min, ad_a1_max;
+	logic [11:0] ad_b0_min, ad_b0_max;
+	logic [11:0] ad_b1_min, ad_b1_max;	
+	always @(posedge ad_clk) begin
+		if( ad_strobe ) begin
+			vsync_del[3:0] <= { vsync_del[2:0], vsync };
+			if( vsync_del[2] & !vsync_del[3] ) begin // rising edge of vsync
+				// star a new cycle based on current sample
+				ad_a0_min_cur <= ad_a0;
+				ad_a0_max_cur <= ad_a0;
+				ad_a1_min_cur <= ad_a1;
+				ad_a1_max_cur <= ad_a1;
+				ad_b0_min_cur <= ad_b0;
+				ad_b0_max_cur <= ad_b0;
+				ad_b1_min_cur <= ad_b1;
+				ad_b1_max_cur <= ad_b1;
+				// capture and hold the mins/maxes 
+				// will be picked up on falling vsync edge
+				ad_a0_min <= ad_a0_min_cur;
+				ad_a0_max <= ad_a0_max_cur;
+				ad_a1_min <= ad_a1_min_cur;
+				ad_a1_max <= ad_a1_max_cur;
+				ad_b0_min <= ad_b0_min_cur;
+				ad_b0_max <= ad_b0_max_cur;
+				ad_b1_min <= ad_b1_min_cur;
+				ad_b1_max <= ad_b1_max_cur;
+			end else begin // on the other data cycles
+				// Update mins/maxes
+				ad_a0_min_cur <= ( ad_a0_min_cur[10:0] > ad_a0[10:0] ) ? ad_a0 : ad_a0_min_cur ;
+				ad_a0_max_cur <= ( ad_a0_max_cur[10:0] < ad_a0[10:0] ) ? ad_a0 : ad_a0_max_cur ;
+				ad_a1_min_cur <= ( ad_a1_min_cur[10:0] > ad_a1[10:0] ) ? ad_a1 : ad_a1_min_cur ;
+				ad_a1_max_cur <= ( ad_a1_max_cur[10:0] < ad_a1[10:0] ) ? ad_a1 : ad_a1_max_cur ;
+				ad_b0_min_cur <= ( ad_b0_min_cur[10:0] > ad_b0[10:0] ) ? ad_b0 : ad_b0_min_cur ;
+				ad_b0_max_cur <= ( ad_b0_max_cur[10:0] < ad_b0[10:0] ) ? ad_b0 : ad_b0_max_cur ;
+				ad_b1_min_cur <= ( ad_b1_min_cur[10:0] > ad_b1[10:0] ) ? ad_b1 : ad_b1_min_cur ;
+				ad_b1_max_cur <= ( ad_b1_max_cur[10:0] < ad_b1[10:0] ) ? ad_b1 : ad_b1_max_cur ;
+				// Hold frame value;
+				ad_a0_min <= ad_a0_min;
+				ad_a0_max <= ad_a0_max;
+				ad_a1_min <= ad_a1_min;
+				ad_a1_max <= ad_a1_max;
+				ad_b0_min <= ad_b0_min;
+				ad_b0_max <= ad_b0_max;
+				ad_b1_min <= ad_b1_min;
+				ad_b1_max <= ad_b1_max;
+			end
+		end else begin // non same cycles, just hold everything
+			vsync_del <= vsync_del;
+			// Update mins/maxes
+			ad_a0_min_cur <= ad_a0_min_cur;
+			ad_a0_max_cur <= ad_a0_max_cur;
+			ad_a1_min_cur <= ad_a1_min_cur;
+			ad_a1_max_cur <= ad_a1_max_cur;
+			ad_b0_min_cur <= ad_b0_min_cur;
+			ad_b0_max_cur <= ad_b0_max_cur;
+			ad_b1_min_cur <= ad_b1_min_cur;
+			ad_b1_max_cur <= ad_b1_max_cur;
+			// Hold frame value;
+			ad_a0_min <= ad_a0_min;
+			ad_a0_max <= ad_a0_max;
+			ad_a1_min <= ad_a1_min;
+			ad_a1_max <= ad_a1_max;
+			ad_b0_min <= ad_b0_min;
+			ad_b0_max <= ad_b0_max;
+			ad_b1_min <= ad_b1_min;
+			ad_b1_max <= ad_b1_max;
+		end
+	end
+		
+	// Capture Buffer Write COntrol 
+	
 	always @(posedge clk) begin
 		if ( reset ) begin
 			we <= 0;
@@ -31,8 +111,8 @@ module vga_scope
 			vsync_d1 <= 0;
 		end else begin
 			vsync_d1 <= vsync;
-			we <= ( vsync && !vsync_d1 ) ? 1'b1 : 1'b0;
-			wr_addr <= ( vsync && !vsync_d1 ) ? wr_addr + 1 : wr_addr ; // wrap
+			we <= ( !vsync && vsync_d1 ) ? 1'b1 : 1'b0; // vsync falling
+			wr_addr <= ( !vsync && vsync_d1 ) ? wr_addr + 1 : wr_addr ; // wrap
 		end
 	end	
 
@@ -55,10 +135,19 @@ module vga_scope
 
 	// Srams to hold the data
 
-	sram1024x8 _a0_mem (.clock(clk),.data(ad_a0[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0));
-	sram1024x8 _a1_mem (.clock(clk),.data(ad_a1[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1));
-	sram1024x8 _b0_mem (.clock(clk),.data(ad_b0[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0));
-	sram1024x8 _b1_mem (.clock(clk),.data(ad_b1[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1));
+	logic [7:0] a0_min, a0_max;
+	logic [7:0] a1_min, a1_max;
+	logic [7:0] b0_min, b0_max;
+	logic [7:0] b1_min, b1_max;	
+	
+	sram1024x8 _a0_mem_max (.clock(clk),.data(ad_a0_max[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_max));
+	sram1024x8 _a1_mem_max (.clock(clk),.data(ad_a1_max[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_max));
+	sram1024x8 _b0_mem_max (.clock(clk),.data(ad_b0_max[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_max));
+	sram1024x8 _b1_mem_max (.clock(clk),.data(ad_b1_max[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_max));
+	sram1024x8 _a0_mem_min (.clock(clk),.data(ad_a0_min[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_min));
+	sram1024x8 _a1_mem_min (.clock(clk),.data(ad_a1_min[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_min));
+	sram1024x8 _b0_mem_min (.clock(clk),.data(ad_b0_min[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_min));
+	sram1024x8 _b1_mem_min (.clock(clk),.data(ad_b1_min[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_min));
 	
 	// Display Logic rd_data vs ycnt to give veritcal axis
 	// Scope screen is 256 rows on bottom 480 line display and takes the full 640 width. 
@@ -78,10 +167,14 @@ module vga_scope
 		end else begin
 			if( ycnt >= 224 ) begin
 				pel_gd <= ( xcnt[5:0] == 6'd63 || ycnt[4:0] == 5'd0 ) ? 1'b1 : 1'b0; // a grid
-				pel_a0 <= ( a0 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_a1 <= ( a1 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_b0 <= ( b0 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_b1 <= ( b1 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
+//				pel_a0 <= ( a0 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
+//				pel_a1 <= ( a1 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
+//				pel_b0 <= ( b0 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
+//				pel_b1 <= ( b1 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
+				pel_a0 <= ( a0_max >= (ycnt - 224) && a0_min <= (ycnt - 224) ) ? 1'b1 : 1'b0; 
+				pel_a1 <= ( a1_max >= (ycnt - 224) && a1_min <= (ycnt - 224) ) ? 1'b1 : 1'b0; 
+				pel_b0 <= ( b0_max >= (ycnt - 224) && b0_min <= (ycnt - 224) ) ? 1'b1 : 1'b0; 
+				pel_b1 <= ( b1_max >= (ycnt - 224) && b1_min <= (ycnt - 224) ) ? 1'b1 : 1'b0; 
 			end else begin
 				pel_gd <= 0;
 				pel_a0 <= 0;

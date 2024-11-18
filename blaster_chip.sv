@@ -169,7 +169,7 @@ assign pwm = (fire_button && count[15:6] == 0) ? 1'b1 : 1'b0;
 // Speaker is differential out gives 6Vp-p
 assign speaker_n = !speaker;
 logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
-
+logic ad_strobe;
 
 blaster _blaster (
 	// Input Buttons
@@ -203,6 +203,7 @@ blaster _blaster (
 	.ad_a1( ad_a1 ),
 	.ad_b0( ad_b0 ),
 	.ad_b1( ad_b1 ),
+	.ad_strobe( ad_strobe ),
 
 	// Input clock
 	.clk( clk ),
@@ -343,6 +344,8 @@ blaster _blaster (
 		       /*(hcnt[3:0] == 4'hF)?*/ 8'b0000_0001 ; //8'b00_00_00_01 ;
 	end
 
+	
+	
 	// HDMI reset
 	logic [3:0] hdmi_reg;
 	always @(posedge hdmi_clk) begin
@@ -365,6 +368,8 @@ blaster _blaster (
 		.ad_a1( ad_a1 ),
 		.ad_b0( ad_b0 ),
 		.ad_b1( ad_b1 ),
+		.ad_strobe( ad_strobe ),
+		.ad_clk( clk ),
 		.id( id_reg ),
 		.key( key[4:0] )
 	);
