@@ -44,7 +44,7 @@ module psram_ctrl(
 		input				arvalid,	
 		output			arready,
 		// Read Data
-		output [15:0]	rdata,
+		output [17:0]	rdata,   // {2{ rwds, data[7:0}}}
 		output 			rvalid,
 		input			   rready // Assumed 1, non blocking
 		);
@@ -53,6 +53,7 @@ module psram_ctrl(
 	//     CMD  SIG State phase Nib  (input)
 	logic [0:4][0:8][0:24][0:3][3:0] cmds;
 	// Command shift registers
+	//     CMD State
 	logic [0:4][0:24] cmd_sreg, cmd_sreg_d;
 	
 	// Anded command reg and command bits, ready for Reduction OR
@@ -183,7 +184,7 @@ module psram_ctrl(
 				for( int st_idx = 0; st_idx <= 24; st_idx++ )
 					for( int ph_idx = 0; ph_idx <= 3; ph_idx++ )
 						for( int nib_idx = 0; nib_idx <= 3; nib_idx++ ) begin
-							gated_cmds[sig_idx][nib_idx][ph_idx][cmd_idx][st_idx] = cmd_sreg[cmd_idx][st_idx] & cmds[cmd_idx][sig_idx][st_idx][ph_idx][nib_idx];
+							gated_cmds[sig_idx][nib_idx][ph_idx][cmd_idx][st_idx] = cmd_sreg[cmd_idx][st_idx] & cmds[cmd_idx][sig_idx][st_idx][ph_idx][nib_idx]; // AND gated
 						end
 	end
 	
@@ -192,7 +193,7 @@ module psram_ctrl(
 		for( int sig_idx = 0; sig_idx <= 8; sig_idx++ )
 			for( int ph_idx = 0; ph_idx <= 3; ph_idx++ )
 				for( int nib_idx = 0; nib_idx <= 3; nib_idx++ ) begin
-							cmds_reg[sig_idx][nib_idx][ph_idx] <= |gated_cmds[sig_idx][nib_idx][ph_idx]; // Reduction OR 
+							cmds_reg[sig_idx][nib_idx][ph_idx] <= |gated_cmds[sig_idx][nib_idx][ph_idx]; // Reduction OR (yes!!!)
 				end
 	end
 
@@ -204,10 +205,10 @@ module psram_ctrl(
 	always_comb begin : _cmd_phase_mux
 		for( int sig_idx = 0; sig_idx <= 8; sig_idx++ )
 			for( int nib_idx = 0; nib_idx <= 3; nib_idx++ ) begin
-				cmds_x4[sig_idx][nib_idx] = ph[0] & cmds_reg[sig_idx][nib_idx][0] |
-													 ph[1] & cmds_reg[sig_idx][nib_idx][1] |
-													 ph[2] & cmds_reg[sig_idx][nib_idx][2] |
-													 ph[3] & cmds_reg[sig_idx][nib_idx][3] ;
+				cmds_x4[sig_idx][nib_idx] = 		ph[0] & cmds_reg[sig_idx][nib_idx][0] |
+													ph[1] & cmds_reg[sig_idx][nib_idx][1] |
+													ph[2] & cmds_reg[sig_idx][nib_idx][2] |
+													ph[3] & cmds_reg[sig_idx][nib_idx][3] ;
 			end
 	end
 		
@@ -336,7 +337,7 @@ module psram_ctrl(
 		end else if ( delay == 0 ) begin
 			delay <= 0;
 		end else begin
-			delay <= delay - 1;
+			delay <= delay - 13'd1;
 		end
 	end
 

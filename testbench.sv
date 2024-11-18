@@ -1,7 +1,126 @@
 // top level launcher sim.
 `timescale 1ns / 1ps
 module testbench( );
+`define PSRAM_TEST
+//`define BLASTER_TEST
 
+
+///////////////////////////////
+`ifdef PSRAM_TEST
+
+
+    //////////////////////
+    // Let there be Clocks!
+    //////////////////////
+    
+    logic clk, clk4;
+    initial begin
+        clk = 1'b1;
+		  clk4 = 1'b1;
+        forever begin
+				#(2.6ns) clk4 = 0;
+				#(2.6ns) clk4 = 1;
+				#(2.6ns) clk4 = 0;
+				#(2.6ns) begin clk4 = 1; clk = ~clk; end
+        end 
+    end
+	 
+	 // Reset generation
+	 
+	 logic reset; // active high
+	 initial begin
+			reset = 1'b1;
+			for( int ii = 0; ii < 10; ii++ ) begin
+				@(posedge clk);
+			end
+			@(negedge clk);
+			reset = 1'b0;
+	 end
+			
+	 // Simulation stop.
+	 
+	 initial begin
+        for( int ii = 0; ii < 1000; ii++ ) 
+				@(posedge clk);
+        $stop;
+	 end
+	 
+
+
+    //////////////////////
+    // UUT Unit Under Test
+    //////////////////////
+
+
+	logic [7:0] 	spi_data_out;
+	logic   			spi_data_oe;
+	logic [1:0]   	spi_le_out; // match delay
+	logic [7:0] 	spi_data_in;
+	logic [1:0]		spi_le_in; // match IO registering
+	logic				spi_clk;
+	logic				spi_cs;
+	logic				spi_rwds_out;
+	logic				spi_rwds_oe;
+	logic				spi_rwds_in;
+	
+	// SPI Controller
+	
+	logic psram_ready;
+	logic [17:0] rdata;
+	logic rvalid;
+	
+	// Loopback SPI I/O
+	
+	assign spi_data_in = spi_data_out;
+	assign spi_le_in = spi_le_out;
+	assign spi_rwds_in = spi_rwds_out;
+	
+	psram_ctrl _psram_ctl(
+		// System
+		.clk		( clk ),
+		.clk4		( clk4 ),
+		.reset	( reset ),
+		// Psram spi8 interface
+		.spi_data_out( spi_data_out ),
+		.spi_data_oe(  spi_data_oe  ),
+		.spi_le_out( 	spi_le_out 	 ),
+		.spi_data_in( 	spi_data_in  ),
+		.spi_le_in( 	spi_le_in 	 ),
+		.spi_clk( 		spi_clk 		 ),
+		.spi_cs( 		spi_cs 		 ),
+		.spi_rwds_out( spi_rwds_out ),
+		.spi_rwds_oe( 	spi_rwds_oe  ),
+		.spi_rwds_in( 	spi_rwds_in  ),
+		// Status
+		.psram_ready( psram_ready ),	// Indicates control is ready to accept requests
+		// AXI4 R/W port
+		// Write Data
+		.wdata( 16'h0000 ),
+		.wvalid( 1'b1 ), // always avail)
+		.wready(      ),
+		// Write Addr
+		.awaddr( 25'h000_0000 ),
+		.awlen( 8'h08 ),	// assumed 8
+		.awvalid( 1'b0 ), // write valid
+		.awready( ),
+		// Write Response
+		.bready( 1'b1 ),	// Assume 1, non blocking
+		.bvalid(  ),
+		.bresp(  ),
+		// Read Addr
+		.araddr( 25'h000_0000 ),
+		.arlen( 8'h04 ),	// assumed 4
+		.arvalid( 1'b0 ), // read valid	
+		.arready(),
+		// Read Data
+		.rdata( rdata[17:0] ),
+		.rvalid( rvalid ),
+		.rready( 1'b1 ) // Assumed 1, non blocking
+	);	
+
+`endif // PSRAM_TEST
+
+`ifdef BLASTER_TEST
 parameter R = 10.0; // Load resistance
 parameter CAP_VOLTAGE = 320.0;
 parameter COIL_UH = 399.0;
@@ -211,5 +330,6 @@ blaster _uut (
 	
 	// adc oe.
 	assign data[3:0] = ( n_cs == 1'b0 ) ? data_n[3:0] : 4'bxxxx;
+`endif // BLASTER_TEST
 
 endmodule

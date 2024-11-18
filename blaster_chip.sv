@@ -221,7 +221,7 @@ blaster _blaster (
 		
 // Keyboard Scanner
 	logic [4:0] key;
-	key_scan( 
+	key_scan _keypad ( 
 		.clk( clk ),
 		.reset( reset ),
 		.keypad_in( digio_in ),
