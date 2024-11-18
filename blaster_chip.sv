@@ -313,10 +313,10 @@ blaster _blaster (
 	reg_ioe _spi_d5 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[5] ), .din( spi_data_out[5] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[5] ) );
 	reg_ioe _spi_d6 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[6] ), .din( spi_data_out[6] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[6] ) );
 	reg_ioe _spi_d7 ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_data_in[7] ), .din( spi_data_out[7] ), .oe( spi_data_oe ), .pad_io( spi8_data_pad[7] ) );
-	reg_ioe _spi_ds ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_rwds_in    ), .din( spi_rwds_out    ), .oe( spi_rwds_oe ), .pad_io( spi_ds ) );
-	reg_ioe _spi_clk( .inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( spi_clk  ), .oe( 1'b1 ), .pad_io( spi_clk0 ) );
-	reg_ioe _spi_ncs( .inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( !spi_cs  ), .oe( 1'b1 ), .pad_io( spi_ncs  ) ); // invert CS on output
-	reg_ioe _spi_nrst(.inclock( clk4 ), .outclock( clk4 ), .dout( ), .din( n_reset  ), .oe( 1'b1 ), .pad_io( spi_nrst ) ); // send out nreset
+	reg_ioe _spi_ds ( .inclock( clk4 ), .outclock( clk4 ), .dout( spi_rwds_in    ), .din( spi_rwds_out    ), .oe( spi_rwds_oe ), .pad_io( spi_ds           ) );
+	reg_ioe _spi_clk( .inclock( clk4 ), .outclock( clk4 ), .dout( ),                .din( spi_clk  ),        .oe( 1'b1        ), .pad_io( spi_clk0         ) );
+	reg_ioe _spi_ncs( .inclock( clk4 ), .outclock( clk4 ), .dout( ),                .din( !spi_cs  ),        .oe( 1'b1        ), .pad_io( spi_ncs          ) ); // invert CS on output
+	reg_ioe _spi_nrst(.inclock( clk4 ), .outclock( clk4 ), .dout( ),                .din( n_reset  ),        .oe( 1'b1        ), .pad_io( spi_nrst         ) ); // send out nreset
 	
 // HDMI DDR LVDS Output
 
@@ -365,6 +365,7 @@ blaster _blaster (
 		.ad_a1( ad_a1 ),
 		.ad_b0( ad_b0 ),
 		.ad_b1( ad_b1 ),
+		.id( id_reg ),
 		.key( key[4:0] )
 	);
 
@@ -388,6 +389,7 @@ blaster _blaster (
 		.ad_a1( ad_a1 ),
 		.ad_b0( ad_b0 ),
 		.ad_b1( ad_b1 ),
+		.id( id_reg ),
 		.key( key[4:0] )
 	);
 								 

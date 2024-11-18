@@ -261,6 +261,7 @@ module video
 	input [11:0] ad_a1,
 	input [11:0] ad_b0,
 	input [11:0] ad_b1,
+	input	[35:0] id,
 	input [4:0] key
 );
 	
@@ -320,22 +321,20 @@ module video
 		end
 	end
 	
-	assign char_bit = ( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h10 ) ? char_data['h0] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h11 ) ? char_data['h1] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h12 ) ? char_data['h2] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h13 ) ? char_data['h3] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h14 ) ? char_data['h4] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h15 ) ? char_data['h5] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h16 ) ? char_data['h6] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h17 ) ? char_data['h7] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h18 ) ? char_data['h8] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h19 ) ? char_data['h9] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1A ) ? char_data['hA] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1B ) ? char_data['hB] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1C ) ? char_data['hC] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1D ) ? char_data['hD] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1E ) ? char_data['hE] :
-							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1F ) ? char_data['hF] : 
+	assign char_bit = ( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h10 ) ? char_data[{id[35], id[26], id[17], id[8]}] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h12 ) ? char_data['h1] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h13 ) ? char_data['h2] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h14 ) ? char_data['h3] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h15 ) ? char_data['h4] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h16 ) ? char_data['h5] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h18 ) ? char_data[id[34:31]] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h19 ) ? char_data[id[30:27]] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1A ) ? char_data[id[25:22]] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1B ) ? char_data[id[21:18]] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1C ) ? char_data[id[16:13]] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1D ) ? char_data[id[12: 9]] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1E ) ? char_data[id[ 7: 4]] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h1F ) ? char_data[id[ 3: 0]] : 
 							( char_y[6:0] == 7'h5 && char_x[6:0] == 7'h1D && key_reg[4] == 1 ) ? char_data[key_reg[3:0]] : 0;
 	
 
