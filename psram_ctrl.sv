@@ -305,9 +305,9 @@ module psram_ctrl(
 
 	always @(posedge clk) begin
 		if( reset ) begin
-			delay <= 50; //13'd7200; // 150usec with 48 Mhz clk
+			delay <= 13'd7200; // 150usec with 48 Mhz clk
 		end else if ( state == STATE_IDLE ) begin
-			delay <= 50;//13'd7200; // 150usec with 48 Mhz clk
+			delay <= 13'd7200; // 150usec with 48 Mhz clk
 		end else if ( state == STATE_CMD_RESET_DELAY ) begin
 			delay <= 13'd20; // 400 nSec on 48Mhz clk
 		end else if ( delay == 0 ) begin
