@@ -321,6 +321,7 @@ module video
 		end
 	end
 	
+	logic char_bit;
 	assign char_bit = ( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h10 ) ? char_data[{id[35], id[26], id[17], id[8]}] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h12 ) ? char_data['h1] :
 							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h13 ) ? char_data['h2] :
