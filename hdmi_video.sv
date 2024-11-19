@@ -478,19 +478,14 @@ module video2
 	input clk5,
 	input reset,
 	output [7:0] hdmi_data,
-	input [11:0] ad_a0,
-	input [11:0] ad_a1,
-	input [11:0] ad_b0,
-	input [11:0] ad_b1,
-	input ad_strobe,
-	input ad_clk,
 	// AXI sram read port connection
 	input  logic 			psram_ready,
 	input  logic [17:0] 	rdata,
 	input  logic 			rvalid,
 	output logic [24:0] 	araddr,
 	output logic 			arvalid, 
-	input  logic 			arready
+	input  logic 			arready,
+	input  logic			mem_clk
 );
 	
 	logic [7:0] red, green, blue;
@@ -549,7 +544,11 @@ module video2
 		.araddr			( araddr[24:0]	 ) ,
 		.arvalid			( arvalid		 ) , 
 		.arready			( arready		 ) ,
-		.mem_clk			( ad_clk ),	
+		.mem_clk			( mem_clk ),
+		// video output
+		.red(   scope_red ),
+		.green( scope_green ),
+		.blue(  scope_blue )	
 	);	
 	
 	// video encoder
