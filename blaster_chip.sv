@@ -371,6 +371,7 @@ blaster _blaster (
 		.ad_strobe( ad_strobe ),
 		.ad_clk( clk ),
 		.id( id_reg ),
+		.diag( { LIdiag, CVdiag, CIdiag, LVdiag } ), // A0, A1, B0, B1
 		.key( key[4:0] )
 	);
 

@@ -263,6 +263,7 @@ module video
 	input [11:0] ad_b1,
 	input ad_strobe,
 	input ad_clk,
+	input [3:0] diag,
 	input	[35:0] id,
 	input [4:0] key
 );
@@ -437,7 +438,12 @@ module video
 						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_4[03]}] :
 						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_4[02]}] :
 						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_4[01]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_4[00]}] : 0;
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_4[00]}] : 
+						  // diag
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,   diag[03]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,   diag[02]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,   diag[01]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,   diag[00]}] :  0;
 	
 	// video encoder
 	video_encoder _encode
