@@ -250,6 +250,8 @@ blaster _blaster (
 	logic psram_ready;
 	logic [17:0] rdata;
 	logic rvalid;
+	logic [24:0] araddr;
+	logic arvalid, arready;
 	
 	psram_ctrl _psram_ctl(
 		// System
@@ -284,16 +286,17 @@ blaster _blaster (
 		.bvalid(  ),
 		.bresp(  ),
 		// Read Addr
-		.araddr( 25'h000_0000 ),
+		.araddr( araddr ),
 		.arlen( 8'h04 ),	// assumed 4
-		.arvalid( 1'b0 ), // read valid	
-		.arready(),
+		.arvalid( arvalid ), // read valid	
+		.arready( arready ),
 		// Read Data
 		.rdata( rdata[17:0] ),
 		.rvalid( rvalid ),
 		.rready( 1'b1 ) // Assumed 1, non blocking
 	);	
 
+ 	    
 	// Capture ID regs 
 	logic [35:0] id_reg;
 	always @(posedge clk) begin
@@ -386,22 +389,29 @@ blaster _blaster (
 
 	logic [7:0] hdmi2_data;
 	
-	video _video2 (
+	video2 _video2 (
 		.clk( 		hdmi_clk  ),
 		.clk5( 		hdmi_clk5 ),
 		.reset( 		hdmi_reset ),
 		.hdmi_data( hdmi2_data ),
-		.ad_a0( ad_a0 ),
-		.ad_a1( ad_a1 ),
-		.ad_b0( ad_b0 ),
-		.ad_b1( ad_b1 ),
-		.id( id_reg ),
-		.key( key[4:0] )
+		.ad_a0( ~ad_a1 ),
+		.ad_a1( ~ad_a0 ),
+		.ad_b0( ~ad_b0 ),
+		.ad_b1( ~ad_b1 ),
+		.ad_strobe( ad_strobe ),
+		.ad_clk( clk ),
+		// AXI Sram Read port connection
+		.psram_ready	( psram_ready 	 ) ,
+		.rdata			( rdata 			 ) , 
+		.rvalid			( rvalid		    ) ,
+		.araddr			( araddr[24:0]	 ) ,
+		.arvalid			( arvalid		 ) , 
+		.arready			( arready		 ) 	
 	);
 								 
 	hdmi_out _hdmi2_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
-		.din( hout /*hdmi2_data*/ ),
+		.din( /*hout*/hdmi2_data ),
 		.pad_out( {hdmi2_d2, hdmi2_d1, hdmi2_d0, hdmi2_ck} ), 
 		.pad_out_b( )  // true differential, _b not req
 	);

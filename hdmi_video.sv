@@ -467,4 +467,104 @@ module video
 		.hdmi_data( hdmi_data )
 	);
 	
-endmodule
+endmodule // VIDEO
+
+////////////////////////////////////////////
+///////        VIDEO 2
+////////////////////////////////////////////
+module video2
+(
+	input	clk,
+	input clk5,
+	input reset,
+	output [7:0] hdmi_data,
+	input [11:0] ad_a0,
+	input [11:0] ad_a1,
+	input [11:0] ad_b0,
+	input [11:0] ad_b1,
+	input ad_strobe,
+	input ad_clk,
+	// AXI sram read port connection
+	input  logic 			psram_ready,
+	input  logic [17:0] 	rdata,
+	input  logic 			rvalid,
+	output logic [24:0] 	araddr,
+	output logic 			arvalid, 
+	input  logic 			arready
+);
+	
+	logic [7:0] red, green, blue;
+	logic blank, hsync, vsync;
+	
+	// sych generator
+	vga_sync _sync
+	(
+		.clk(   clk   ),	
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync )
+	);
+	
+	// Font Generator
+	logic [6:0] char_x, char_y;
+	logic [15:0] char_data;
+	
+	font57 _font
+	(
+		.clk( clk ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.char_x( char_x ), // 0 to 105 chars horizontally
+		.char_y( char_y ), // o to 59 rows vertically
+		.char_data( char_data )
+	);
+	
+		// Display something
+	logic char_bit;
+	assign char_bit = ( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h12 ) ? char_data['h1] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h13 ) ? char_data['h2] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h14 ) ? char_data['h3] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h15 ) ? char_data['h4] :
+							( char_y[6:1] == 6'h5 && char_x[6:0] == 7'h16 ) ? char_data['h5] : 0;
+	
+
+	// Tie off read port
+	// 4ch Oscilloscope mem & vga display
+	
+	logic [7:0] scope_red, scope_green, scope_blue;
+	vga_wave_display _scope(
+		.clk(   clk ),
+		.reset( reset ),
+		// video sync 
+		.blank( blank ), 
+		.hsync( hsync ),
+		.vsync( vsync ),
+		// AXI Sram Read port connection
+		.psram_ready	( psram_ready 	 ) ,
+		.rdata			( rdata 			 ) , 
+		.rvalid			( rvalid		    ) ,
+		.araddr			( araddr[24:0]	 ) ,
+		.arvalid			( arvalid		 ) , 
+		.arready			( arready		 ) ,
+		.mem_clk			( ad_clk ),	
+	);	
+	
+	// video encoder
+	video_encoder _encode
+	(
+		.clk( clk     ),
+		.clk5( clk5   ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.red	( {8{char_bit}} | scope_red   ),
+		.green( {8{char_bit}} | scope_green ),
+		.blue	( {8{char_bit}} | scope_blue  ),
+		.hdmi_data( hdmi_data )
+	);
+	
+endmodule // Video 2
