@@ -310,8 +310,15 @@ module video
 		.char_data( char_data )
 	);
 	
-	// Process ADC values accumulating min and max
-	
+	// Process ADC diag looking for 0's and holding till vsync
+	// ensures zero's will be seen by the eye. (1/10 sec?)
+	logic [3:0] diag_reg;
+	logic [21:0] tenth;
+	always @(posedge clk) begin
+		tenth <= tenth + 1;
+		diag_reg <= ( tenth == 0 ) ? diag : diag & diag_reg;
+	end
+
 
 	// snapshot display values during vsync
 	logic [11:0] value_1, value_2, value_3, value_4, value_5;
@@ -440,10 +447,10 @@ module video
 						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_4[01]}] :
 						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_4[00]}] : 
 						  // diag
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,   diag[03]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,   diag[02]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,   diag[01]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,   diag[00]}] :  0;
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,diag_reg[03]}] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,diag_reg[02]}] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,diag_reg[01]}] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,diag_reg[00]}] :  0;
 	
 	// video encoder
 	video_encoder _encode
