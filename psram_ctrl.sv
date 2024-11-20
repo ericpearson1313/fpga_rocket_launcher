@@ -173,7 +173,7 @@ module psram_ctrl(
 		cmds[CWRMEM][ILE ][0:17] = 0;                                                                      
 		cmds[CWRMEM][ISOE][0:17] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111};
 		cmds[CWRMEM][ILST][0:17] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
-		cmds[CWRMEM][IRDY][0:17] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000};
+		cmds[CWRMEM][IRDY][0:17] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000,16'h0000};
 	end
 	
 	
@@ -285,8 +285,9 @@ module psram_ctrl(
 				STATE_CMD_WRLAT :		next_state = STATE_CMD_WRLAT_WAIT ;
 				STATE_CMD_WRLAT_WAIT :	next_state = ( lastq ) ? STATE_READY : STATE_CMD_WRLAT_WAIT ;
 				// Ready for command, recieve and dispatch
-				STATE_READY        :	next_state = 	( arvalid ) ? 	STATE_CMD_RDMEM :
-														( awvalid ) ? 	STATE_CMD_WRMEM : STATE_READY ;
+				STATE_READY        :	next_state = 	( awvalid ) ? 	STATE_CMD_WRMEM :
+																( arvalid ) ? 	STATE_CMD_RDMEM :
+																					STATE_READY     ;
 				// Read Mem burst
 				STATE_CMD_RDMEM : 		next_state = STATE_CMD_RDMEM_WAIT;
 				STATE_CMD_RDMEM_WAIT :	next_state = ( lastq ) ? STATE_READY : STATE_CMD_RDMEM_WAIT ;
@@ -334,8 +335,7 @@ module psram_ctrl(
 		assign wready = cmds_reg[IRDY][0][0];	
 		
 		// register addressed
-
-		
+	
 		always @(posedge clk) begin
 			awaddr_reg <= ( awvalid && awready ) ? awaddr : awaddr_reg;
 			araddr_reg <= ( arvalid && arready ) ? araddr : araddr_reg;
