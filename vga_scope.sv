@@ -228,13 +228,17 @@ module vga_scope
 	
 endmodule
 
+
+
 ///////////////////////////////////
+//////
 //////   VGA WAVE DISPLAY
+//////
 /////////////////////////////////
 
 module vga_wave_display
 // Displays waveforms from a large capture buffer (4M samples)
-// During Vsync it reads from the big buffer and copies to display buffer 
+// During Vsync it reads 640 bursts of 16byte-samples from the big buffer and copies to display buffer 
 // for wave displays.
 // ultimately keypad controlled pan/zoom will determine the read address and pitch.
 (
@@ -280,11 +284,11 @@ module vga_wave_display
 		STATE_INC // Increment the counter
 	} State;
 		
-	State state;
+	State state = STATE_STARTUP;
 	
 	logic [9:0] read_cnt; // count burst to generate address
 	always @(posedge mem_clk) begin
-		if( !psram_ready ) begin
+		if( reset || !psram_ready ) begin
 			state <= STATE_STARTUP;
 			read_cnt <= 0;
 		end else begin
@@ -380,12 +384,12 @@ module vga_wave_display
 				pel_b1 <= 0;
 				pel_b0 <= 0;
 		end else begin
-			if( ycnt >= 224 ) begin
+			if( ycnt >= 128 && ycnt <= 384 ) begin
 				pel_gd <= ( xcnt[5:0] == 6'd63 || ycnt[4:0] == 5'd0 ) ? 1'b1 : 1'b0; // a grid
-				pel_a0 <= ( { q0[12:9], q0[7:4] } == (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_a1 <= ( { q1[12:9], q1[7:4] } == (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_b0 <= ( { q2[12:9], q2[7:4] } == (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_b1 <= ( { q3[12:9], q3[7:4] } == (ycnt - 224) ) ? 1'b1 : 1'b0; 
+				pel_a0 <= ( { q0[12:9], q0[7:4] } == (ycnt - 128) ) ? 1'b1 : 1'b0; 
+				pel_a1 <= ( { q1[12:9], q1[7:4] } == (ycnt - 128) ) ? 1'b1 : 1'b0; 
+				pel_b0 <= ( { q2[12:9], q2[7:4] } == (ycnt - 128) ) ? 1'b1 : 1'b0; 
+				pel_b1 <= ( { q3[12:9], q3[7:4] } == (ycnt - 128) ) ? 1'b1 : 1'b0; 
 			end else begin
 				pel_gd <= 0;
 				pel_a0 <= 0;

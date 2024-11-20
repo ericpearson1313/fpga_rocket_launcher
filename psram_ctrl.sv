@@ -145,7 +145,7 @@ module psram_ctrl(
 		cmds[CWRLAT][ICS ][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
 		cmds[CWRLAT][IDOE][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
 		cmds[CWRLAT][IDQH][0:05] = {16'h0000,16'h0000,16'h7777,16'h0000,16'h0000,16'h88EE};
-		cmds[CWRLAT][IDQL][0:05] = {16'h6666,16'h0000,16'h1111,16'h0000,16'h0000,16'hFFFF};
+		cmds[CWRLAT][IDQL][0:05] = {16'h6666,16'h0000,16'h1111,16'h0000,16'h0044,16'hFFFF};
 		cmds[CWRLAT][ILE ][0:05] = 0;
 		cmds[CWRLAT][ISOE][0:05] = 0;
 		cmds[CWRLAT][ILST][0:05] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
@@ -345,7 +345,7 @@ module psram_ctrl(
 		assign arready = ( state == STATE_READY && next_state == STATE_CMD_RDMEM ) ? 1'b1 : 1'b0;
 		
 		// Write Response
-		assign bvalid = ( state == STATE_CMD_WRLAT_WAIT && lastq ) ? 1'b1 : 1'b0;
+		assign bvalid = ( state == STATE_CMD_WRMEM_WAIT && lastq ) ? 1'b1 : 1'b0;
 		assign bresp = 2'b00;
 
 		// Read Data (connected below in read data latch)
