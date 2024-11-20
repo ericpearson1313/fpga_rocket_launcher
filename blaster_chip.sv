@@ -389,7 +389,7 @@ blaster _blaster (
 			awaddr <= 25'b0;
 			awvalid <= 0;
 		end else begin
-			awvalid <= !awvalid;
+			awvalid <= !almost_empty; // race if mem ctrl reads ahead, but not here
 			awaddr <= ( awready & awvalid ) ? awaddr + 25'd16 : awaddr;
 		end
 	end

@@ -320,7 +320,7 @@ module vga_wave_display
 	assign arvalid = ( state == STATE_ARVALID ) ? 1'b1 : 1'b0;
 	assign araddr[24:0] = { 12'h000, read_cnt[9:0], 3'b000 };
 		
-	// Capture Buffer Write COntrol 
+	// Capture Buffer Write COntrol (MEM_CLK) 
 	// whenever a read burst occurs it is 4 cycles long.
 	// 640 transfers done each vsync.
 	// Address increments by 1 for each of 4 reads.
