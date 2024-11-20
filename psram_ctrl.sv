@@ -138,18 +138,18 @@ module psram_ctrl(
 		cmds[CRDID7][ISOE][0:20] = 0;
 		cmds[CRDID7][ILST][0:20] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
 		cmds[CRDID7][IRDY][0:20] = 0;
-		//                         | WriteEn|        | Write CR0 = 8FEF to give LAT=3
-		//   WRITE Latency 3       | CMD    | CS     | CMD    | A0     | A1     | CR     
-		//                         | 0      | 1      | 2      | 3      | 4      | 5      
-		cmds[CWRLAT][ICLK][0:05] = {16'h0110,16'h0000,16'h0110,16'h0110,16'h0110,16'h0110};
-		cmds[CWRLAT][ICS ][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
-		cmds[CWRLAT][IDOE][0:05] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111};
-		cmds[CWRLAT][IDQH][0:05] = {16'h0000,16'h0000,16'h7777,16'h0000,16'h0000,16'h88EE};
-		cmds[CWRLAT][IDQL][0:05] = {16'h6666,16'h0000,16'h1111,16'h0000,16'h0044,16'hFFFF};
-		cmds[CWRLAT][ILE ][0:05] = 0;
-		cmds[CWRLAT][ISOE][0:05] = 0;
-		cmds[CWRLAT][ILST][0:05] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
-		cmds[CWRLAT][IRDY][0:05] = 0;
+		//                         | WriteEn|        | Write CR0 = 8FEF to give LAT=3    |        | WriteEn (again!)
+		//   WRITE Latency 3       | CMD    | CS     | CMD    | A0     | A1     | CR     | CS     | CMD    
+		//                         | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      
+		cmds[CWRLAT][ICLK][0:07] = {16'h0110,16'h0000,16'h0110,16'h0110,16'h0110,16'h0110,16'h0000,16'h0110};
+		cmds[CWRLAT][ICS ][0:07] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000,16'h1111};
+		cmds[CWRLAT][IDOE][0:07] = {16'h1111,16'h0000,16'h1111,16'h1111,16'h1111,16'h1111,16'h0000,16'h1111};
+		cmds[CWRLAT][IDQH][0:07] = {16'h0000,16'h0000,16'h7777,16'h0000,16'h0000,16'h88EE,16'h0000,16'h0000};
+		cmds[CWRLAT][IDQL][0:07] = {16'h6666,16'h0000,16'h1111,16'h0000,16'h0044,16'hFFFF,16'h0000,16'h6666};
+		cmds[CWRLAT][ILE ][0:07] = 0;
+		cmds[CWRLAT][ISOE][0:07] = 0;
+		cmds[CWRLAT][ILST][0:07] = {16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h0000,16'h1111};
+		cmds[CWRLAT][IRDY][0:07] = 0;
 		//                         | Read Mem, BL=8
 		//   Read Burst 8          | CMD    | A0     | A1     | L1     | L2     | L3     | L1     | L2     | L3     | Extra  | R0     | R1     | R2     | R3     | del    |
 		//                         | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      | 8      | 9      | 10     | 11     | 12     | 13     | 14     |
@@ -367,7 +367,7 @@ module psram_ctrl(
 		// connect up chains
 		for( int idx = 1; idx < 3; idx++ ) cmd_sreg_d[CRESET][idx] = cmd_sreg[CRESET][idx-1];
 		for( int idx = 1; idx <21; idx++ ) cmd_sreg_d[CRDID7][idx] = cmd_sreg[CRDID7][idx-1];
-		for( int idx = 1; idx < 6; idx++ ) cmd_sreg_d[CWRLAT][idx] = cmd_sreg[CWRLAT][idx-1];
+		for( int idx = 1; idx < 8; idx++ ) cmd_sreg_d[CWRLAT][idx] = cmd_sreg[CWRLAT][idx-1];
 		for( int idx = 1; idx <15; idx++ ) cmd_sreg_d[CRDMEM][idx] = cmd_sreg[CRDMEM][idx-1];
 		for( int idx = 1; idx <18; idx++ ) cmd_sreg_d[CWRMEM][idx] = cmd_sreg[CWRMEM][idx-1];
 	end

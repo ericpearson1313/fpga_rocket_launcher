@@ -252,6 +252,10 @@ blaster _blaster (
 	logic rvalid;
 	logic [24:0] araddr;
 	logic arvalid, arready;
+	logic [15:0] wready;
+	logic [24:0] awaddr;
+	logic awvalid;
+	logic awready;
 	
 	psram_ctrl _psram_ctl(
 		// System
@@ -273,9 +277,9 @@ blaster _blaster (
 		.psram_ready( psram_ready ),	// Indicates control is ready to accept requests
 		// AXI4 R/W port
 		// Write Data
-		.wdata( 16'h0000 ),
+		.wdata( wdata ),
 		.wvalid( 1'b1 ), // always avail)
-		.wready(      ),
+		.wready( wready ),
 		// Write Addr
 		.awaddr( 25'h000_0000 ),
 		.awlen( 8'h08 ),	// assumed 8
@@ -283,7 +287,7 @@ blaster _blaster (
 		.awready( ),
 		// Write Response
 		.bready( 1'b1 ),	// Assume 1, non blocking
-		.bvalid(  ),
+		.bvalid( ),
 		.bresp(  ),
 		// Read Addr
 		.araddr( araddr ),
@@ -322,32 +326,79 @@ blaster _blaster (
 	reg_ioe _spi_ncs( .inclock( clk4 ), .outclock( clk4 ), .dout( ),                .din( !spi_cs  ),        .oe( 1'b1        ), .pad_io( spi_ncs          ) ); // invert CS on output
 	reg_ioe _spi_nrst(.inclock( clk4 ), .outclock( clk4 ), .dout( ),                .din( !reset   ),        .oe( 1'b1        ), .pad_io( spi_nrst         ) ); // send out nreset
 	
-// HDMI DDR LVDS Output
 
-	logic [3:0] hcnt;
-	logic [7:0] hout;
-	always @(posedge hdmi_clk5) begin
-		hcnt <= hcnt + 1;
-		                               // ph1   ph0
-		hout <= ( hcnt[3:0] == 4'h0 ) ? 8'b1111_0111 : //8'b11_11_11_11 :
-		        ( hcnt[3:0] == 4'h1 ) ? 8'b1110_1111 : //8'b11_11_11_01 :
-		        ( hcnt[3:0] == 4'h2 ) ? 8'b1111_1111 : //8'b11_11_11_11 :
-		        ( hcnt[3:0] == 4'h3 ) ? 8'b1100_1101 : //8'b11_11_00_01 :
-		        ( hcnt[3:0] == 4'h4 ) ? 8'b1111_1111 : //8'b11_11_11_11 :
-		        ( hcnt[3:0] == 4'h5 ) ? 8'b1110_1111 : //8'b11_11_11_01 :
-		        ( hcnt[3:0] == 4'h6 ) ? 8'b1011_1011 : //8'b11_00_11_11 :
-		        ( hcnt[3:0] == 4'h7 ) ? 8'b1000_1001 : //8'b11_00_00_01 :
-		        ( hcnt[3:0] == 4'h8 ) ? 8'b1111_1111 : //8'b11_11_11_11 :
-		        ( hcnt[3:0] == 4'h9 ) ? 8'b1110_1111 : //8'b11_11_11_01 :
-		        ( hcnt[3:0] == 4'hA ) ? 8'b1111_1111 : //8'b11_11_11_11 :
-		        ( hcnt[3:0] == 4'hB ) ? 8'b0100_1101 : //8'b11_11_00_01 :
-		        ( hcnt[3:0] == 4'hC ) ? 8'b0111_0111 : //8'b00_11_11_11 :
-		        ( hcnt[3:0] == 4'hD ) ? 8'b0110_0111 : //8'b00_11_11_01 :
-		        ( hcnt[3:0] == 4'hE ) ? 8'b0011_0011 : //8'b00_00_11_11 :
-		       /*(hcnt[3:0] == 4'hF)?*/ 8'b0000_0001 ; //8'b00_00_00_01 ;
+	////////////////////////////////
+	//       Data Capture
+	////////////////////////////////
+	
+	// Can capture ALL adc samples, when psram_ready
+	// write all samples into the fifo (as burst write of 4 16-bit samples)	
+	// When there are 8 words in the fifo, initiate a write 
+	// increment the address by 16bytes  = 8x 16bit = 2 samples of 64 bit;
+	
+	// Fifo Write 
+	
+	logic almost_empty;
+	logic [15:0] wrfifo_data;
+	logic wrfifo;
+	logic [3:0][15:0] ad_data;
+	logic [2:0] ad_strobe_d;
+	
+	always @(posedge clk) begin
+		ad_strobe_d <= { ad_strobe_d[1:0], ad_strobe & psram_ready}; 
+		if( ad_strobe ) begin
+		ad_data <= { { 4'h0, ad_a0[11:0] },
+						 { 4'h0, ad_a1[11:0] },
+						 { 4'h0, ad_b0[11:0] },
+						 { 4'h0, ad_b1[11:0] } };
+		end else begin
+			ad_data <= ad_data;
+		end
+	end
+	assign wrfifo_data = ( ad_strobe ) ? { 4'h0, ad_a0[11:0] } :
+			               ( ad_strobe_d[0] ) ? ad_data[2] :
+			               ( ad_strobe_d[1] ) ? ad_data[1] :
+			               ( ad_strobe_d[2] ) ? ad_data[0] : 16'h0048;
+	assign wrfifo = (ad_strobe & psram_ready) | (|ad_strobe_d);
+	
+	adc_mem_fifo  #( 16, 9, 512 ) _write_fifo
+	( 
+		.clk ( clk ),
+		.reset ( reset ),
+		// status flags
+		.full( ),
+		.empty( ),
+		.almost_empty( almost_empty ),
+		// Input from adc's
+		.we( wrfifo ),
+		.d( wrfifo_data ),
+		// output to write port of psram
+		.re( wready ),
+		.q( wdata ),
+	); 
+		
+	// Fifo Read control. 
+	// when there are 8 or more (!almost_empty)
+	// psram write awaddr and awvalid write request
+	// wait for awready
+	// increment awaddr address by 16
+	// Repeat.
+	
+	always @(posedge clk) begin
+		if( reset ) begin
+			awaddr <= 25'b0;
+			awvalid <= 0;
+		end else begin
+			awvalid <= !awvalid;
+			awaddr <= ( awready & awvalid ) ? awaddr + 25'd16 : awaddr;
+		end
 	end
 
-	
+	/////////////////////////////////
+	////
+	////       VIDEO
+	////
+	//////////////////////////////////
 	
 	// HDMI reset
 	logic [3:0] hdmi_reg;
