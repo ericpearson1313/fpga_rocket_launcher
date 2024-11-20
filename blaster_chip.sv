@@ -249,6 +249,7 @@ blaster _blaster (
 	
 	logic psram_ready;
 	logic [17:0] rdata;
+	logic [15:0] wdata;
 	logic rvalid;
 	logic [24:0] araddr;
 	logic arvalid, arready;
@@ -281,10 +282,10 @@ blaster _blaster (
 		.wvalid( 1'b1 ), // always avail)
 		.wready( wready ),
 		// Write Addr
-		.awaddr( 25'h000_0000 ),
+		.awaddr( awaddr ),
 		.awlen( 8'h08 ),	// assumed 8
-		.awvalid( 1'b0 ), // write valid
-		.awready( ),
+		.awvalid( awvalid ), // write valid
+		.awready( awready ),
 		// Write Response
 		.bready( 1'b1 ),	// Assume 1, non blocking
 		.bvalid( ),
@@ -377,7 +378,7 @@ blaster _blaster (
 		.q( wdata ),
 	); 
 		
-	// Fifo Read control. 
+	// Fifo Read / PSRAM Write control. 
 	// when there are 8 or more (!almost_empty)
 	// psram write awaddr and awvalid write request
 	// wait for awready
