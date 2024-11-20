@@ -211,8 +211,8 @@ module vga_scope
 							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h19 ) ? char_data['h1] :
 							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h18 ) ? char_data['hB] :
 							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h18 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
+							( char_y[6:0] == 7'h1A && char_x[6:0] == 7'h18 ) ? char_data['hB] :
+							( char_y[6:0] == 7'h1A && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
 	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
@@ -384,12 +384,12 @@ module vga_wave_display
 				pel_b1 <= 0;
 				pel_b0 <= 0;
 		end else begin
-			if( ycnt >= 128 && ycnt <= 384 ) begin
+			if( ycnt >= 32 && ycnt <= 384 ) begin
 				pel_gd <= ( xcnt[5:0] == 6'd63 || ycnt[4:0] == 5'd0 ) ? 1'b1 : 1'b0; // a grid
-				pel_a0 <= ( { q0[12:9], q0[7:4] } == (ycnt - 128) ) ? 1'b1 : 1'b0; 
-				pel_a1 <= ( { q1[12:9], q1[7:4] } == (ycnt - 128) ) ? 1'b1 : 1'b0; 
-				pel_b0 <= ( { q2[12:9], q2[7:4] } == (ycnt - 128) ) ? 1'b1 : 1'b0; 
-				pel_b1 <= ( { q3[12:9], q3[7:4] } == (ycnt - 128) ) ? 1'b1 : 1'b0; 
+				pel_a0 <= ( { 1'b0, q0[12:9], q0[7:4] } == ({1'b0,ycnt} -  32) ) ? 1'b1 : 1'b0; 
+				pel_a1 <= ( { 1'b0, q1[12:9], q1[7:4] } == ({1'b0,ycnt} -  64) ) ? 1'b1 : 1'b0; 
+				pel_b0 <= ( { 1'b0, q2[12:9], q2[7:4] } == ({1'b0,ycnt} -  96) ) ? 1'b1 : 1'b0; 
+				pel_b1 <= ( { 1'b0, q3[12:9], q3[7:4] } == ({1'b0,ycnt} - 128) ) ? 1'b1 : 1'b0; 
 			end else begin
 				pel_gd <= 0;
 				pel_a0 <= 0;
@@ -418,15 +418,15 @@ module vga_wave_display
 		.char_data( char_data )
 	);
 	
-	assign char_bit = ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
-							( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
+	assign char_bit = ( char_y[6:0] == 7'h13 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
+							( char_y[6:0] == 7'h13 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
 							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
 							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h19 ) ? char_data['h1] :
-							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h18 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
 							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h18 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
-	
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h19 ) ? char_data['h0] :
+							( char_y[6:0] == 7'h1F && char_x[6:0] == 7'h18 ) ? char_data['hB] :
+							( char_y[6:0] == 7'h1F && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
+							
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
 					( pel_a0 ) ? 24'hFFFFFF :
@@ -434,9 +434,9 @@ module vga_wave_display
 					( pel_b0 ) ? 24'h00ff00 :
 					( pel_b1 ) ? 24'h0000ff :
 					( pel_gd ) ? 24'h808080 : 
-					( char_bit && char_y[2:1] == 2'b10 ) ? 24'hFFFFFF :
-					( char_bit && char_y[2:1] == 2'b11 ) ? 24'hff0000 :
-					( char_bit && char_y[2:1] == 2'b00 ) ? 24'h00ff00 :
-					( char_bit && char_y[2:1] == 2'b01 ) ? 24'h0000ff : 24'h000000;
+					( char_bit && char_y[3:2] == 2'b00 ) ? 24'hFFFFFF :
+					( char_bit && char_y[3:2] == 2'b01 ) ? 24'hff0000 :
+					( char_bit && char_y[3:2] == 2'b10 ) ? 24'h00ff00 :
+					( char_bit && char_y[3:2] == 2'b11 ) ? 24'h0000ff : 24'h000000;
 	
 endmodule
