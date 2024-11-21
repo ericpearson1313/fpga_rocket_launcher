@@ -258,6 +258,14 @@ blaster _blaster (
 	logic awvalid;
 	logic awready;
 	
+	// hack view alignment hook
+	logic pwm_del;
+	logic [24:0] base_addr;
+	always @(posedge clk) begin
+		pwm_del <= pwm;
+		base_addr <= ( !pwm_del && pwm ) ? (awaddr - (16 * 64)) : base_addr; // 64 samples before pwm rising edge
+	end 
+	
 	psram_ctrl _psram_ctl(
 		// System
 		.clk		( clk ),
@@ -291,7 +299,7 @@ blaster _blaster (
 		.bvalid( ),
 		.bresp(  ),
 		// Read Addr
-		.araddr( araddr ),
+		.araddr( araddr + base_addr ),
 		.arlen( 8'h04 ),	// assumed 4
 		.arvalid( arvalid ), // read valid	
 		.arready( arready ),
@@ -337,6 +345,7 @@ blaster _blaster (
 	// When there are 8 words in the fifo, initiate a write 
 	// increment the address by 16bytes  = 8x 16bit = 2 samples of 64 bit;
 	
+			
 	// Fifo Write 
 	
 	logic almost_empty;
@@ -395,6 +404,7 @@ blaster _blaster (
 		end
 	end
 
+		
 	/////////////////////////////////
 	////
 	////       VIDEO

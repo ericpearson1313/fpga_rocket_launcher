@@ -418,14 +418,14 @@ module vga_wave_display
 		.char_data( char_data )
 	);
 	
-	assign char_bit = ( char_y[6:0] == 7'h13 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
-							( char_y[6:0] == 7'h13 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
-							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
-							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h19 ) ? char_data['h1] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h18 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h19 ) ? char_data['h0] :
-							( char_y[6:0] == 7'h1F && char_x[6:0] == 7'h18 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h1F && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
+	assign char_bit = ( char_y[6:0] == 7'h13 && char_x[6:0] == 7'h10 ) ? char_data['hA] :
+							( char_y[6:0] == 7'h13 && char_x[6:0] == 7'h11 ) ? char_data['h0] :
+							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h10 ) ? char_data['hA] :
+							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h11 ) ? char_data['h1] :
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h10 ) ? char_data['hB] :
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h11 ) ? char_data['h0] :
+							( char_y[6:0] == 7'h1F && char_x[6:0] == 7'h10 ) ? char_data['hB] :
+							( char_y[6:0] == 7'h1F && char_x[6:0] == 7'h11 ) ? char_data['h1] : 0;
 							
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
