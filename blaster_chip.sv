@@ -253,7 +253,7 @@ blaster _blaster (
 	logic rvalid;
 	logic [24:0] araddr;
 	logic arvalid, arready;
-	logic [15:0] wready;
+	logic wready;
 	logic [24:0] awaddr;
 	logic awvalid;
 	logic awready;
@@ -375,7 +375,7 @@ blaster _blaster (
 		.d( wrfifo_data ),
 		// output to write port of psram
 		.re( wready ),
-		.q( wdata ),
+		.q( wdata )
 	); 
 		
 	// Fifo Read / PSRAM Write control. 
@@ -500,7 +500,7 @@ module key_scan(
 				end else if( div[11:0] == 12'hfff && flag == 0 ) begin
 					col <= 0;
 					row <= 0;
-				end else if( div[9:0] == 10'h3F0 && { keypad_in[2], keypad_in[0], keypad_in[4]} != 3'd111 ) begin // key pressed
+				end else if( div[9:0] == 10'h3F0 && { keypad_in[2], keypad_in[0], keypad_in[4]} != 3'b111 ) begin // key pressed
 					flag  <= 1;
 					col[2] <= !keypad_in[2];
 					col[1] <= !keypad_in[0];

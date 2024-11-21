@@ -174,9 +174,9 @@ module vga_scope
 //				pel_b0 <= ( b0 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
 //				pel_b1 <= ( b1 == (ycnt - 224) ) ? 1'b1 : 1'b0; 
 				pel_a0 <= ( a0_max >= (ycnt - 224) && a0_min <= (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_a1 <= ( a1_max >= (ycnt - 224) && a1_min <= (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_b0 <= ( b0_max >= (ycnt - 224) && b0_min <= (ycnt - 224) ) ? 1'b1 : 1'b0; 
-				pel_b1 <= ( b1_max >= (ycnt - 224) && b1_min <= (ycnt - 224) ) ? 1'b1 : 1'b0; 
+				pel_a1 <= ( a1_max >= (ycnt - 256) && a1_min <= (ycnt - 256) ) ? 1'b1 : 1'b0; 
+				pel_b0 <= ( b0_max >= (ycnt - 288) && b0_min <= (ycnt - 288) ) ? 1'b1 : 1'b0; 
+				pel_b1 <= ( b1_max >= (ycnt - 320) && b1_min <= (ycnt - 320) ) ? 1'b1 : 1'b0; 
 			end else begin
 				pel_gd <= 0;
 				pel_a0 <= 0;
@@ -211,8 +211,8 @@ module vga_scope
 							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h19 ) ? char_data['h1] :
 							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h18 ) ? char_data['hB] :
 							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
-							( char_y[6:0] == 7'h1A && char_x[6:0] == 7'h18 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h1A && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h18 ) ? char_data['hB] :
+							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
 	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
