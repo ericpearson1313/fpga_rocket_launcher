@@ -223,9 +223,9 @@ logic [11:0] ad_hold_a0, ad_hold_a1, ad_hold_b0, ad_hold_b1;
 
 logic [11:0] load;
 
-parameter LOAD_SEL = 0;   // select first load delay, load reg input (ie 1 cycle early).
-parameter HOLD_SEL = 13;  // select output hold delay bit
-parameter VALID_SEL = 14;   // the cycle the adc hold registers are updatead
+parameter LOAD_SEL = 1;   // select first load delay, load reg input (ie 1 cycle early).
+parameter HOLD_SEL = 14;  // select output hold delay bit
+parameter VALID_SEL = 15;   // the cycle the adc hold registers are updatead
 
 always @(posedge clk) begin
 	if( reset ) begin
