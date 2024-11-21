@@ -103,7 +103,10 @@ module psram_ctrl(
 	
 	// Re-arrange write data for command insertion
 	logic [15:0] d, dh, dl;
-	assign d = wdata;
+	logic [15:0] wdata_reg;
+	always @(posedge clk)
+		wdata_reg <= wdata;
+	assign d = wdata_reg;
 	assign dh = { {2{d[15:12]}}, {2{d[7:4]}} };
 	assign dl = { {2{d[11: 8]}}, {2{d[3:0]}} };   
 	
