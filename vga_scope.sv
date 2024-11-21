@@ -63,14 +63,14 @@ module vga_scope
 				ad_b1_max <= ad_b1_max_cur;
 			end else begin // on the other data cycles
 				// Update mins/maxes
-				ad_a0_min_cur <= ( ad_a0_min_cur[10:0] > ad_a0[10:0] ) ? ad_a0 : ad_a0_min_cur ;
-				ad_a0_max_cur <= ( ad_a0_max_cur[10:0] < ad_a0[10:0] ) ? ad_a0 : ad_a0_max_cur ;
-				ad_a1_min_cur <= ( ad_a1_min_cur[10:0] > ad_a1[10:0] ) ? ad_a1 : ad_a1_min_cur ;
-				ad_a1_max_cur <= ( ad_a1_max_cur[10:0] < ad_a1[10:0] ) ? ad_a1 : ad_a1_max_cur ;
-				ad_b0_min_cur <= ( ad_b0_min_cur[10:0] > ad_b0[10:0] ) ? ad_b0 : ad_b0_min_cur ;
-				ad_b0_max_cur <= ( ad_b0_max_cur[10:0] < ad_b0[10:0] ) ? ad_b0 : ad_b0_max_cur ;
-				ad_b1_min_cur <= ( ad_b1_min_cur[10:0] > ad_b1[10:0] ) ? ad_b1 : ad_b1_min_cur ;
-				ad_b1_max_cur <= ( ad_b1_max_cur[10:0] < ad_b1[10:0] ) ? ad_b1 : ad_b1_max_cur ;
+				ad_a0_min_cur <= ( ad_a0_min_cur[11:0] > ad_a0[11:0] ) ? ad_a0 : ad_a0_min_cur ;
+				ad_a0_max_cur <= ( ad_a0_max_cur[11:0] < ad_a0[11:0] ) ? ad_a0 : ad_a0_max_cur ;
+				ad_a1_min_cur <= ( ad_a1_min_cur[11:0] > ad_a1[11:0] ) ? ad_a1 : ad_a1_min_cur ;
+				ad_a1_max_cur <= ( ad_a1_max_cur[11:0] < ad_a1[11:0] ) ? ad_a1 : ad_a1_max_cur ;
+				ad_b0_min_cur <= ( ad_b0_min_cur[11:0] > ad_b0[11:0] ) ? ad_b0 : ad_b0_min_cur ;
+				ad_b0_max_cur <= ( ad_b0_max_cur[11:0] < ad_b0[11:0] ) ? ad_b0 : ad_b0_max_cur ;
+				ad_b1_min_cur <= ( ad_b1_min_cur[11:0] > ad_b1[11:0] ) ? ad_b1 : ad_b1_min_cur ;
+				ad_b1_max_cur <= ( ad_b1_max_cur[11:0] < ad_b1[11:0] ) ? ad_b1 : ad_b1_max_cur ;
 				// Hold frame value;
 				ad_a0_min <= ad_a0_min;
 				ad_a0_max <= ad_a0_max;
@@ -142,14 +142,14 @@ module vga_scope
 	logic [7:0] b0_min, b0_max;
 	logic [7:0] b1_min, b1_max;	
 	
-	sram1024x8 _a0_mem_max (.clock(clk),.data(ad_a0_max[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_max));
-	sram1024x8 _a1_mem_max (.clock(clk),.data(ad_a1_max[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_max));
-	sram1024x8 _b0_mem_max (.clock(clk),.data(ad_b0_max[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_max));
-	sram1024x8 _b1_mem_max (.clock(clk),.data(ad_b1_max[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_max));
-	sram1024x8 _a0_mem_min (.clock(clk),.data(ad_a0_min[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_min));
-	sram1024x8 _a1_mem_min (.clock(clk),.data(ad_a1_min[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_min));
-	sram1024x8 _b0_mem_min (.clock(clk),.data(ad_b0_min[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_min));
-	sram1024x8 _b1_mem_min (.clock(clk),.data(ad_b1_min[10:3]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_min));
+	sram1024x8 _a0_mem_max (.clock(clk),.data(ad_a0_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_max));
+	sram1024x8 _a1_mem_max (.clock(clk),.data(ad_a1_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_max));
+	sram1024x8 _b0_mem_max (.clock(clk),.data(ad_b0_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_max));
+	sram1024x8 _b1_mem_max (.clock(clk),.data(ad_b1_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_max));
+	sram1024x8 _a0_mem_min (.clock(clk),.data(ad_a0_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_min));
+	sram1024x8 _a1_mem_min (.clock(clk),.data(ad_a1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_min));
+	sram1024x8 _b0_mem_min (.clock(clk),.data(ad_b0_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_min));
+	sram1024x8 _b1_mem_min (.clock(clk),.data(ad_b1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_min));
 	
 	// Display Logic rd_data vs ycnt to give veritcal axis
 	// Scope screen is 256 rows on bottom 480 line display and takes the full 640 width. 
