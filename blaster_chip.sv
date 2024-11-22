@@ -72,6 +72,8 @@ module blaster_chip
 	input logic reset_n
 );
 
+	logic [4:0] key; // keypad, bit 4 indicates pressed
+
 
 
 // PLL (only 1 PLL in E144 package!)
@@ -154,12 +156,12 @@ end
 assign anain[8:5] = count[24:21];
 assign anain[8]=count[24];
 
-assign speaker = count[14]  & !iset[0];
-assign dump = !iset[1];
+assign speaker = count[14]  & (!iset[0] || key == 5'h11);
+assign dump = !iset[1]  | key == 5'h1B;
 assign cont_led = !iset[1] | cont; 
 assign arm_led = fire_button | lt3420_done ;
-assign lt3420_charge = !iset[2];
-assign pwm = (fire_button && count[15:6] == 0) ? 1'b1 : 1'b0;
+assign lt3420_charge = !iset[2] | key == 5'h1A;
+assign pwm = ((fire_button || key == 5'h10)  && count[15:6] == 0) ? 1'b1 : 1'b0;
 
 ////////////////////////////////
 //////////////////////////////
@@ -221,7 +223,6 @@ blaster _blaster (
 		
 		
 // Keyboard Scanner
-	logic [4:0] key;
 	key_scan _keypad ( 
 		.clk( clk ),
 		.reset( reset ),
