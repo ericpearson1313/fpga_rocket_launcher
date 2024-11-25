@@ -187,7 +187,56 @@ always @(posedge clk) begin
 end
 endmodule // vga_sync
 
+module vga_800x480_sync // Generate a video sync
+#(
+// Video Timing Counts
+parameter VERT		= 480,
+parameter VFRONT 	= 10,
+parameter VSYNCP 	= 2,
+parameter VBACK	= 33,
+parameter HORIZ   = 800,
+parameter HFRONT 	= 40,
+parameter HSYNCP 	= 128,
+parameter HBACK	= 88
+)
+(
+	input clk,	// Pixel clk
+	input reset,
+	output blank,
+	output hsync,
+	output vsync
+);
 
+
+// hcnt, vcnt - free running raw counters for 800x525 video frame (including hvsync)
+logic [11:0] hcnt, vcnt;
+always @(posedge clk) begin
+	if( reset ) begin
+		hcnt <= 0;
+		vcnt <= 0;
+		hsync <= 1'b0;
+		vsync <= 1'b0;
+		blank <= 1'b0;
+	end else begin 
+		// free run hcnt vcnt 800 x 525
+		if( hcnt < (HORIZ+HFRONT+HSYNCP+HBACK-1) ) begin
+			hcnt <= hcnt + 1;
+			vcnt <= vcnt;
+		end else begin
+			hcnt <= 0;
+			if( vcnt < (VERT+VFRONT+VSYNCP+VBACK-1)) begin 
+				vcnt <= vcnt + 1;
+			end else begin
+				vcnt <= 0;
+			end
+		end
+		// Derive sync and blanking signals from the counters
+		blank <= ( hcnt >= HORIZ || vcnt >= VERT ) ? 1'b1 : 1'b0;
+		hsync <= ( hcnt >= HORIZ+HFRONT && hcnt < HORIZ+HFRONT+HSYNCP ) ? 1'b1 : 1'b0;
+		vsync <= ( vcnt >= VERT +VFRONT && vcnt < VERT +VFRONT+VSYNCP ) ? 1'b1 : 1'b0;
+	end
+end
+endmodule // vga_800x480 sync
 
 
 module test_pattern
