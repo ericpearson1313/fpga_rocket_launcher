@@ -321,7 +321,7 @@ module video
 	logic blank, hsync, vsync;
 	
 	// sych generator
-	vga_sync _sync
+	vga_800x480_sync _sync
 	(
 		.clk(   clk   ),	
 		.reset( reset ),
@@ -541,7 +541,7 @@ module video2
 	logic blank, hsync, vsync;
 	
 	// sych generator
-	vga_sync _sync
+	vga_800x480_sync _sync
 	(
 		.clk(   clk   ),	
 		.reset( reset ),
