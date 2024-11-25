@@ -241,6 +241,7 @@ endmodule // vga_800x480 sync
 
 module test_pattern
 // Create a test patern
+// 13 color bars
 (
 	// Clock
 	input clk,	// Pixel clk
@@ -269,8 +270,8 @@ always @(posedge clk) begin
 		blank_d1 <= 0;
 	end else begin
 		blank_d1 <= blank;
-		cnt50 <= ( blank || cnt50 == 49 ) ? 0 : cnt50 + 1; 
-		barcnt <= ( blank ) ? 0 : ( cnt50 == 49 ) ? barcnt + 1 : barcnt;
+		cnt50 <= ( blank || cnt50 == 61 ) ? 0 : cnt50 + 1; 
+		barcnt <= ( blank ) ? 0 : ( cnt50 == 61 ) ? barcnt + 1 : barcnt;
 		xcnt <= ( blank ) ? 0 : xcnt + 1;
 		ycnt <= ( vsync ) ? 0 : 
 		        ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
@@ -344,7 +345,7 @@ module video
 	);
 	
 	// Font Generator
-	logic [6:0] char_x, char_y;
+	logic [7:0] char_x, char_y;
 	logic [15:0] char_data;
 	
 	font57 _font
@@ -551,7 +552,7 @@ module video2
 	);
 	
 	// Font Generator
-	logic [6:0] char_x, char_y;
+	logic [7:0] char_x, char_y;
 	logic [15:0] char_data;
 	
 	font57 _font

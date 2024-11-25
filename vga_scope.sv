@@ -109,7 +109,7 @@ module vga_scope
 	always @(posedge clk) begin
 		if ( reset ) begin
 			we <= 0;
-			wr_addr <= 640 - 1;
+			wr_addr <= 800 - 1;
 			vsync_d1 <= 0;
 		end else begin
 			vsync_d1 <= vsync;
@@ -131,7 +131,7 @@ module vga_scope
 			xcnt <= ( blank ) ? 0 : xcnt + 1;
 			ycnt <= ( vsync ) ? 0 : 
 					  ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
-			rd_addr <= wr_addr - 639 + xcnt;
+			rd_addr <= wr_addr - 799 + xcnt;
 		end
 	end
 
@@ -152,7 +152,7 @@ module vga_scope
 	sram1024x8 _b1_mem_min (.clock(clk),.data(ad_b1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_min));
 	
 	// Display Logic rd_data vs ycnt to give veritcal axis
-	// Scope screen is 256 rows on bottom 480 line display and takes the full 640 width. 
+	// Scope screen is 256 rows on bottom 480 line display and takes the full 800 width. 
 	// The four channels will be different colors.
 	// if heights off bottom matches value, turn on the pel.
 	
@@ -238,7 +238,7 @@ endmodule
 
 module vga_wave_display
 // Displays waveforms from a large capture buffer (4M samples)
-// During Vsync it reads 640 bursts of 16byte-samples from the big buffer and copies to display buffer 
+// During Vsync it reads 800 bursts of 16byte-samples from the big buffer and copies to display buffer 
 // for wave displays.
 // ultimately keypad controlled pan/zoom will determine the read address and pitch.
 (
@@ -272,7 +272,7 @@ module vga_wave_display
 	logic [9:0] xcnt, ycnt;
 
 	// PSRAM Read Access
-	// During Vsync do 640 read bursts
+	// During Vsync do 800 read bursts
 	// Data will be written to display waveform ram
 	// Handshake the addresses via: araddr[24:0], arvalid, arready;
 	// should not start until psram is ready.
@@ -307,7 +307,7 @@ module vga_wave_display
 				end
 			STATE_INC : begin
 				read_cnt <= read_cnt + 1;
-				state <= ( read_cnt == 639 ) ? STATE_VSYNC : STATE_ARVALID ;	
+				state <= ( read_cnt == 799 ) ? STATE_VSYNC : STATE_ARVALID ;	
 				end
 			default       : begin
 				state <= STATE_STARTUP;
@@ -322,7 +322,7 @@ module vga_wave_display
 		
 	// Capture Buffer Write COntrol (MEM_CLK) 
 	// whenever a read burst occurs it is 4 cycles long.
-	// 640 transfers done each vsync.
+	// 800 transfers done each vsync.
 	// Address increments by 1 for each of 4 reads.
 	
 	logic [2:0] rvalid_del;
@@ -371,7 +371,7 @@ module vga_wave_display
 	sram1024x9_2clk _mem3_1 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[ 8:0]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[3]),.q(q3[ 8:0]));
 	
 	// Display Logic rd_data vs ycnt to give veritcal axis
-	// Scope screen is 256 rows on bottom 480 line display and takes the full 640 width. 
+	// Scope screen is 256 rows on bottom 480 line display and takes the full 800 width. 
 	// The four channels will be different colors.
 	// if heights off bottom matches value, turn on the pel.
 
@@ -402,7 +402,7 @@ module vga_wave_display
 	
 	
 	// Color Legend
-	logic [6:0] char_x, char_y;
+	logic [7:0] char_x, char_y;
 	logic [15:0] char_data;
 	logic char_bit;
 	

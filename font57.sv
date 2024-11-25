@@ -6,8 +6,8 @@ module font57
 	input blank,
 	input hsync,
 	input vsync,
-	output [6:0] char_x,
-	output [6:0] char_y,
+	output [7:0] char_x,
+	output [7:0] char_y,
 	output [15:0] char_data
 );
 
