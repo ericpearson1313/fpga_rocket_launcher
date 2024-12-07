@@ -199,7 +199,7 @@ logic [47:0] hex_F={ 6'b000000,
     end
 endmodule
 
-module ascii_font
+module ascii_font57
 (
 	input clk,
 	input reset,
@@ -208,7 +208,8 @@ module ascii_font
 	input vsync,
 	output [7:0] char_x,
 	output [7:0] char_y,
-	output [255:0] char_data
+	output [255:0] ascii_char, // supported chars else zero
+	output [15:0]  hex_char  // easy to use for hex display
 );
 
 
@@ -217,6 +218,10 @@ module ascii_font
 logic [0:7][0:9][7:0] code; // Ascii Code for a give char
 //     blk  row char pel
 logic [0:7][0:6][0:9][0:4] pel; // pel data
+//     blk char  row  pel 
+logic [0:7][0:9][0:6][0:4] gated; // pel data gated by position
+//     ASCII
+logic [255:0] reduc; // Reduciton ORed ASCII ordered 	
 
 assign code[0]   = {8'h41,8'h42,8'h43,8'h44,8'h45,8'h46,8'h47,8'h48,8'h49,8'h4A};
 assign pel[0][0] = {50'b01110_11110_01110_11110_11111_11111_01110_10001_01110_00001};
@@ -285,9 +290,7 @@ assign pel[7][6] = {50'b00000_01010_00000_00010_10000_00000_00100_01000_00100_00
 
 
 logic [2:0] cntx6;
-logic [2:0] cnty8;
 logic [8:0] ycnt;
-logic [5:0] bitidx;
 logic blank_d1;
 
 	always @(posedge clk) begin
@@ -304,32 +307,60 @@ logic blank_d1;
 		        ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
 		end
 	end
-	
-	assign cnty8[2:0] = ~ycnt[2:0];
 	assign char_y[6:0] = { 1'b0, ycnt[8:3] };
-	assign bitidx[5:0] = { 2'b00, cnty8[2:0], 1'B0 } +  { 1'b0, cnty8[2:0], 2'b00 } + { 3'b000, cntx6[2:0] };
 
-	logic [255:0] char_pels;
+	// Breadk out pel corrdiates to one hot x and y selects
+   logic [0:4] selx;
+	logic [0:6] sely;
+	
+	always_comb begin : _one_hot_char_xy
+		// one-hot X
+		for( int ii = 0; ii < 5; ii++ )
+			selx[ii] = ( cntx6 == ii ) ? 1'b1 : 1'b0; // 5 pels left justified in 6
+		// one-hot Y
+		for( int ii = 0; ii < 7; ii++ )
+			sely[ii] = ( ycnt[2:0] == (ii+1) ) ? 1'b1 : 1'b0; // 7 pels lower justified in 8
+	end			
+
+	// Gate the pels based on X,Y location in char and reduction OR 
+	// and packing in ASCII order with default zero.
+	
+	always_comb begin : _char_gating
+		// gate the PELS with the within char positions
+		for( int bb = 0; bb < 8; bb++ ) 
+			for( int rr = 0; rr < 7; rr++ )
+				for( int cc = 0; cc < 10; cc++ )
+					for( int pp = 0; pp < 5; pp++ )
+						gated[bb][cc][rr][pp] = pel[bb][rr][cc][pp] & selx[pp] & sely[rr];
+		reduc = 0; 
+		for( int bb = 0; bb < 8; bb++ ) 
+			for( int cc = 0; cc < 10; cc++ )
+				reduc[code[bb][cc]] = !gated[bb][cc]; // Reduciton-OR for the win!
+	end
+	
+	always @(posedge clk)
+		ascii_char <= reduc;
+	
+	// Map hex chars
 	always_comb begin
-		char_pels = 0;
-		for( int bidx = 0; bidx < 8; bidx++ ) begin
-			for( int cidx = 0; cidx < 10; cidx++ ) begin
-				char_pels[code[bidx][cidx]]  = ( ycnt[2:0] == 0 || cntx6 == 5 ) ? 1'b0 : // Outside char window
-				                               ( ycnt[2:0] == 1 ) ? pel[bidx][0][cidx][cntx6[2:0]] :
-														 ( ycnt[2:0] == 2 ) ? pel[bidx][1][cidx][cntx6[2:0]] :
-														 ( ycnt[2:0] == 3 ) ? pel[bidx][2][cidx][cntx6[2:0]] :
-														 ( ycnt[2:0] == 4 ) ? pel[bidx][3][cidx][cntx6[2:0]] :
-														 ( ycnt[2:0] == 5 ) ? pel[bidx][4][cidx][cntx6[2:0]] :
-														 ( ycnt[2:0] == 6 ) ? pel[bidx][5][cidx][cntx6[2:0]] :
-														 ( ycnt[2:0] == 7 ) ? pel[bidx][6][cidx][cntx6[2:0]] : 1'b0;
-			end
-		end
+		hex_char['h0] = ascii_char["0"];
+		hex_char['h1] = ascii_char["1"];
+		hex_char['h2] = ascii_char["2"];
+		hex_char['h3] = ascii_char["3"];
+		hex_char['h4] = ascii_char["4"];
+		hex_char['h5] = ascii_char["5"];
+		hex_char['h6] = ascii_char["6"];
+		hex_char['h7] = ascii_char["7"];
+		hex_char['h8] = ascii_char["8"];
+		hex_char['h9] = ascii_char["9"];
+		hex_char['hA] = ascii_char["A"];
+		hex_char['hB] = ascii_char["B"];
+		hex_char['hC] = ascii_char["C"];
+		hex_char['hD] = ascii_char["D"];
+		hex_char['hE] = ascii_char["E"];
+		hex_char['hF] = ascii_char["F"];		
 	end
-	
-	always @(posedge clk) begin
-		char_data <= char_pels;
-	end
-	
+
 endmodule
 
 
