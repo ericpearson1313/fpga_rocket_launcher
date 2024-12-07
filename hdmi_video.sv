@@ -348,7 +348,7 @@ module video
 	logic [7:0] char_x, char_y;
 	logic [15:0] char_data;
 	
-	font57 _font
+	ascii_font57 _font
 	(
 		.clk( clk ),
 		.reset( reset ),
@@ -357,7 +357,9 @@ module video
 		.vsync( vsync ),
 		.char_x( char_x ), // 0 to 105 chars horizontally
 		.char_y( char_y ), // o to 59 rows vertically
-		.char_data( char_data )
+		//.char_data( char_data )
+		.hex_char( char_data ),
+		.ascii_char( )
 	);
 	
 	// Process ADC diag looking for 0's and holding till vsync
@@ -555,7 +557,7 @@ module video2
 	logic [7:0] char_x, char_y;
 	logic [15:0] char_data;
 	
-	font57 _font
+	ascii_font57 _font
 	(
 		.clk( clk ),
 		.reset( reset ),
@@ -564,8 +566,11 @@ module video2
 		.vsync( vsync ),
 		.char_x( char_x ), // 0 to 105 chars horizontally
 		.char_y( char_y ), // o to 59 rows vertically
-		.char_data( char_data )
-	);
+		//.char_data( char_data )
+		.hex_char( char_data ),
+		.ascii_char( )	
+		);
+	
 	
 		// Display something
 	logic char_bit;
