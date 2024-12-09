@@ -280,20 +280,20 @@ end
 
 // Color outputs a function of location
 assign { red, green, blue } = // smpte color bars
-		( barcnt == 4'h0 ) ? 24'hc0c0c0 :
-		( barcnt == 4'h1 ) ? 24'hc0c000 :
-		( barcnt == 4'h2 ) ? 24'h00c000 :
-		( barcnt == 4'h3 ) ? 24'h00c0c0 :
-		( barcnt == 4'h4 ) ? 24'hc000c0 :
-		( barcnt == 4'h5 ) ? 24'hc00000 :
-		( barcnt == 4'h6 ) ? 24'h0000c0 :
-		( barcnt == 4'h7 ) ? 24'h131313 :
-		( barcnt == 4'h8 ) ? 24'h00214c :
-		( barcnt == 4'h9 ) ? 24'hffffff :
-		( barcnt == 4'ha ) ? 24'h32006a :
-		( barcnt == 4'hb ) ? 24'h090909 :
-		( barcnt == 4'hc ) ? 24'h1d1d1d : 
-		                     24'h000000 ;
+		( barcnt == 4'h0 ) ? 24'hc0c0c0 /* smpte_argent */ :
+		( barcnt == 4'h1 ) ? 24'hc0c000 /* smpte_acid_green */ :
+		( barcnt == 4'h2 ) ? 24'h00c000 /* smpte_islamic_green */ :
+		( barcnt == 4'h3 ) ? 24'h00c0c0 /* smpte_turquoise_surf */ :
+		( barcnt == 4'h4 ) ? 24'hc000c0 /* smpte_deep_mageneta */ :
+		( barcnt == 4'h5 ) ? 24'hc00000 /* smpte_ue_red */ :
+		( barcnt == 4'h6 ) ? 24'h0000c0 /* smpte_medium_blud */ :
+		( barcnt == 4'h7 ) ? 24'h131313 /* smpte_chinese_black */ :
+		( barcnt == 4'h8 ) ? 24'h00214c /* smpte_oxford_blue */ :
+		( barcnt == 4'h9 ) ? 24'hffffff /* smpte_white */ :
+		( barcnt == 4'ha ) ? 24'h32006a /* smpte_deep_violet */ :
+		( barcnt == 4'hb ) ? 24'h090909 /* smpte_vampire_black */ :
+		( barcnt == 4'hc ) ? 24'h1d1d1d /* smpte_eerie_black */ : 
+		                     24'h000000 /*  */ ;
 											
 //assign red   = {xcnt[6],{7{ycnt[5]}}};
 //assign green = {xcnt[7],{7{ycnt[6]}}};
