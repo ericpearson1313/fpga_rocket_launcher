@@ -347,7 +347,7 @@ module video
 	// Font Generator
 	logic [7:0] char_x, char_y;
 	logic [15:0] char_data;
-	
+	logic [1:0] bin_data;
 	ascii_font57 _font
 	(
 		.clk( clk ),
@@ -359,6 +359,7 @@ module video
 		.char_y( char_y ), // o to 59 rows vertically
 		//.char_data( char_data )
 		.hex_char( char_data ),
+		.binary_char( bin_data ),
 		.ascii_char( )
 	);
 	
@@ -450,59 +451,59 @@ module video
 					
 	// dump binary		
 	logic bin_str;
-	assign bin_str = ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h20 ) ? char_data[{3'b000,value_1[11]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h21 ) ? char_data[{3'b000,value_1[10]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h22 ) ? char_data[{3'b000,value_1[09]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h23 ) ? char_data[{3'b000,value_1[08]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h24 ) ? char_data[{3'b000,value_1[07]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h25 ) ? char_data[{3'b000,value_1[06]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h26 ) ? char_data[{3'b000,value_1[05]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h27 ) ? char_data[{3'b000,value_1[04]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_1[03]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_1[02]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_1[01]}] :
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_1[00]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h20 ) ? char_data[{3'b000,value_2[11]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h21 ) ? char_data[{3'b000,value_2[10]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h22 ) ? char_data[{3'b000,value_2[09]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h23 ) ? char_data[{3'b000,value_2[08]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h24 ) ? char_data[{3'b000,value_2[07]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h25 ) ? char_data[{3'b000,value_2[06]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h26 ) ? char_data[{3'b000,value_2[05]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h27 ) ? char_data[{3'b000,value_2[04]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_2[03]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_2[02]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_2[01]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_2[00]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h20 ) ? char_data[{3'b000,value_3[11]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h21 ) ? char_data[{3'b000,value_3[10]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h22 ) ? char_data[{3'b000,value_3[09]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h23 ) ? char_data[{3'b000,value_3[08]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h24 ) ? char_data[{3'b000,value_3[07]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h25 ) ? char_data[{3'b000,value_3[06]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h26 ) ? char_data[{3'b000,value_3[05]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h27 ) ? char_data[{3'b000,value_3[04]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_3[03]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_3[02]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_3[01]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_3[00]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h20 ) ? char_data[{3'b000,value_4[11]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h21 ) ? char_data[{3'b000,value_4[10]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h22 ) ? char_data[{3'b000,value_4[09]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h23 ) ? char_data[{3'b000,value_4[08]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h24 ) ? char_data[{3'b000,value_4[07]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h25 ) ? char_data[{3'b000,value_4[06]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h26 ) ? char_data[{3'b000,value_4[05]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h27 ) ? char_data[{3'b000,value_4[04]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h28 ) ? char_data[{3'b000,value_4[03]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h29 ) ? char_data[{3'b000,value_4[02]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2A ) ? char_data[{3'b000,value_4[01]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2B ) ? char_data[{3'b000,value_4[00]}] : 
-						  // diag
-						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,diag_reg[03]}] :
-						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,diag_reg[02]}] :
-						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,diag_reg[01]}] :
-						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h16 ) ? char_data[{3'b000,diag_reg[00]}] :  0;
+	assign bin_str = ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h20 ) ? bin_data[value_1[11]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h21 ) ? bin_data[value_1[10]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h22 ) ? bin_data[value_1[09]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h23 ) ? bin_data[value_1[08]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h24 ) ? bin_data[value_1[07]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h25 ) ? bin_data[value_1[06]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h26 ) ? bin_data[value_1[05]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h27 ) ? bin_data[value_1[04]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h28 ) ? bin_data[value_1[03]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h29 ) ? bin_data[value_1[02]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h2A ) ? bin_data[value_1[01]] :
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h2B ) ? bin_data[value_1[00]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h20 ) ? bin_data[value_2[11]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h21 ) ? bin_data[value_2[10]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h22 ) ? bin_data[value_2[09]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h23 ) ? bin_data[value_2[08]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h24 ) ? bin_data[value_2[07]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h25 ) ? bin_data[value_2[06]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h26 ) ? bin_data[value_2[05]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h27 ) ? bin_data[value_2[04]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h28 ) ? bin_data[value_2[03]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h29 ) ? bin_data[value_2[02]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h2A ) ? bin_data[value_2[01]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h2B ) ? bin_data[value_2[00]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h20 ) ? bin_data[value_3[11]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h21 ) ? bin_data[value_3[10]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h22 ) ? bin_data[value_3[09]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h23 ) ? bin_data[value_3[08]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h24 ) ? bin_data[value_3[07]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h25 ) ? bin_data[value_3[06]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h26 ) ? bin_data[value_3[05]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h27 ) ? bin_data[value_3[04]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h28 ) ? bin_data[value_3[03]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h29 ) ? bin_data[value_3[02]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h2A ) ? bin_data[value_3[01]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h2B ) ? bin_data[value_3[00]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h20 ) ? bin_data[value_4[11]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h21 ) ? bin_data[value_4[10]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h22 ) ? bin_data[value_4[09]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h23 ) ? bin_data[value_4[08]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h24 ) ? bin_data[value_4[07]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h25 ) ? bin_data[value_4[06]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h26 ) ? bin_data[value_4[05]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h27 ) ? bin_data[value_4[04]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h28 ) ? bin_data[value_4[03]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h29 ) ? bin_data[value_4[02]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2A ) ? bin_data[value_4[01]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h2B ) ? bin_data[value_4[00]] : 
+						  // diagbin
+						  ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h16 ) ? bin_data[diag_reg[03]] :
+						  ( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h16 ) ? bin_data[diag_reg[02]] :
+						  ( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h16 ) ? bin_data[diag_reg[01]] :
+						  ( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h16 ) ? bin_data[diag_reg[00]] :  0;
 	
 	// video encoder
 	video_encoder _encode

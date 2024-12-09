@@ -209,6 +209,7 @@ module ascii_font57
 	output [7:0] char_x,
 	output [7:0] char_y,
 	output [255:0] ascii_char, // supported chars else zero
+	output [1:0] binary_char, // for binary display
 	output [15:0]  hex_char  // easy to use for hex display
 );
 
@@ -358,7 +359,9 @@ logic blank_d1;
 		hex_char['hC] = ascii_char["C"];
 		hex_char['hD] = ascii_char["D"];
 		hex_char['hE] = ascii_char["E"];
-		hex_char['hF] = ascii_char["F"];		
+		hex_char['hF] = ascii_char["F"];	
+		binary_char[0] = ascii_char["0"];
+		binary_char[1] = ascii_char["1"];	
 	end
 
 endmodule
