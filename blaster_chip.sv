@@ -158,7 +158,7 @@ assign anain[8]=count[24];
 
 assign speaker = count[14]  & (!iset[0] || key == 5'h11);
 assign dump = !iset[1]  | key == 5'h1B;
-assign cont_led = !iset[1] | cont; 
+assign cont_led = !(!iset[1] | cont); 
 assign arm_led = fire_button | lt3420_done ;
 assign lt3420_charge = !iset[2] | key == 5'h1A;
 assign pwm = ((fire_button || key == 5'h10)  && count[15:6] == 0) ? 1'b1 : 1'b0;
