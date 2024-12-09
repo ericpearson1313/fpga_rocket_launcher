@@ -335,7 +335,7 @@ logic blank_d1;
 		reduc = 0; 
 		for( int bb = 0; bb < 8; bb++ ) 
 			for( int cc = 0; cc < 10; cc++ )
-				reduc[code[bb][cc]] = !gated[bb][cc]; // Reduciton-OR for the win!
+				reduc[code[bb][cc]] = |gated[bb][cc]; // Reduciton-OR for the win!
 	end
 	
 	always @(posedge clk)
