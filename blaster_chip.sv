@@ -156,7 +156,7 @@ end
 assign anain[8:5] = count[24:21];
 assign anain[8]=count[24];
 
-assign speaker = count[14]  & (!iset[0] || key == 5'h11);
+//assign speaker = count[14]  & (!iset[0] || key == 5'h11);
 assign dump = !iset[1]  | key == 5'h1B;
 assign cont_led = !(!iset[1] | cont); 
 assign arm_led = fire_button | lt3420_done ;
@@ -169,7 +169,32 @@ assign pwm = ((fire_button || key == 5'h10)  && count[15:6] == 0) ? 1'b1 : 1'b0;
 
 
 // Speaker is differential out gives 6Vp-p
+logic [15:0] tone_cnt;
+logic spk_en, spk_toggle;
+
+always @(posedge clk) begin
+	if( tone_cnt == 0 ) begin
+		spk_toggle <= !spk_toggle;
+		{spk_en, tone_cnt}<= ( key == 5'h11 ) ? { 1'b1, 16'h2CCA } :
+								   ( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
+								   ( key == 5'h13 ) ? { 1'b1, 16'h238D } :
+								   ( key == 5'h14 ) ? { 1'b1, 16'h218E } :
+								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
+								   ( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
+								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
+								   ( key == 5'h18 ) ? { 1'b1, 16'h1665 } : 0;
+	end else begin
+		tone_cnt <= tone_cnt - 1;
+		spk_en <= spk_en;
+		spk_toggle <= spk_toggle;
+	end
+end
+
+assign speaker = spk_toggle & spk_en ; 
 assign speaker_n = !speaker;
+
+
+
 logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
 logic ad_strobe;
 
