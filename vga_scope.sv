@@ -375,7 +375,7 @@ module vga_wave_display
 	// The four channels will be different colors.
 	// if heights off bottom matches value, turn on the pel.
 
-	logic pel_gd, pel_a0, pel_a1, pel_b0, pel_b1;
+	logic pel_gd, pel_a0, pel_a1, pel_b0, pel_b1, pel_es, pel_pw;
 	always @(posedge clk) begin
 		if ( reset ) begin
 				pel_gd <= 0;
@@ -383,6 +383,8 @@ module vga_wave_display
 				pel_a1 <= 0;
 				pel_b1 <= 0;
 				pel_b0 <= 0;
+				pel_es <= 0;
+				pel_pw <= 0;
 		end else begin
 			if( ycnt >= 32 && ycnt <= 384 ) begin
 				pel_gd <= ( xcnt[5:0] == 6'd63 || ycnt[4:0] == 5'd0 ) ? 1'b1 : 1'b0; // a grid
@@ -390,12 +392,16 @@ module vga_wave_display
 				pel_a1 <= ( { 1'b0, q1[12:9], q1[7:4] } == ({1'b0,ycnt} -  64) ) ? 1'b1 : 1'b0; 
 				pel_b0 <= ( { 1'b0, q2[12:9], q2[7:4] } == ({1'b0,ycnt} -  96) ) ? 1'b1 : 1'b0; 
 				pel_b1 <= ( { 1'b0, q3[12:9], q3[7:4] } == ({1'b0,ycnt} - 128) ) ? 1'b1 : 1'b0; 
+				pel_es <= ( { 1'b0,q0[16:13],q1[16:13]} == ({1'b0,ycnt} - 160) ) ? 1'b1 : 1'b0; 
+				pel_pw <= ( q3[13] && ycnt[9:4] == 'd24 ) ? 1'b1 : 1'b0;
 			end else begin
 				pel_gd <= 0;
 				pel_a0 <= 0;
 				pel_a1 <= 0;
 				pel_b1 <= 0;
 				pel_b0 <= 0;
+				pel_es <= 0;
+				pel_pw <= 0;
 			end
 		end
 	end	
@@ -434,6 +440,8 @@ module vga_wave_display
 					( pel_b0 ) ? 24'h00ff00 :
 					( pel_b1 ) ? 24'h0000ff :
 					( pel_gd ) ? 24'h808080 : 
+					( pel_pw ) ? 24'hc0c000 :
+					( pel_es ) ? 24'hc0c0c0 :
 					( char_bit && char_y[3:2] == 2'b00 ) ? 24'hFFFFFF :
 					( char_bit && char_y[3:2] == 2'b01 ) ? 24'hff0000 :
 					( char_bit && char_y[3:2] == 2'b10 ) ? 24'h00ff00 :

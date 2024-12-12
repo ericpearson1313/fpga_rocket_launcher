@@ -32,7 +32,7 @@ logic blank_d1;
 		end
 	end
 	assign cnty8[2:0] = ~ycnt[2:0];
-	assign char_y[6:0] = { 1'b0, ycnt[8:3] };
+	assign char_y[7:0] = { 2'b00, ycnt[8:3] };
 	assign bitidx[5:0] = { 2'b00, cnty8[2:0], 1'B0 } +  { 1'b0, cnty8[2:0], 2'b00 } + { 3'b000, cntx6[2:0] };
 
 logic [47:0] hex_0={ 6'b000000,
@@ -308,7 +308,7 @@ logic blank_d1;
 		        ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
 		end
 	end
-	assign char_y[6:0] = { 1'b0, ycnt[8:3] };
+	assign char_y[7:0] = { 2'b00, ycnt[8:3] };
 
 	// Breadk out pel corrdiates to one hot x and y selects
    logic [0:4] selx;

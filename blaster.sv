@@ -366,3 +366,169 @@ end
 assign iout_est[11:0] = (  state_q == S_FIRE ) ? i_acc[33:22] : 0;
 
 endmodule
+
+
+
+module adc_module_4ch 
+(
+	// Input clock, reset
+	input logic clk,
+	input logic reset,
+	
+	// External A/D Converters (2.5v)
+	output logic        ad_cs,
+	input  logic  [1:0] ad_sdata_a,
+	input  logic  [1:0] ad_sdata_b,
+	
+	// ADC monitor outputs
+	output [11:0] ad_a0,
+	output [11:0] ad_a1,
+	output [11:0] ad_b0,
+	output [11:0] ad_b1,
+	output ad_strobe
+);
+
+// ADC sample pulse 
+// RUn ADCs in-continuous mode.
+// The fall of the CS signal is actually the moment of sampling, and MSB becomes valid
+parameter ADC_CYCLES = 5'd16; // 16 for 48Mhz, 15 for 45Mhz to give a 3Mhz sample rate. 
+										// CS is active low for 14 cycles to give a 12 bit output
+reg [4:0] sample_div;
+always @(posedge clk) begin
+	if( reset ) begin
+		sample_div <= ADC_CYCLES - 5'd1;
+	end else begin
+		sample_div <= (sample_div == 0) ? (ADC_CYCLES - 5'd1) : sample_div - 5'd1;
+	end
+end
+assign ad_cs = ( /*state_q == S_FIRE &&*/ sample_div == 5'd0 ) ? 1'b1 : 1'b0;
+
+
+// CS pipeline to trigger everything
+logic [20:0] cs_delay;
+always @(posedge clk) begin
+	if( reset ) begin
+		cs_delay[20:0]     <= 21'd0;
+   end else begin
+		// shift chain for the chip select
+		cs_delay[20:0]  <= { cs_delay[19:0], ad_cs };		
+	end
+end
+
+// DATA Input Receiver
+
+logic [11:0] ad_load_a0, ad_load_a1, ad_load_b0, ad_load_b1;
+logic [11:0] ad_hold_a0, ad_hold_a1, ad_hold_b0, ad_hold_b1;
+logic [11:0] load;
+
+parameter LOAD_SEL = 1;   // select first load delay, load reg input (ie 1 cycle early).
+parameter HOLD_SEL = 14;  // select output hold delay bit
+parameter VALID_SEL = 15;   // the cycle the adc hold registers are updatead
+
+always @(posedge clk) begin
+	if( reset ) begin
+		ad_load_a0[11:0] <= 12'd0;
+		ad_load_a1[11:0] <= 12'd0;
+		ad_load_b0[11:0] <= 12'd0;
+		ad_load_b1[11:0] <= 12'd0;
+		ad_hold_a0[11:0] <= 12'd0;
+		ad_hold_a1[11:0] <= 12'd0;
+		ad_hold_b0[11:0] <= 12'd0;
+		ad_hold_b1[11:0] <= 12'd0;
+   end else begin
+		// Load Pulse Chain
+		load[11:0] <= { cs_delay[LOAD_SEL], load[11:1] };
+		// low power reg load with bit 
+		for( int ii = 0; ii < 12; ii++ ) begin
+			ad_load_a0[ii] <= ( load[ii] ) ? ad_sdata_a[0] : ad_load_a0[ii];
+			ad_load_a1[ii] <= ( load[ii] ) ? ad_sdata_a[1] : ad_load_a1[ii];
+			ad_load_b0[ii] <= ( load[ii] ) ? ad_sdata_b[0] : ad_load_b0[ii];
+			ad_load_b1[ii] <= ( load[ii] ) ? ad_sdata_b[1] : ad_load_b1[ii];
+		end
+		// Load hold reg 
+		begin
+			ad_hold_a0 <= (cs_delay[HOLD_SEL]) ? ad_load_a0 : ad_hold_a0;
+			ad_hold_a1 <= (cs_delay[HOLD_SEL]) ? ad_load_a1 : ad_hold_a1;
+			ad_hold_b0 <= (cs_delay[HOLD_SEL]) ? ad_load_b0 : ad_hold_b0;
+			ad_hold_b1 <= (cs_delay[HOLD_SEL]) ? ad_load_b1 : ad_hold_b1;
+		end
+	end
+end
+
+logic adc_valid;
+assign adc_valid = cs_delay[VALID_SEL];
+
+// Monitor outputs
+assign ad_a0 = ad_hold_a0;
+assign ad_a1 = ad_hold_a1;
+assign ad_b0 = ad_hold_b0;
+assign ad_b1 = ad_hold_b1;
+assign ad_strobe = adc_valid; // valid pulse aligned with new data.
+
+endmodule
+
+
+module model_coil
+(
+	// Input clock, reset
+	input logic clk,
+	input logic reset,	
+	// ADC voltage inputs (sample and held )
+	input logic [11:0] vcap, // +-401V = -+2000 + 2048
+	input logic [11:0] vout, // so -.2005V/DN, about 5 steps per volt
+	// PWM signal 
+	input logic pwm,
+	// Esimated Coil current 
+	output [11:0] iest_coil // +-10A = -+2050 + 2048, so 205DN/A 
+);
+
+// ADC Mapping
+// assign vcap[11:0] = ad_hold_b1;	// F9.2 0.0 to 511.75 volts (1/4 volt)
+// assign icap[11:0] = ad_hold_b0;	// F4.8 0.0 to 15.992 amps (1/256 amp)
+// assign vout[11:0] = ad_hold_a1;	// F9.2 0.0 to 511.75 volts
+// assign iout[11:0] = ad_hold_a0;	// F4.8 0.0 to 15.992 amps
+
+// Current Model assignments and accumulator
+// Multiply by 1/Lf
+logic [36:0] iest_cur, iest_hold, iest_next, i_acc;
+logic [12:0] deltav;
+logic [29:0] deltai;
+
+/////////////////////////
+// Coil Current Model
+/////////////////////////
+
+// Remove ADC offset and correct polarity of Voltage inputs
+logic [11:0] vcap_corr, vout_corr;
+assign vcap_corr[11:0] = vcap[11:0] ^ 12'h7FF;
+assign vout_corr[11:0] = vout[11:0] ^ 12'h7FF;
+
+// Calc deltaV across the coil (depends on PWM )
+assign deltav[12:0] = ( ( pwm ) ? { vcap_corr[11], vcap_corr[11:0] } : 13'h0000 ) - { vout_corr[11], vout_corr[11:0] };
+
+// Scaled by (1<<30)/(L*f) --> signed(27.3) to by shifted >> 30
+assign deltai[29:0] = $signed( deltav[12:0] ) * $signed( { 1'b0, 16'd57358 } );
+
+// Iest current is signed 4.30
+assign iest_next[36:0] = i_acc[36:0] + {{7{deltai[29]}}, deltai[29:0] };
+	
+// current accumulator
+always @(posedge clk) begin
+	if( reset ) begin
+		i_acc <= 37'b0;
+	end else begin		
+		i_acc <= iest_next;
+	end
+end
+
+// Scale current estimation to ADC current units
+// 42089 = ( 0.2005V/DN * 205DN/A + 0.5 ) << 10
+logic [35:0] current;
+always @(posedge clk) begin
+	current[35:0] <= $signed( i_acc[36:19] ) * $signed( { 2'b00, 16'd42089 } );
+end
+
+// do the offset flip to match adc format
+assign iest_coil[11:0] = current[35:24] ^ 12'h7FF;
+
+endmodule // model_coil

@@ -139,7 +139,8 @@ always @(posedge clk 		) div_c5 <= div_c5 + 1;
 //						    div_c0[9],
 //						    div_in[9] };
 
-
+// Rs232 loopback
+assign tx232 = rx232;
 // LEDs active low
 logic arm_led;
 logic cont_led;
@@ -223,19 +224,52 @@ blaster _blaster (
 	.iset( iset  ),
 	
 	// External A/D Converters
-	.ad_cs( ad_cs ),
-	.ad_sdata_a( ad_sdata_a[1:0] ),
-	.ad_sdata_b( ad_sdata_b[1:0] ),
-	.ad_a0( ad_a0 ),
-	.ad_a1( ad_a1 ),
-	.ad_b0( ad_b0 ),
-	.ad_b1( ad_b1 ),
-	.ad_strobe( ad_strobe ),
+	.ad_cs(  ),
+	.ad_sdata_a( 2'b00 ),
+	.ad_sdata_b( 2'b00 ),
+	.ad_a0(  ),
+	.ad_a1(  ),
+	.ad_b0(  ),
+	.ad_b1(  ),
+	.ad_strobe(  ),
 
 	// Input clock
 	.clk( clk ),
 	.reset( reset )
 );
+
+// Free runnig ADC converters
+// 12 bit, 4 channel simultaneous, 3 Mhz
+adc_module_4ch  _adc (
+	// Input clock
+	.clk( clk ),
+	.reset( reset ),
+	// External A/D interface
+	.ad_cs( ad_cs ),
+	.ad_sdata_a( ad_sdata_a[1:0] ),
+	.ad_sdata_b( ad_sdata_b[1:0] ),	
+	// ADC held data and strobe
+	.ad_a0( ad_a0 ),
+	.ad_a1( ad_a1 ),
+	.ad_b0( ad_b0 ),
+	.ad_b1( ad_b1 ),
+	.ad_strobe( ad_strobe ),
+);
+
+// Modelling Coil Current
+// estimate is before sample and 16x finer timing
+logic [11:0] iest;
+model_coil _model (
+	// Input clock
+	.clk( clk ),
+	.reset( reset ),
+	// Votlage Inputs
+	.vcap( ad_a1 ), // ADC voltage across cap
+	.vout( ad_b1 ), // ADC voltage across output
+	// Coil Current estimate
+	.iest_coil( iest )
+);
+
 
 // Digio pads.
 	logic [6:0] digio_in, digio_out;
@@ -383,15 +417,15 @@ blaster _blaster (
 	always @(posedge clk) begin
 		ad_strobe_d <= { ad_strobe_d[1:0], ad_strobe & psram_ready}; 
 		if( ad_strobe ) begin
-		ad_data <= { { 4'h0, ad_a0[11:0] },
-						 { 4'h0, ad_a1[11:0] },
-						 { 4'h0, ad_b0[11:0] },
-						 { 4'h0, ad_b1[11:0] } };
+		ad_data <= { { iest[11:8], ad_a0[11:0] },
+						 { iest[7:4], ad_a1[11:0] },
+						 { iest[3:0], ad_b0[11:0] },
+						 { 3'h0, pwm, ad_b1[11:0] } };
 		end else begin
 			ad_data <= ad_data;
 		end
 	end
-	assign wrfifo_data = ( ad_strobe ) ? { 4'h0, ad_a0[11:0] } :
+	assign wrfifo_data = ( ad_strobe ) ? { iest[11:8], ad_a0[11:0] } :
 			               ( ad_strobe_d[0] ) ? ad_data[2] :
 			               ( ad_strobe_d[1] ) ? ad_data[1] :
 			               ( ad_strobe_d[2] ) ? ad_data[0] : 16'h0048;
@@ -521,6 +555,7 @@ module key_scan(
 			col <= 0;
 			row <= 0;
 			flag <= 0;
+			keypad_out <= 0;
 		end else begin
 			div <= div + 1;
 			// drive 4 rows
