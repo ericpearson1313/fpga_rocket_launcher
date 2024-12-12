@@ -393,7 +393,8 @@ module vga_wave_display
 				pel_b0 <= ( { 1'b0, q2[12:9], q2[7:4] } == ({1'b0,ycnt} -  96) ) ? 1'b1 : 1'b0; 
 				pel_b1 <= ( { 1'b0, q3[12:9], q3[7:4] } == ({1'b0,ycnt} - 128) ) ? 1'b1 : 1'b0; 
 				pel_es <= ( { 1'b0,q0[16:13],q1[16:13]} == ({1'b0,ycnt} - 160) ) ? 1'b1 : 1'b0; 
-				pel_pw <= ( q3[13] && ycnt[9:4] == 'd24 ) ? 1'b1 : 1'b0;
+				pel_pw <= ( (  q3[13] && ycnt[9:4] == 'd23  ) ||
+			               ( !q3[13] && ycnt[9:0] == 'd383 ) ) ? 1'b1 : 1'b0;
 			end else begin
 				pel_gd <= 0;
 				pel_a0 <= 0;
