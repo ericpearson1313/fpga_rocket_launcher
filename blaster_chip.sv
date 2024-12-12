@@ -253,7 +253,7 @@ adc_module_4ch  _adc (
 	.ad_a1( ad_a1 ),
 	.ad_b0( ad_b0 ),
 	.ad_b1( ad_b1 ),
-	.ad_strobe( ad_strobe ),
+	.ad_strobe( ad_strobe )
 );
 
 // Modelling Coil Current
