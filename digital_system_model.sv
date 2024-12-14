@@ -1,3 +1,9 @@
+// This is a digital model of the current in the output inductor.
+// This model runs at 48 Mhz (vs 3 Mhz sample rate) and give
+// 16x timing precision and lower latency.
+// Inputs are the PWM signal and slowely varying 
+// capacitor and output voltages.
+
 module model_coil
 (
 	// Input clock, reset
@@ -26,15 +32,16 @@ logic [11:0] vout_corr;
 assign vcap_corr[11:0] = vcap[11:0] ^ 12'h7FF;
 assign vout_corr[11:0] = vout[11:0] ^ 12'h7FF;
 
+// Future: dead zone, filtering, and zero init
+
 // Calc deltaV across the coil (depends on PWM )
 logic [12:0] deltav;
 assign deltav[12:0] = ( ( pwm ) ? { vcap_corr[11], vcap_corr[11:0] } : 13'h0000 ) - { vout_corr[11], vout_corr[11:0] };
 
 // Scaled by (1<<30)/(L*f) --> signed(27.3) to by shifted >> 30
 logic [29:0] deltai;
-always_comb begin : _lf_mult
-	deltai[29:0] = $signed( deltav[12:0] ) * $signed( { 1'b0, 16'd57358 } );
-end
+assign deltai[29:0] = $signed( deltav[12:0] ) * $signed( { 1'b0, 16'd57358 } );
+
 // Iest current is signed 4.30
 assign iest_next[36:0] = i_acc[36:0] + {{7{deltai[29]}}, deltai[29:0] };
 	
@@ -43,15 +50,11 @@ always @(posedge clk) begin
 	if( reset ) begin
 		i_acc <= 37'b0;
 	end else begin	
-			if( pwm && !deltai[29] || !pwm && deltai[29] ) begin // if moving in correct direction
-				if( iest_next[36] ) begin // clip if current is negative
-					i_acc <= 37'b0;
-				end else begin
-					i_acc <= iest_next;
-				end
-			end else begin
-				i_acc <= i_acc;
-			end
+		if( iest_next[36] ) begin // clip if -ve
+			i_acc <= 0;
+		end else begin
+			i_acc <= iest_next;
+		end
 	end
 end
 
@@ -62,7 +65,7 @@ always @(posedge clk) begin : _i_mult
 	current[35:0] <= $signed( i_acc[36:19] ) * $signed( { 2'b00, 16'd42089 } );
 end
 
-// do the offset flip to match adc format
-assign iest_coil[11:0] = current[35:24] ^ 12'h7FF;
+// select the window (will always be positive)
+assign iest_coil[11:0] = { current[34], current[33:23] ^ 11'h7FF };
 
 endmodule // model_coil
