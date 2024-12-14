@@ -60,12 +60,13 @@ end
 
 // Scale current estimation to ADC current units
 // 42089 = ( 0.2005V/DN * 205DN/A + 0.5 ) << 10
-logic [35:0] current;
+// can be unsigned mult
+logic [33:0] current;
 always @(posedge clk) begin : _i_mult
-	current[35:0] <= $signed( i_acc[36:19] ) * $signed( { 2'b00, 16'd42089 } );
+	current[33:0] <= i_acc[36:19] * 16'd42089;
 end
 
 // select the window (will always be positive)
-assign iest_coil[11:0] = current[34:23] ^ 12'h7FF;
+assign iest_coil[11:0] = current[32:21] ^ 12'h7FF;
 
 endmodule // model_coil
