@@ -263,6 +263,8 @@ model_coil _model (
 	// Input clock
 	.clk( clk ),
 	.reset( reset ),
+	// PWM input
+	.pwm( pwm ),
 	// Votlage Inputs
 	.vcap( ad_a1 ), // ADC voltage across cap
 	.vout( ad_b1 ), // ADC voltage across output

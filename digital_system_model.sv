@@ -36,7 +36,7 @@ assign vout_corr[11:0] = vout[11:0] ^ 12'h7FF;
 
 // Calc deltaV across the coil (depends on PWM )
 logic [12:0] deltav;
-assign deltav[12:0] = ( ( pwm ) ? { vcap_corr[11], vcap_corr[11:0] } : 13'h0000 ) - { vout_corr[11], vout_corr[11:0] };
+assign deltav[12:0] = ( ( pwm ) ? ({ vcap_corr[11], vcap_corr[11:0] }) : 13'h0000 ) - { vout_corr[11], vout_corr[11:0] };
 
 // Scaled by (1<<30)/(L*f) --> signed(27.3) to by shifted >> 30
 logic [29:0] deltai;
@@ -66,6 +66,6 @@ always @(posedge clk) begin : _i_mult
 end
 
 // select the window (will always be positive)
-assign iest_coil[11:0] = { current[34], current[33:23] ^ 11'h7FF };
+assign iest_coil[11:0] = current[34:23] ^ 12'h7FF;
 
 endmodule // model_coil
