@@ -412,8 +412,11 @@ module vga_wave_display
 	logic [7:0] char_x, char_y;
 	logic [15:0] char_data;
 	logic char_bit;
+	logic [255:0] ascii_char;
+	logic est_str, pwm_str, tit_str;
+	logic a0_str, a1_str, b0_str, b1_str;
 	
-	font57 _font
+	ascii_font57 _font
 	(
 		.clk( clk ),
 		.reset( reset ),
@@ -422,30 +425,30 @@ module vga_wave_display
 		.vsync( vsync ),
 		.char_x( char_x ), // 0 to 105 chars horizontally
 		.char_y( char_y ), // o to 59 rows vertically
-		.char_data( char_data )
+		.hex_char( char_data ),
+		.ascii_char( ascii_char ),
 	);
 	
-	assign char_bit = ( char_y[6:0] == 7'h13 && char_x[6:0] == 7'h10 ) ? char_data['hA] :
-							( char_y[6:0] == 7'h13 && char_x[6:0] == 7'h11 ) ? char_data['h0] :
-							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h10 ) ? char_data['hA] :
-							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h11 ) ? char_data['h1] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h10 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h11 ) ? char_data['h0] :
-							( char_y[6:0] == 7'h1F && char_x[6:0] == 7'h10 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h1F && char_x[6:0] == 7'h11 ) ? char_data['h1] : 0;
-							
+	string_overlay #(.LEN(22)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h02), .out(tit_str), .str("3MSP 4CH DIGITAL TRACE") );	
+	string_overlay #(.LEN(19)) _a0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h12), .out( a0_str), .str(" A0 CapI  2.5A/div ") );
+	string_overlay #(.LEN(19)) _a1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h16), .out( a1_str), .str(" A1 CapV  100V/div ") );
+	string_overlay #(.LEN(19)) _b0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h1A), .out( b0_str), .str(" B0 OutI  2.5A/div ") );
+	string_overlay #(.LEN(19)) _b1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h1E), .out( b1_str), .str(" B1 OutV  100V/div ") );
+	string_overlay #(.LEN(19)) _est_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h22), .out(est_str), .str("Est CapI  2.5A/div ") );
+	string_overlay #(.LEN(19)) _pwm_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2E), .out(pwm_str), .str("    PWM            ") );
+	string_overlay #(.LEN(19)) _hor_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2A), .out(hor_str), .str("  HORIZ   21us/div ") );
+
+
+	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
-					( pel_a0 ) ? 24'hFFFFFF :
-					( pel_a1 ) ? 24'hff0000 :
-					( pel_b0 ) ? 24'h00ff00 :
-					( pel_b1 ) ? 24'h0000ff :
-					( pel_gd ) ? 24'h808080 : 
-					( pel_pw ) ? 24'hc0c000 :
-					( pel_es ) ? 24'hc0c0c0 :
-					( char_bit && char_y[3:2] == 2'b00 ) ? 24'hFFFFFF :
-					( char_bit && char_y[3:2] == 2'b01 ) ? 24'hff0000 :
-					( char_bit && char_y[3:2] == 2'b10 ) ? 24'h00ff00 :
-					( char_bit && char_y[3:2] == 2'b11 ) ? 24'h0000ff : 24'h000000;
+					( tit_str| hor_str ) ? 24'hFFFFFF : // Title text
+					( pel_a0 | a0_str  ) ? 24'hFFFFFF :
+					( pel_a1 | a1_str  ) ? 24'hff0000 :
+					( pel_b0 | b0_str  ) ? 24'h00ff00 :
+					( pel_b1 | b1_str  ) ? 24'h0000ff :
+					( pel_es | est_str ) ? 24'hc0c0c0 :
+					( pel_pw | pwm_str ) ? 24'hc0c000 :
+					( pel_gd           ) ? 24'h808080 : 24'h000000;
 	
 endmodule

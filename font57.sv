@@ -336,7 +336,7 @@ logic blank_d1;
 		reduc = 0; 
 		for( int bb = 0; bb < 8; bb++ ) 
 			for( int cc = 0; cc < 10; cc++ )
-				reduc[code[bb][cc]] = |gated[bb][cc]; // Reduciton-OR for the win!
+				reduc[code[bb][cc]] = |gated[bb][cc]; // Reduction-OR for each char
 	end
 	
 	always @(posedge clk)
@@ -366,5 +366,37 @@ logic blank_d1;
 
 endmodule
 
+module string_overlay
+#( 
+	parameter LEN = 1 
+)
+(
+	// System
+	input clk,
+	input reset,
+	// Font generator input
+	input [7:0] char_x,
+	input [7:0] char_y,
+	input [255:0] ascii_char, // supported chars else zero
+	// Display string and X,Y start 
+	input [LEN*8-1:0] str, // input string
+	input [7:0] x,
+	input [7:0] y,
+	// The video output is a single bit
+	output out 
+);	
 
+logic [LEN-1:0] char_overlay;
+
+always_comb begin
+	// Loop through chars, index the ascii data, gate with location and pack for OE
+	for( int ii = 0; ii < LEN; ii++ ) begin
+		char_overlay[ii] = ascii_char[str[(LEN-ii)*8-1 -:8]] 
+		                 & (((char_x == (x + ii))) ? 1'b1 : 1'b0 )
+						     & (((char_y ==  y      )) ? 1'b1 : 1'b0 ); 	
+	end
+	out = |char_overlay; // Reduction-OR
+end	
+	
+endmodule
 														 
