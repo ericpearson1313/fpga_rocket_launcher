@@ -429,20 +429,21 @@ module vga_wave_display
 		.ascii_char( ascii_char ),
 	);
 	
-	string_overlay #(.LEN(22)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h02), .out(tit_str), .str("3MSP 4CH DIGITAL TRACE") );	
+	string_overlay #(.LEN(60)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h02), .out(tit_str), .str("3MHZ 4CH 12BIT 2MSAMPLE DIGITAL TRACE BUFFER (800x480 XVGA) ") );	
 	string_overlay #(.LEN(19)) _a0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h12), .out( a0_str), .str(" A0 CapI  2.5A/div ") );
 	string_overlay #(.LEN(19)) _a1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h16), .out( a1_str), .str(" A1 CapV  100V/div ") );
 	string_overlay #(.LEN(19)) _b0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h1A), .out( b0_str), .str(" B0 OutI  2.5A/div ") );
 	string_overlay #(.LEN(19)) _b1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h1E), .out( b1_str), .str(" B1 OutV  100V/div ") );
 	string_overlay #(.LEN(19)) _est_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h22), .out(est_str), .str("Est CapI  2.5A/div ") );
 	string_overlay #(.LEN(19)) _pwm_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2E), .out(pwm_str), .str("    PWM            ") );
-	string_overlay #(.LEN(19)) _hor_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2A), .out(hor_str), .str("  HORIZ   21us/div ") );
+	string_overlay #(.LEN(19)) _hor_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h29), .out(hor_str), .str("  HORIZ   21us/div ") );
+	string_overlay #(.LEN(19)) _ho2_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2A), .out(ho2_str), .str("  total   0.27 mSec") );
 
 
 	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
-					( tit_str| hor_str ) ? 24'hFFFFFF : // Title text
+					( tit_str| hor_str | ho2_str ) ? 24'hFFFFFF : // Title text
 					( pel_a0 | a0_str  ) ? 24'hFFFFFF :
 					( pel_a1 | a1_str  ) ? 24'hff0000 :
 					( pel_b0 | b0_str  ) ? 24'h00ff00 :
