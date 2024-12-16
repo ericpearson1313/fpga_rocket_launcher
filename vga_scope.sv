@@ -7,6 +7,9 @@ module vga_scope
 	input blank,
 	input hsync,
 	input vsync,
+	input [7:0] char_x,
+	input [7:0] char_y,
+	input [255:0] ascii_char,
 	input [11:0] ad_a0,
 	input [11:0] ad_a1,
 	input [11:0] ad_b0,
@@ -187,45 +190,20 @@ module vga_scope
 		end
 	end	
 	
-	
 	// Color Legend
-	logic [6:0] char_x, char_y;
-	logic [15:0] char_data;
-	logic char_bit;
-	
-	font57 _font
-	(
-		.clk( clk ),
-		.reset( reset ),
-		.blank( blank ),
-		.hsync( hsync ),
-		.vsync( vsync ),
-		.char_x( char_x ), // 0 to 105 chars horizontally
-		.char_y( char_y ), // o to 59 rows vertically
-		.char_data( char_data )
-	);
-	
-	assign char_bit = ( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
-							( char_y[6:0] == 7'h15 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
-							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h18 ) ? char_data['hA] :
-							( char_y[6:0] == 7'h17 && char_x[6:0] == 7'h19 ) ? char_data['h1] :
-							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h18 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h19 && char_x[6:0] == 7'h19 ) ? char_data['h0] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h18 ) ? char_data['hB] :
-							( char_y[6:0] == 7'h1B && char_x[6:0] == 7'h19 ) ? char_data['h1] : 0;
+	logic a0_str, a1_str, b0_str, b1_str;
+	string_overlay #(.LEN(2)) _a0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h18),.y('h15), .out( a0_str), .str("A0") );
+	string_overlay #(.LEN(2)) _a1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h18),.y('h17), .out( a1_str), .str("A1") );
+	string_overlay #(.LEN(2)) _b0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h18),.y('h19), .out( b0_str), .str("B0") );
+	string_overlay #(.LEN(2)) _b1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h18),.y('h1B), .out( b1_str), .str("B1") );
 	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
-					( pel_a0 ) ? 24'hFFFFFF :
-					( pel_a1 ) ? 24'hff0000 :
-					( pel_b0 ) ? 24'h00ff00 :
-					( pel_b1 ) ? 24'h0000ff :
-					( pel_gd ) ? 24'h808080 : 
-					( char_bit && char_y[2:1] == 2'b10 ) ? 24'hFFFFFF :
-					( char_bit && char_y[2:1] == 2'b11 ) ? 24'hff0000 :
-					( char_bit && char_y[2:1] == 2'b00 ) ? 24'h00ff00 :
-					( char_bit && char_y[2:1] == 2'b01 ) ? 24'h0000ff : 24'h000000;
-	
+					( pel_a0 | a0_str ) ? 24'hFFFFFF :
+					( pel_a1 | a1_str ) ? 24'hff0000 :
+					( pel_b0 | b0_str ) ? 24'h00ff00 :
+					( pel_b1 | b1_str ) ? 24'h0000ff :
+					( pel_gd ) ? 24'h808080 : 24'h000000;
 endmodule
 
 
@@ -248,6 +226,10 @@ module vga_wave_display
 	input blank,
 	input hsync,
 	input vsync,
+	// Font input
+	input [255:0] ascii_char,
+	input [7:0] char_x,
+	input [7:0] char_y,
 	// RGB output
 	output [7:0] red,
 	output [7:0] green,
@@ -408,26 +390,9 @@ module vga_wave_display
 	end	
 	
 	
-	// Color Legend
-	logic [7:0] char_x, char_y;
-	logic [15:0] char_data;
-	logic char_bit;
-	logic [255:0] ascii_char;
+	// Color Legend Strings
 	logic est_str, pwm_str, tit_str;
 	logic a0_str, a1_str, b0_str, b1_str;
-	
-	ascii_font57 _font
-	(
-		.clk( clk ),
-		.reset( reset ),
-		.blank( blank ),
-		.hsync( hsync ),
-		.vsync( vsync ),
-		.char_x( char_x ), // 0 to 105 chars horizontally
-		.char_y( char_y ), // o to 59 rows vertically
-		.hex_char( char_data ),
-		.ascii_char( ascii_char ),
-	);
 	
 	string_overlay #(.LEN(60)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h02), .out(tit_str), .str("3MHZ 4CH 12BIT 2MSAMPLE DIGITAL TRACE BUFFER (800x480 XVGA) ") );	
 	string_overlay #(.LEN(19)) _a0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h12), .out( a0_str), .str(" A0 OutI  2.5A/div ") );
