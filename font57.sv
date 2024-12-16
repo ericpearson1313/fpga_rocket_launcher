@@ -458,7 +458,7 @@ logic [LEN-1:0] char_overlay;
 always_comb begin
 	// Loop through chars, index the ascii data, gate with location and pack for OE
 	for( int ii = 0; ii < LEN; ii++ ) begin
-		char_overlay[ii] = bin_char[in[(LEN-ii)-1 -:1]] 
+		char_overlay[ii] = bin_char[in[(LEN-ii)-1]] 
 		                 & (((char_x == (x + ii))) ? 1'b1 : 1'b0 )
 						     & (((char_y ==  y      )) ? 1'b1 : 1'b0 ); 	
 	end

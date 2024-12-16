@@ -561,10 +561,12 @@ model_coil _model (
 	// Overlay PSRAM ID and expected values
 	logic [31:0] disp_id;
 	assign disp_id = { id_reg[34:31], id_reg[30:27],id_reg[25:22],id_reg[21:18],id_reg[16:13],id_reg[12: 9],id_reg[ 7: 4],id_reg[ 3: 0] };
-	logic [1:0] id_str;
-	hex_overlay #(.LEN(8)) _id0  (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h10),.y('hA), .out( id_str[0]), .in( 32'h0E96_0001 ) );
-	hex_overlay #(.LEN(8)) _id1  (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h10),.y('hB), .out( id_str[1]), .in( disp_id ) );
+	logic [2:0] id_str;
+	string_overlay #(.LEN(17)) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('h10),.y('hC), .out( id_str[0]), .str( "0E960001 Expected" ) );
+	hex_overlay    #(.LEN(8 )) _id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char), .x('h10),.y('hD), .out( id_str[1]), .in( disp_id ) );
+   bin_overlay    #(.LEN(1 )) _id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char), .x('h20),.y('hD), .out( id_str[2]), .in( disp_id == 32'h0E96_0001 ) );
 
+	
 	// Overlay the Keystroke
 	logic key_str, key_strg;
 	hex_overlay #(.LEN(1)) _key  (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1D),.y('h5), .out( key_str  ), .in( key_reg[3:0] ) );
@@ -581,6 +583,8 @@ model_coil _model (
 		.vsync( vsync ),
 		// Font data
 		.ascii_char( ascii_char ),
+		.hex_char( hex_char ),
+		.bin_char( bin_char ),
 		.char_x( char_x ),
 		.char_y( char_y ),
 		// capture inputs
@@ -599,10 +603,10 @@ model_coil _model (
 	
 	// 12bit hex overlays(4)
 	logic [3:0] hex_str;
-	hex_overlay #(.LEN(8)) _hex0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h15),.y('hA), .out( hex_str[0]), .in( valid_1 ) );
-	hex_overlay #(.LEN(8)) _hex1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h17),.y('hA), .out( hex_str[1]), .in( valid_2 ) );
-	hex_overlay #(.LEN(8)) _hex2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h19),.y('hA), .out( hex_str[2]), .in( valid_3 ) );
-	hex_overlay #(.LEN(8)) _hex3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1B),.y('hA), .out( hex_str[3]), .in( valid_4 ) );
+	hex_overlay #(.LEN(3)) _hex0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1B),.y('h15), .out( hex_str[0]), .in( value_1 ) );
+	hex_overlay #(.LEN(3)) _hex1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1B),.y('h17), .out( hex_str[1]), .in( value_2 ) );
+	hex_overlay #(.LEN(3)) _hex2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1B),.y('h19), .out( hex_str[2]), .in( value_3 ) );
+	hex_overlay #(.LEN(3)) _hex3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1B),.y('h1B), .out( hex_str[3]), .in( value_4 ) );
 					
 	// dump binary	values	
 	logic [3:0] bin_str;
@@ -618,7 +622,15 @@ model_coil _model (
 	bin_overlay #(.LEN(1)) _diag1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h16), .y('h17), .out( diag_str[1] ), .in( diag_reg[2] ) );
 	bin_overlay #(.LEN(1)) _diag2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h16), .y('h19), .out( diag_str[2] ), .in( diag_reg[1] ) );
 	bin_overlay #(.LEN(1)) _diag3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h16), .y('h1B), .out( diag_str[3] ), .in( diag_reg[0] ) );
-		
+	
+	// Merge overlays
+	logic overlay;
+	assign overlay = (|diag_str) | 
+	                 (|bin_str ) |
+						  (|hex_str ) |
+						  ( key_strg) |
+						  (|id_str  ) ;
+	
 	// video encoder
 	logic [7:0] hdmi_data;
 	video_encoder _encode
@@ -629,9 +641,9 @@ model_coil _model (
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( test_red   |  | {8{ (|id_str) | key_strg | (|hex_str) | (|bin_str) | (|diag_str)}} | scope_red   ),
-		.green( test_green |  | {8{ (|id_str) | key_strg | (|hex_str) | (|bin_str) | (|diag_str)}} | scope_green ),
-		.blue	( test_blue  |  | {8{ (|id_str) | key_strg | (|hex_str) | (|bin_str) | (|diag_str)}} | scope_blue  ),
+		.red	( test_red   | {8{overlay}} | scope_red   ),
+		.green( test_green | {8{overlay}} | scope_green ),
+		.blue	( test_blue  | {8{overlay}} | scope_blue  ),
 		.hdmi_data( hdmi_data )
 	);	
 	

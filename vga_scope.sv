@@ -10,6 +10,8 @@ module vga_scope
 	input [7:0] char_x,
 	input [7:0] char_y,
 	input [255:0] ascii_char,
+   input [15:0] hex_char,
+	input [1:0] bin_char,
 	input [11:0] ad_a0,
 	input [11:0] ad_a1,
 	input [11:0] ad_b0,
@@ -196,6 +198,7 @@ module vga_scope
 	string_overlay #(.LEN(2)) _a1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h18),.y('h17), .out( a1_str), .str("A1") );
 	string_overlay #(.LEN(2)) _b0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h18),.y('h19), .out( b0_str), .str("B0") );
 	string_overlay #(.LEN(2)) _b1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h18),.y('h1B), .out( b1_str), .str("B1") );
+
 	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
@@ -228,6 +231,8 @@ module vga_wave_display
 	input vsync,
 	// Font input
 	input [255:0] ascii_char,
+	input [15:0] hex_char,
+	input [1:0] bin_char,
 	input [7:0] char_x,
 	input [7:0] char_y,
 	// RGB output
