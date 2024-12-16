@@ -480,57 +480,227 @@ model_coil _model (
 	end
 	logic hdmi_reset;
 	assign hdmi_reset = hdmi_reg[3];
+	
+	
+	// XVGA 800x480x60hz sych generator
+	logic blank, hsync, vsync;
+	vga_800x480_sync _sync
+	(
+		.clk(   hdmi_clk   ),	
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync )
+	);
+	
+	// Font Generator
+	logic [7:0] char_x, char_y;
+	logic [255:0] ascii_char;
+	logic [15:0] hex_char;
+	logic [1:0] bin_char;
+	ascii_font57 _font
+	(
+		.clk( hdmi_clk ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.char_x( char_x ), // 0 to 105 chars horizontally
+		.char_y( char_y ), // o to 59 rows vertically
+		.hex_char   ( hex_char ),
+		.binary_char( bin_char ),
+		.ascii_char ( ascii_char )	
+	);
 
-
+	// test pattern gen
+	logic [7:0] test_red, test_green, test_blue;
+	test_pattern _testgen 
+	(
+		.clk( hdmi_clk  ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.red	( test_red   ),
+		.green( test_green ),
+		.blue	( test_blue  )
+	);	
+	
+	//////////////////////
+	//////////////////////
+   //
 	// HDMI #1
+   //
+   //////////////////////
+	//////////////////////
 	
-	logic [7:0] hdmi_data;
+
+	// Process ADC diag looking for 0's and holding till vsync
+	// ensures zero's will be seen by the eye. (1/10 sec?)
+	logic [3:0] diag_reg, diag;
+	logic [21:0] tenth;
+	assign diag = { LIdiag, CVdiag, CIdiag, LVdiag }; // A0, A1, B0, B1
+	always @(posedge clk) begin
+		tenth <= tenth + 1;
+		diag_reg <= ( tenth == 0 ) ? diag : diag & diag_reg;
+	end
+
+	// snapshot display values during vsync
+	logic [11:0] value_1, value_2, value_3, value_4;
+	logic [4:0] key_reg;
+	always @(posedge clk) begin
+		if( vsync ) begin
+			value_1[11:0] <= ad_a0;
+			value_2[11:0] <= ad_a1;
+			value_3[11:0] <= ad_b0;
+			value_4[11:0] <= ad_b1;
+			key_reg <= key;
+		end
+	end
 	
-	video _video1 (
-		.clk( 		hdmi_clk  ),
-		.clk5( 		hdmi_clk5 ),
-		.reset( 		hdmi_reset ),
-		.hdmi_data( hdmi_data ),
+	// Overlay PSRAM ID and expected values
+	logic [31:0] disp_id;
+	assign disp_id = { id_reg[34:31], id_reg[30:27],id_reg[25:22],id_reg[21:18],id_reg[16:13],id_reg[12: 9],id_reg[ 7: 4],id_reg[ 3: 0] };
+	logic [1:0] id_str;
+	hex_overlay #(.LEN(8)) _id0  (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h10),.y('hA), .out( id_str[0]), .in( 32'h0E96_0001 ) );
+	hex_overlay #(.LEN(8)) _id1  (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h10),.y('hB), .out( id_str[1]), .in( disp_id ) );
+
+	// Overlay the Keystroke
+	logic key_str, key_strg;
+	hex_overlay #(.LEN(1)) _key  (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1D),.y('h5), .out( key_str  ), .in( key_reg[3:0] ) );
+	assign key_strg = key_str & key_reg[4];
+
+	// 4ch Oscilloscope mem & vga display
+	logic [7:0] scope_red, scope_green, scope_blue;
+	vga_scope _scope(
+		.clk(   hdmi_clk ),
+		.reset( reset ),
+		// video sync 
+		.blank( blank ), 
+		.hsync( hsync ),
+		.vsync( vsync ),
+		// Font data
+		.ascii_char( ascii_char ),
+		.char_x( char_x ),
+		.char_y( char_y ),
+		// capture inputs
 		.ad_a0( ad_a0 ),
 		.ad_a1( ad_a1 ),
 		.ad_b0( ad_b0 ),
 		.ad_b1( ad_b1 ),
 		.ad_strobe( ad_strobe ),
 		.ad_clk( clk ),
-		.id( id_reg ),
-		.diag( { LIdiag, CVdiag, CIdiag, LVdiag } ), // A0, A1, B0, B1
-		.key( key[4:0] )
+		// video output
+		.red(   scope_red ),
+		.green( scope_green ),
+		.blue(  scope_blue )
 	);
+	
+	
+	// 12bit hex overlays(4)
+	logic [3:0] hex_str;
+	hex_overlay #(.LEN(8)) _hex0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h15),.y('hA), .out( hex_str[0]), .in( valid_1 ) );
+	hex_overlay #(.LEN(8)) _hex1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h17),.y('hA), .out( hex_str[1]), .in( valid_2 ) );
+	hex_overlay #(.LEN(8)) _hex2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h19),.y('hA), .out( hex_str[2]), .in( valid_3 ) );
+	hex_overlay #(.LEN(8)) _hex3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1B),.y('hA), .out( hex_str[3]), .in( valid_4 ) );
+					
+	// dump binary	values	
+	logic [3:0] bin_str;
+	bin_overlay #(.LEN(12)) _bin0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h20), .y('h15), .out( bin_str[0] ), .in( value_1 ) );
+	bin_overlay #(.LEN(12)) _bin1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h20), .y('h17), .out( bin_str[1] ), .in( value_2 ) );
+	bin_overlay #(.LEN(12)) _bin2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h20), .y('h19), .out( bin_str[2] ), .in( value_3 ) );
+	bin_overlay #(.LEN(12)) _bin3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h20), .y('h1B), .out( bin_str[3] ), .in( value_4 ) );
 
+	
+	// Dump Diag bits
+	logic [3:0] diag_str;
+	bin_overlay #(.LEN(1)) _diag0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h16), .y('h15), .out( diag_str[0] ), .in( diag_reg[3] ) );
+	bin_overlay #(.LEN(1)) _diag1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h16), .y('h17), .out( diag_str[1] ), .in( diag_reg[2] ) );
+	bin_overlay #(.LEN(1)) _diag2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h16), .y('h19), .out( diag_str[2] ), .in( diag_reg[1] ) );
+	bin_overlay #(.LEN(1)) _diag3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h16), .y('h1B), .out( diag_str[3] ), .in( diag_reg[0] ) );
+		
+	// video encoder
+	logic [7:0] hdmi_data;
+	video_encoder _encode
+	(
+		.clk(  hdmi_clk  ),
+		.clk5( hdmi_clk5 ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.red	( test_red   |  | {8{ (|id_str) | key_strg | (|hex_str) | (|bin_str) | (|diag_str)}} | scope_red   ),
+		.green( test_green |  | {8{ (|id_str) | key_strg | (|hex_str) | (|bin_str) | (|diag_str)}} | scope_green ),
+		.blue	( test_blue  |  | {8{ (|id_str) | key_strg | (|hex_str) | (|bin_str) | (|diag_str)}} | scope_blue  ),
+		.hdmi_data( hdmi_data )
+	);	
+	
 	hdmi_out _hdmi_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
-		.din( /*hout*/hdmi_data ),
+		.din( hdmi_data ),
 		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
 		.pad_out_b( )  // true differential, _b not req
 	);
-
-	// HDMI #2
-
-	logic [7:0] hdmi2_data;
 	
-	video2 _video2 (
-		.clk( 		hdmi_clk  ),
-		.clk5( 		hdmi_clk5 ),
-		.reset( 		hdmi_reset ),
-		.hdmi_data( hdmi2_data ),
+	
+
+	//////////////////////
+	//////////////////////
+   //
+	// HDMI #2
+   //
+   //////////////////////
+	//////////////////////
+
+
+	
+	// Oscilloscope & vga display
+	logic [7:0] wave_scope_red, wave_scope_green, wave_scope_blue;
+	vga_wave_display _wave_scope (
+		.clk(   hdmi_clk ),
+		.reset( reset ),
+		// video sync 
+		.blank( blank ), 
+		.hsync( hsync ),
+		.vsync( vsync ),
+		// Font data
+		.ascii_char( ascii_char ),
+		.char_x( char_x ),
+		.char_y( char_y ),
 		// AXI Sram Read port connection
-		.mem_clk       ( clk           ),
 		.psram_ready	( psram_ready 	 ) ,
 		.rdata			( rdata 			 ) , 
 		.rvalid			( rvalid		    ) ,
 		.araddr			( araddr[24:0]	 ) ,
 		.arvalid			( arvalid		 ) , 
-		.arready			( arready		 ) 	
+		.arready			( arready		 ) ,
+		.mem_clk			( clk ),
+		// video output
+		.red(   wave_scope_red ),
+		.green( wave_scope_green ),
+		.blue(  wave_scope_blue )	
+	);	
+
+	// video encoder
+	logic [7:0] hdmi2_data;
+	video_encoder _encode2
+	(
+		.clk  ( hdmi_clk  ),
+		.clk5 ( hdmi_clk5 ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		.red	( wave_scope_red   ),
+		.green( wave_scope_green ),
+		.blue	( wave_scope_blue  ),
+		.hdmi_data( hdmi2_data )
 	);
-								 
+
+	// HDMI Output, DDR outputs
 	hdmi_out _hdmi2_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
-		.din( /*hout*/hdmi2_data ),
+		.din( hdmi2_data ),
 		.pad_out( {hdmi2_d2, hdmi2_d1, hdmi2_d0, hdmi2_ck} ), 
 		.pad_out_b( )  // true differential, _b not req
 	);
