@@ -393,7 +393,7 @@ module vga_wave_display
 	// Color Legend Strings
 	logic est_str, pwm_str, tit_str;
 	logic a0_str, a1_str, b0_str, b1_str;
-	
+	logic hor_str, ho2_str;
 	string_overlay #(.LEN(60)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h02), .out(tit_str), .str("3MHZ 4CH 12BIT 2MSAMPLE DIGITAL TRACE BUFFER (800x480 XVGA) ") );	
 	string_overlay #(.LEN(19)) _a0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h12), .out( a0_str), .str(" A0 OutI  2.5A/div ") );
 	string_overlay #(.LEN(19)) _a1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h16), .out( a1_str), .str(" A1 CapV  100V/div ") );
