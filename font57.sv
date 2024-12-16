@@ -399,4 +399,69 @@ always_comb begin
 end	
 	
 endmodule
-														 
+
+module hex_overlay
+#( 
+	parameter LEN = 1 
+)
+(
+	// System
+	input clk,
+	input reset,
+	// Font generator input
+	input [7:0] char_x,
+	input [7:0] char_y,
+	input [15:0] hex_char, // supported chars else zero
+	// Display string and X,Y start 
+	input [LEN*4-1:0] in, // input number
+	input [7:0] x,
+	input [7:0] y,
+	// The video output is a single bit
+	output out 
+);	
+
+logic [LEN-1:0] char_overlay;
+
+always_comb begin
+	// Loop through chars, index the ascii data, gate with location and pack for OE
+	for( int ii = 0; ii < LEN; ii++ ) begin
+		char_overlay[ii] = hex_char[in[(LEN-ii)*4-1 -:4]] 
+		                 & (((char_x == (x + ii))) ? 1'b1 : 1'b0 )
+						     & (((char_y ==  y      )) ? 1'b1 : 1'b0 ); 	
+	end
+	out = |char_overlay; // Reduction-OR
+end	
+endmodule
+		
+module bin_overlay
+#( 
+	parameter LEN = 1 
+)
+(
+	// System
+	input clk,
+	input reset,
+	// Font generator input
+	input [7:0] char_x,
+	input [7:0] char_y,
+	input [1:0] bin_char, // supported chars else zero
+	// Display string and X,Y start 
+	input [LEN-1:0] in, // input string
+	input [7:0] x,
+	input [7:0] y,
+	// The video output is a single bit
+	output out 
+);	
+
+logic [LEN-1:0] char_overlay;
+
+always_comb begin
+	// Loop through chars, index the ascii data, gate with location and pack for OE
+	for( int ii = 0; ii < LEN; ii++ ) begin
+		char_overlay[ii] = bin_char[in[(LEN-ii)-1 -:1]] 
+		                 & (((char_x == (x + ii))) ? 1'b1 : 1'b0 )
+						     & (((char_y ==  y      )) ? 1'b1 : 1'b0 ); 	
+	end
+	out = |char_overlay; // Reduction-OR
+end	
+endmodule		
