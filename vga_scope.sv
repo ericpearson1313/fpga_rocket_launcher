@@ -362,12 +362,13 @@ module vga_wave_display
 	// The four channels will be different colors.
 	// if heights off bottom matches value, turn on the pel.
 
-	logic pel_gd, pel_a0, pel_a1, pel_b0, pel_b1, pel_b2, pel_es, pel_pw;
+	logic pel_gd, pel_a0, pel_a1, pel_a2, pel_b0, pel_b1, pel_b2, pel_es, pel_pw;
 	always @(posedge clk) begin
 		if ( reset ) begin
 				pel_gd <= 0;
 				pel_a0 <= 0;
 				pel_a1 <= 0;
+				pel_a2 <= 0;
 				pel_b1 <= 0;
 				pel_b2 <= 0;
 				pel_b0 <= 0;
@@ -378,6 +379,7 @@ module vga_wave_display
 				pel_gd <= ( xcnt[5:0] == 6'd63 || ycnt[4:0] == 5'd0 ) ? 1'b1 : 1'b0; // a grid
 				pel_a0 <= ( { 1'b0, q0[12:9], q0[7:4] } == ({1'b0,ycnt} -  32) ) ? 1'b1 : 1'b0; 
 				pel_a1 <= ( { 1'b0, q1[12:9], q1[7:4] } == ({1'b0,ycnt} -  64) ) ? 1'b1 : 1'b0; 
+				pel_a2 <= ( { 1'b0, q1[12  ], q1[6:0] } == ({1'b0,ycnt} -  0 ) ) ? 1'b1 : 1'b0; // 16x A1
 				pel_b0 <= ( { 1'b0, q2[12:9], q2[7:4] } == ({1'b0,ycnt} -  96) ) ? 1'b1 : 1'b0; 
 				pel_b1 <= ( { 1'b0, q3[12:9], q3[7:4] } == ({1'b0,ycnt} - 128) ) ? 1'b1 : 1'b0; 
 				pel_b2 <= ( { 1'b0, q3[12],   q3[6:0] } == ({1'b0,ycnt} - 192) ) ? 1'b1 : 1'b0; // 16x b1
@@ -400,7 +402,7 @@ module vga_wave_display
 	
 	// Color Legend Strings
 	logic est_str, pwm_str, tit_str;
-	logic a0_str, a1_str, b0_str, b1_str, b2_str;
+	logic a0_str, a1_str, a2_str, b0_str, b1_str, b2_str;
 	logic hor_str, ho2_str;
 	string_overlay #(.LEN(50)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h02), .out(tit_str), .str("3MHZ 4CH 12BIT 4MSample TRACE BUFFER, 800x480 XVGA") );	
 	string_overlay #(.LEN(19)) _a0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h12), .out( a0_str), .str(" A0 OutI  2.5A/div ") );
@@ -411,14 +413,15 @@ module vga_wave_display
 	string_overlay #(.LEN(19)) _pwm_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2E), .out(pwm_str), .str("    PWM            ") );
 	string_overlay #(.LEN(19)) _hor_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h29), .out(hor_str), .str("  HORIZ   21us/div ") );
 	string_overlay #(.LEN(19)) _ho2_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2A), .out(ho2_str), .str("  total   0.27 mSec") );
-	string_overlay #(.LEN(19)) _b2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h26), .out( b2_str), .str(" B1 OutV  6.4V/div ") );
-
+	string_overlay #(.LEN(19)) _b2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h26), .out( b2_str), .str(" B1 OutV* 6.4V/div ") );
+	string_overlay #(.LEN(19)) _a2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h0E), .out( a2_str), .str(" A1 OutV* 6.4V/div ") );
 	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
 					( tit_str| hor_str | ho2_str ) ? 24'hFFFFFF : // Title text
 					( pel_a0 | a0_str  ) ? 24'hFFFFFF :
 					( pel_a1 | a1_str  ) ? 24'hff0000 :
+					( pel_a2 | a2_str  ) ? 24'hff0000 :			
 					( pel_b0 | b0_str  ) ? 24'h00ff00 :
 					( pel_b1 | b1_str  ) ? 24'h0000ff :
 					( pel_b2 | b2_str  ) ? 24'h0000ff :
