@@ -272,6 +272,19 @@ model_coil _model (
 	.iest_coil( iest )
 );
 
+logic [11:0] res_calc;
+ohm_div _resistance (
+	// Input clock
+	.clk( clk ),
+	.reset( reset ),
+	// Votlage and Current Inputs
+	.valid_in( ad_strobe ),
+	.v_in( ad_b1 ), // ADC Vout
+	.i_in( ad_a0 ), // ADC Iout
+	// Resistance Output
+	.valid_out( ),
+	.r_out( res_calc )
+);
 
 // Digio pads.
 	logic [6:0] digio_in, digio_out;
@@ -421,7 +434,7 @@ model_coil _model (
 		if( ad_strobe ) begin
 		ad_data <= { { iest[11:8], ad_a0[11:0] },
 						 { iest[7:4], ad_a1[11:0] },
-						 { iest[3:0], ad_b0[11:0] },
+						 { iest[3:0], res_calc[11:0] /*ad_b0[11:0]*/ }, // temp override.
 						 { 3'h0, pwm, ad_b1[11:0] } };
 		end else begin
 			ad_data <= ad_data;
