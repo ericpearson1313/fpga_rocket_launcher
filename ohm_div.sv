@@ -99,7 +99,7 @@ end
 // quotient is 17.13 format in ohms
 
 always @(posedge clk) begin
-	r_out[11:0] = ( valid_out ) ? { 1'b0, quotient[20-:11] ^ 11'h7FF } : r_out;	
+	r_out[11:0] = ( valid_out ) ? { 1'b0, (|quotient[29:19])?11'h000 : (quotient[18-:11] ^ 11'h7FF) } : r_out;	
 end
 
 endmodule
