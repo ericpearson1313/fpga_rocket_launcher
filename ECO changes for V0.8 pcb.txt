@@ -1,0 +1,22 @@
+
+ECOs for v0.8 PCB
+
+Dec 28, 2024
+
+R23 remove , disconnect continuity circuit.
+Q2, Q5, Q7, Q8, footprint fix sot-23 3904 
+Q3, footprint fix sot-23 3906
+D3, D19, footprint fix sot-23 bav99
+D9, D10, Footprint fix
+D10 remove 
+GDT Add, across coil
+R1 replace with 100K
+Add 10K R1 to 12V
+J6-4 isolate and connect to 12V
+Add 3904, 10K for arm LEd
+Add 3904, 10K for cont LEd
+R43,44,38,37,57,58,59,60 repalce with 1.50K
+Add .0022u across differential filters x4
+C40,41,38,39,54,56,55,57 replace with 2.2nf
+u9.14,10,8 wire pin 15 to gnd
+c36,72 remove cap
