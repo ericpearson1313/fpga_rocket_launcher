@@ -162,7 +162,8 @@ assign dump = !iset[1]  | key == 5'h1B;
 assign cont_led = !(!iset[1] | cont); 
 assign arm_led = fire_button | lt3420_done ;
 assign lt3420_charge = !iset[2] | key == 5'h1A;
-assign pwm = ((fire_button || key == 5'h10)  && count[15:6] == 0) ? 1'b1 : 1'b0;
+assign pwm = ((fire_button || key == 5'h10)  && count[15:6] == 0) ? 1'b1 : 	// 64/48=1.33 usec
+             (                key == 5'h19   && count[15:7] == 0) ? 1'b1 : 1'b0; // 128/48=2.66 usec
 
 ////////////////////////////////
 //////////////////////////////
