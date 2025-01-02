@@ -23,12 +23,12 @@ module ohm_div
 
 // fixed delay pipeline 16
 // 1 cycle to load, 15 cycles of processing
-	logic [0:14] del_valid;
+	logic [15:0] del_valid;
 	always @(posedge clk) begin
 		if( reset ) begin
-			{ valid_out, del_valid } <= 0;
+			del_valid <= 0;
 		end else begin
-			{ valid_out, del_valid } <= { del_valid, valid_in };
+			del_valid  <= { del_valid[14:0], valid_in };
 		end
 	end
 
@@ -97,9 +97,13 @@ end
 
 // scale and hold resistance out.
 // quotient is 17.13 format in ohms
+// Limit to 1/4 amp before measurement is meaningful
+// Output is clipped to 5.6
 
 always @(posedge clk) begin
-	r_out[11:0] = ( valid_out ) ? { 1'b0, (|quotient[29:19])?11'h000 : (quotient[18-:11] ^ 11'h7FF) } : r_out;	
+	valid_out   <= ( del_valid[15] && denom[1] > 50 ) ? 1'b1 : 1'b0;
+	r_out[11:0] <= ( del_valid[15] && denom[1] > 50 ) ? { 1'b0, (|quotient[29:19])?11'h000 : (quotient[18-:11] ^ 11'h7FF) } :
+                  ( del_valid[15] ) ? 12'h7FF : r_out;	
 end
 
 endmodule
