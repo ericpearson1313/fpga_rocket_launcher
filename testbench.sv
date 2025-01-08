@@ -1,9 +1,127 @@
 // top level launcher sim.
 `timescale 1ns / 1ps
 module testbench( );
-`define PSRAM_TEST
+`define DIV_TEST
+//`define PSRAM_TEST
 //`define BLASTER_TEST
 
+///////////////////////////////
+`ifdef DIV_TEST
+
+    //////////////////////
+    // Let there be Clocks!
+    //////////////////////
+    
+    logic clk, clk4;
+    initial begin
+        clk = 1'b1;
+		  clk4 = 1'b1;
+        forever begin
+				#(2.5ns) clk4 = 0;
+				#(2.5ns) clk4 = 1;
+				#(2.5ns) clk4 = 0;
+				#(2.5ns) begin clk4 = 1; clk = ~clk; end
+        end 
+    end
+	 
+	 // Reset generation
+	 
+	 logic reset; // active high
+	 initial begin
+			reset = 1'b1;
+			for( int ii = 0; ii < 10; ii++ ) begin
+				@(posedge clk);
+			end
+			@(negedge clk);
+			reset = 1'b0;
+	 end
+			
+	 // Simulation stop.
+	 
+	 initial begin
+        for( int ii = 0; ii < 1000; ii++ ) 
+				@(posedge clk);
+        $stop;
+	 end
+
+    //////////////////////
+    // UUT Unit Under Test
+    //////////////////////
+
+	 logic [11:0] voltage, current, resistance;
+	 logic [11:0] vin, iin, rout;
+	 logic in_valid, out_valid;
+ 	 ohm_div _uut (
+		// Input clock
+		.clk( clk ),
+		.reset( reset ),
+		// Votlage and Current Inputs
+		.valid_in( in_valid ),
+		.v_in( vin ), // ADC Vout
+		.i_in( iin ), // ADC Iout
+		// Resistance Output
+		.valid_out( out_valid ),
+		.r_out( rout )
+	);
+	
+	// covert adc to signed, and vice versa
+	assign vin = voltage ^ 12'h7ff; // .2005 V/DN
+	assign iin = current ^ 12'h7ff; // 205 DN/A
+	assign resistance = rout ^ 12'h7ff; // 32 DN/ohm
+	
+	// test
+
+	
+	initial begin
+		// reset signals
+		voltage = 0;
+		current = 0;
+		in_valid = 0;
+      // startup delay (for future reset)
+      for( int ii = 0; ii < 15; ii++ ) @(posedge clk); // 15 cycles
+		
+	// Test Case #1
+	// 2.5 ohms 5 volts, 2 amps
+		@(posedge clk);
+		voltage = 5.0 / 0.2005;
+		current = 2 * 209;
+		in_valid = 1;
+		@(posedge clk);
+		voltage = 0;
+		current = 0;
+		in_valid = 0;
+		// wait for data output
+		while( !out_valid ) @(posedge clk);			
+		
+		// Observe 6.5 format = '04E , about 2.4 ohms
+
+
+	// Test Case #2
+	// 30 ohms 90 volts, 3 amps
+		@(posedge clk);	
+		voltage = 90 / 0.2005;
+		current = 3 * 209;
+		in_valid = 1;
+		@(posedge clk);
+		voltage = 0;
+		current = 0;
+		in_valid = 0;
+		// wait for data output
+		while( !out_valid ) @(posedge clk);			
+		
+		// Observe '3AD, about 29.4 ohms
+		
+		// Stop Sim in a bit
+      for( int ii = 0; ii < 100; ii++ ) @(posedge clk); // 16 cycles		
+		 $stop;
+		
+	end
+	
+	
+	
+	
+	
+`endif // DIV_TEST
 
 ///////////////////////////////
 `ifdef PSRAM_TEST

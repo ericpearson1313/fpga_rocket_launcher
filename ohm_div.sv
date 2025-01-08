@@ -98,7 +98,7 @@ end
 // scale and hold resistance out.
 // quotient is 17.13 format in ohms
 // Limit to 1/4 amp before measurement is meaningful
-// Output is clipped to 5.6
+// Output is clipped to 6.5
 
 always @(posedge clk) begin
 	valid_out   <= ( del_valid[15] && denom[1] > 50 ) ? 1'b1 : 1'b0;
