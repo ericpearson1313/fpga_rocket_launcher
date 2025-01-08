@@ -111,6 +111,20 @@ module testbench( );
 		
 		// Observe '3AD, about 29.4 ohms
 		
+	// Test Case #3 - Clipping
+	// 70 ohms 140 volts, 2 amps
+		@(posedge clk);	
+		voltage = 140 / 0.2005;
+		current = 2 * 209;
+		in_valid = 1;
+		@(posedge clk);
+		voltage = 0;
+		current = 0;
+		in_valid = 0;
+		// wait for data output
+		while( !out_valid ) @(posedge clk);			
+		
+		// Observe '3AD, about 29.4 ohms
 		// Stop Sim in a bit
       for( int ii = 0; ii < 100; ii++ ) @(posedge clk); // 16 cycles		
 		 $stop;
