@@ -29,8 +29,8 @@ logic [36:0] iest_cur, iest_hold, iest_next, i_acc;
 // Remove ADC offset and flip  polarity of Voltage inputs
 logic [11:0] vcap_corr;
 logic [11:0] vout_corr;
-assign vcap_corr[11:0] = vcap[11:0] ^ 12'h7FF;
-assign vout_corr[11:0] = vout[11:0] ^ 12'h7FF;
+assign vcap_corr[11:0] = ( vcap > 12'h7F8 ) ? 8 : ( vcap[11:0] ^ 12'h7FF ); // clip to >= 8, else model wanders
+assign vout_corr[11:0] = ( vout[11] ) ? 0 : ( vout[11:0] ^ 12'h7FF ); // clip to zero if -ve
 
 // Future: dead zone, filtering, and zero init
 
@@ -50,7 +50,7 @@ always @(posedge clk) begin
 	if( reset ) begin
 		i_acc <= 37'b0;
 	end else begin	
-		if( iest_next[36] ) begin // clip if -ve
+		if( iest_next[36] || iest_next[35:20] == 0 ) begin // clip to zero if small or -ve
 			i_acc <= 0;
 		end else begin
 			i_acc <= iest_next;
