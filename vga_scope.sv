@@ -428,10 +428,10 @@ module vga_wave_display
 					( pel_a0 | a0_str  ) ? 24'hFFFFFF :
 					( pel_a01|a01_str  ) ? 24'h00c0c0 :
 					( pel_a1 | a1_str  ) ? 24'hff0000 :
-					( pel_a2 | a2_str  ) ? 24'hff0000 :			
+					( pel_a2 | a2_str  ) ? 24'hc00000 :			
 					( pel_b0 | b0_str  ) ? 24'h00ff00 :
 					( pel_b1 | b1_str  ) ? 24'h0000ff :
-					( pel_b2 | b2_str  ) ? 24'h0000ff :
+					( pel_b2 | b2_str  ) ? 24'h0000c0 :
 					( pel_es | est_str ) ? 24'hc0c0c0 :
 					( pel_pw | pwm_str ) ? 24'hc0c000 :					
 					( pel_gd           ) ? 24'h32006a : 24'h000000;
