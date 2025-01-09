@@ -559,15 +559,50 @@ ohm_div _resistance (
 		diag_reg <= ( tenth == 0 ) ? diag : diag & diag_reg;
 	end
 
+	
+	// Average of the adc values
+	
+	logic [0:3][33:0]  acc	   ; // accumulate 4M x 12 bit samples, 1.3 sec
+	logic [0:3][11:0]  avg	   ;
+	logic [21:0]       acc_cnt ; // count to 4M
+	
+	always @(posedge clk) begin
+		if( reset ) begin
+			acc     <= 0;
+			acc_cnt <= 0;
+			avg     <= 0;
+		end else begin
+			if( ad_strobe ) begin
+				acc[0] <= ( acc_cnt == 0 ) ? { 22'h00_0000, ad_a0[11:0] } : acc[0] + { 22'h00_0000, ad_a0[11:0] };
+				acc[1] <= ( acc_cnt == 0 ) ? { 22'h00_0000, ad_a1[11:0] } : acc[1] + { 22'h00_0000, ad_a1[11:0] };
+				acc[2] <= ( acc_cnt == 0 ) ? { 22'h00_0000, ad_b0[11:0] } : acc[2] + { 22'h00_0000, ad_b0[11:0] };
+				acc[3] <= ( acc_cnt == 0 ) ? { 22'h00_0000, ad_b1[11:0] } : acc[3] + { 22'h00_0000, ad_b1[11:0] };
+				if( acc_cnt == 0 ) begin
+					avg[0] <= acc[0][33-:12];
+					avg[1] <= acc[1][33-:12];
+					avg[2] <= acc[2][33-:12];
+					avg[3] <= acc[3][33-:12];	
+				end else begin
+					avg <= avg;
+				end
+				acc_cnt <= acc_cnt + 1;
+			end else begin
+				avg <= avg;
+				acc <= acc;
+				acc_cnt <= acc_cnt;
+			end
+		end
+	end
+		
 	// snapshot display values during vsync
 	logic [11:0] value_1, value_2, value_3, value_4;
 	logic [4:0] key_reg;
 	always @(posedge clk) begin
 		if( vsync ) begin
-			value_1[11:0] <= ad_a0;
-			value_2[11:0] <= ad_a1;
-			value_3[11:0] <= ad_b0;
-			value_4[11:0] <= ad_b1;
+			value_1[11:0] <= avg[0]; // ad_a0;
+			value_2[11:0] <= avg[1]; // ad_a1;
+			value_3[11:0] <= avg[2]; // ad_b0;
+			value_4[11:0] <= avg[3]; // ad_b1;
 			key_reg <= key;
 		end
 	end
