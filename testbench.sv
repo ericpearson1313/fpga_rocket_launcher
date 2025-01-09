@@ -124,7 +124,8 @@ module testbench( );
 		// wait for data output
 		while( !out_valid ) @(posedge clk);			
 		
-		// Observe '3AD, about 29.4 ohms
+		// Observe '7FF Clipped value
+		
 		// Stop Sim in a bit
       for( int ii = 0; ii < 100; ii++ ) @(posedge clk); // 16 cycles		
 		 $stop;
