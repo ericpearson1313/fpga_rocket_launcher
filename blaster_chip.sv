@@ -162,8 +162,9 @@ assign dump = !iset[1]  | key == 5'h1B;
 assign cont_led = !(!iset[1] | cont); 
 assign arm_led = fire_button | lt3420_done ;
 assign lt3420_charge = !iset[2] | key == 5'h1A;
-assign pwm = ((fire_button || key == 5'h10)  && count[15:6] == 0) ? 1'b1 : 	// 64/48=1.33 usec
-             (                key == 5'h19   && count[15:7] == 0) ? 1'b1 : 1'b0; // 128/48=2.66 usec
+
+				 
+
 
 ////////////////////////////////
 //////////////////////////////
@@ -199,6 +200,39 @@ assign speaker_n = !speaker;
 
 logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
 logic ad_strobe;
+
+// PWM Current limited pulse generator
+logic pwm_pulse;
+logic [15:0] pwm_count;
+
+
+
+always @(posedge clk) begin
+	if( reset ) begin
+		pwm_pulse <= 0;
+		pwm_count <= 0;
+	end else begin
+		if( pwm_pulse ) begin // pulse is asserted
+			if(( pwm_count >= (48  * 8))                    || // usec @ 48 Mhz 
+			   ( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2)))) begin //  >2 amp * 205 DN/A measured
+				pwm_pulse <= 0;
+				pwm_count <= 0;
+			end else begin
+				pwm_pulse <= pwm_pulse;
+				pwm_count <= pwm_count + 1; // inc count
+			end
+		end else if( (fire_button || key == 5'h10) && count[15:0] == 0 ) begin // Triggered by fire key at 48Mhz/64k 1.3ms period
+			pwm_pulse <= 1; // Set pwm output
+			pwm_count <= 1; // start max width counter
+		end else begin // await trigger
+			pwm_pulse <= 0;
+			pwm_count <= 0;		
+		end
+	end
+end
+
+assign pwm = ( pwm_pulse ) ? 1'b1 : 	// pulse generator
+             ( key == 5'h19   && count[15:7] == 0) ? 1'b1 : 1'b0; // 128/48=2.66 usec fixed
 
 blaster _blaster (
 	// Input Buttons
