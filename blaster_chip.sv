@@ -201,32 +201,58 @@ assign speaker_n = !speaker;
 logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
 logic ad_strobe;
 
+////////////////////////////////////////////
 // PWM Current limited pulse generator
-logic pwm_pulse;
-logic [15:0] pwm_count;
+////////////////////////////////////////////
 
+	logic pwm_pulse;
+logic [15:0] pulse_time;
+logic [3:0] pulse_count;
 
 
 always @(posedge clk) begin
 	if( reset ) begin
 		pwm_pulse <= 0;
-		pwm_count <= 0;
+		pulse_time <= 0;
+		pulse_count <= 0;
 	end else begin
-		if( pwm_pulse ) begin // pulse is asserted
-			if(( pwm_count >= (48  * 8))                    || // usec @ 48 Mhz 
-			   ( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2)))) begin //  >2 amp * 205 DN/A measured
+		if( pwm_pulse ) begin // turn off pulse if time or current level exceeded
+			if( pulse_time < 48 ) begin // min pulse width
+				pwm_pulse <= pwm_pulse;
+				pulse_count <= pulse_count;
+				pulse_time <= pulse_time + 1; // inc count	
+			end else if(( pulse_time >= (48  * 16))    || // usec @ 48 Mhz 
+			   ( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2 + 20)))) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
-				pwm_count <= 0;
+				pulse_time <= 0;
+				pulse_count <= pulse_count - 1;
 			end else begin
 				pwm_pulse <= pwm_pulse;
-				pwm_count <= pwm_count + 1; // inc count
+				pulse_count <= pulse_count;
+				pulse_time <= pulse_time + 1; // inc count
 			end
-		end else if( (fire_button || key == 5'h10) && count[15:0] == 0 ) begin // Triggered by fire key at 48Mhz/64k 1.3ms period
+		end else if( !pwm_pulse && pulse_count > 0 ) begin // wait for ad_a0 to fall
+			if( pulse_time < 48 ) begin // min pulse width
+				pwm_pulse <= pwm_pulse;
+				pulse_count <= pulse_count;
+				pulse_time <= pulse_time + 1; // inc count					
+			end else if ( ( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (205 * 2 - 20))) ) begin //  <2 amp * 205 DN/A measured - 10%
+				pwm_pulse <= 1;
+				pulse_time <= 1;
+				pulse_count <= pulse_count;
+			end else begin
+				pwm_pulse <= 0;
+				pulse_time <= pulse_time + 1; 
+				pulse_count <= pulse_count;
+			end			
+		end else if( (fire_button || key == 5'h10) && count[15:0] == 0 ) begin // (re)Triggered by fire key at 64k/48Mhz=1.3ms period
 			pwm_pulse <= 1; // Set pwm output
-			pwm_count <= 1; // start max width counter
+			pulse_time <= 1; // start max width counter
+			pulse_count <= 3; // two pulses
 		end else begin // await trigger
 			pwm_pulse <= 0;
-			pwm_count <= 0;		
+			pulse_time <= 0;		
+			pulse_count <= 0;
 		end
 	end
 end
@@ -303,6 +329,8 @@ model_coil _model (
 	// Votlage Inputs
 	.vcap( ad_a1 ), // ADC voltage across cap
 	.vout( ad_b1 ), // ADC voltage across output
+	// Current input to rebase estimate
+	.iout( ad_a0 ), // Output current
 	// Coil Current estimate
 	.iest_coil( iest )
 );
@@ -370,10 +398,12 @@ ohm_div _resistance (
 	
 	// hack view alignment hook
 	logic pwm_del;
+	logic [15:0] retrigger;
 	logic [24:0] base_addr;
 	always @(posedge clk) begin
 		pwm_del <= pwm;
-		base_addr <= ( !pwm_del && pwm ) ? (awaddr - (16 * 64)) : base_addr; // 64 samples before pwm rising edge
+		retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
+		base_addr <= ( !pwm_del && pwm && retrigger == 0 ) ? (awaddr - (16 * 64)) : base_addr; // 64 samples before pwm rising edge
 	end 
 	
 	psram_ctrl _psram_ctl(
