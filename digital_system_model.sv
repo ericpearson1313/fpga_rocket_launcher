@@ -12,6 +12,8 @@ module model_coil
 	// ADC voltage inputs (sample and held )
 	input logic [11:0] vcap, // ADC native signed format. +-401V gives -+2000DN
 	input logic [11:0] vout, // -.2005V/DN, about 5 digital number steps per volt
+	// Measured current
+	input logic [11:0] iout, // used to re-initialize the model
 	// PWM signal 
 	input logic pwm,
 	// Esimated Coil current 
@@ -66,7 +68,15 @@ always @(posedge clk) begin : _i_mult
 	current[33:0] <= i_acc[36:19] * 16'd42089;
 end
 
+// Calc model current correction. Capture it at rise of pwm before any effect
+logic [11:0] icor; 
+logic pwm_del;
+always @(posedge clk) begin
+	pwm_del <= pwm;
+	icor <= ( pwm & !pwm_del ) ? ( iout[11:0] ^ 12'h7ff ) - current[32-:12] : icor; // latch error at start of pwm cycle
+end
+
 // select the window (will always be positive)
-assign iest_coil[11:0] = current[32:21] ^ 12'h7FF;
+assign iest_coil[11:0] = ( current[32:21] + icor ) ^ 12'h7FF;
 
 endmodule // model_coil
