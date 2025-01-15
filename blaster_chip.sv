@@ -257,8 +257,7 @@ always @(posedge clk) begin
 	end
 end
 
-assign pwm = ( pwm_pulse ) ? 1'b1 : 	// pulse generator
-             ( key == 5'h19   && count[15:7] == 0) ? 1'b1 : 1'b0; // 128/48=2.66 usec fixed
+
 
 blaster _blaster (
 	// Input Buttons
@@ -335,6 +334,7 @@ model_coil _model (
 	.iest_coil( iest )
 );
 
+logic res_val;
 logic [11:0] res_calc;
 ohm_div _resistance (
 	// Input clock
@@ -345,9 +345,28 @@ ohm_div _resistance (
 	.v_in( ad_b1 ), // ADC Vout
 	.i_in( ad_a0 ), // ADC Iout
 	// Resistance Output
-	.valid_out( ),
+	.valid_out( res_val ),
 	.r_out( res_calc )
 );
+
+logic res_pwm;
+logic [11:0] igniter_res;
+igniter_resistance _res_measurement (
+	// Input clock
+	.clk( clk ),
+	.reset( reset ),
+	// Resistance input
+	.valid_in( res_val ),
+	.r_in( res_calc ),
+	// PWM output and enable input
+	.pwm( res_pwm ),
+	.enable( key == 5'h19 ),
+	// Avg Resistance output
+	.valid_out( ),
+	.r_out( igniter_res )
+);
+
+assign pwm = pwm_pulse | res_pwm;
 
 // Digio pads.
 	logic [6:0] digio_in, digio_out;
@@ -499,7 +518,7 @@ ohm_div _resistance (
 		if( ad_strobe ) begin
 		ad_data <= { { iest[11:8], ad_a0[11:0] },
 						 { iest[7:4], ad_a1[11:0] },
-						 { iest[3:0], ad_b0[11:0] /*res_calc[11:0]*/ }, // temp override.
+						 { iest[3:0], res_calc[11:0] /*ad_b0[11:0]*/ }, // temp override.
 						 { 3'h0, pwm, ad_b1[11:0] } };
 		end else begin
 			ad_data <= ad_data;
@@ -713,6 +732,10 @@ ohm_div _resistance (
 		.blue(  scope_blue )
 	);
 	
+	// 12 bit resistance number is 6.5. so 
+	// plotting as 8.4 with { 2`b00, in[10:1] } will give Ohms. A decimal point woudl be nice
+	logic res_str;
+	hex_overlay #(.LEN(3)) _res  (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1B),.y('h13), .out( res_str   ), .in( { 2'b00, ~igniter_res[10:1] } ) );
 	
 	// 12bit hex overlays(4)
 	logic [3:0] hex_str;
@@ -742,6 +765,7 @@ ohm_div _resistance (
 	                 (|bin_str ) |
 						  (|hex_str ) |
 						  ( key_strg) |
+						  ( res_str ) |
 						  (|id_str  ) ;
 	
 	// video encoder

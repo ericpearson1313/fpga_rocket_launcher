@@ -1,3 +1,83 @@
+
+// Resitance Calc Module
+// Enable input assertion, creates a PWM pulse (2us), and 64K hold-off on retrigger
+// waits for a valid resistance calc (64 cycles), and then accumulates for total 128 cycles
+// At each power of two an output resistance is provided. Output is latched.
+
+module igniter_resistance
+(
+	// System
+	input logic clk,
+	input logic reset,
+	
+	// Raw resistance
+	input valid_in,
+	input [11:0] r_in,
+
+	// PWM Output
+	output pwm,
+
+	// input Enable
+	input enable,
+	
+	// Resistance Output
+	output logic valid_out,
+	output logic [11:0] r_out
+);
+	
+	// Triggering with 64K holdoff
+	logic [15:0] holdoff;
+	always @(posedge clk) begin
+		if( reset ) begin
+			holdoff <= 0;
+		end else begin
+			if( enable && ( holdoff == 0 ) ) begin // start
+				holdoff <= 1;
+			end else if( holdoff != 0 ) begin // holdoff delay until wrap
+				holdoff <= holdoff + 1;
+			end else begin
+				holdoff <= 0;
+			end
+		end
+	end
+	
+	// PWM output
+	assign pwm = ( ( holdoff != 0 ) && ( holdoff < ( 48 * 2 ))) ? 1'b1 : 1'b0;
+	
+	// Accumulate and average
+	logic [17:0] acc; // max 128 samples of 12 bits
+	logic [7:0] cnt;
+	always @(posedge clk) begin
+		if( reset ) begin
+			acc <= 0;
+			cnt <= 0;
+			r_out <= 0;
+			valid_out <= 0;
+		end else begin 
+			// accumulate valid samples
+			if( holdoff != 0 && holdoff < 4096 && valid_in ) begin
+				cnt <= cnt + 1;
+				acc <= acc + { 7'h00, r_in[11:0] ^ 12'h7ff };
+				valid_out <= 1;
+				r_out <= ( cnt == (8'h01)) ? { 1'b0, ~acc[10-:11] }  :
+							( cnt == (8'h02)) ? { 1'b0, ~acc[11-:11] }  :
+							( cnt == (8'h04)) ? { 1'b0, ~acc[12-:11] }  :
+							( cnt == (8'h08)) ? { 1'b0, ~acc[13-:11] }  :
+							( cnt == (8'h10)) ? { 1'b0, ~acc[14-:11] }  :
+							( cnt == (8'h20)) ? { 1'b0, ~acc[15-:11] }  :
+							( cnt == (8'h40)) ? { 1'b0, ~acc[16-:11] }  :
+							( cnt == (8'h80)) ? { 1'b0, ~acc[17-:11] }  : r_out;
+			end else begin
+				cnt <= cnt;
+				acc <= acc;
+				valid_out <= valid_out;
+				r_out <= r_out;
+			end
+		end
+	end
+endmodule
+
+
 // Output is calculated igniter resistance
 // R = E / I
 // R = E * 205 dn/A * .2005 V/Dn / I 
@@ -97,12 +177,12 @@ end
 
 // scale and hold resistance out.
 // quotient is 17.13 format in ohms
-// Limit to 1/4 amp before measurement is meaningful
-// Output is clipped to 6.5
+// Clip to zero (7FF) until >150mA amp before measurement is meaningful
+// Output is clipped to 6.5 and put into adc format
 
 always @(posedge clk) begin
-	valid_out   <= ( del_valid[15] && denom[1] > 50 ) ? 1'b1 : 1'b0;
-	r_out[11:0] <= ( del_valid[15] && denom[1] > 50 ) ? { 1'b0, (|quotient[29:19])?11'h000 : (quotient[18-:11] ^ 11'h7FF) } :
+	valid_out   <= ( del_valid[15] && denom[1] > 32 ) ? 1'b1 : 1'b0;
+	r_out[11:0] <= ( del_valid[15] && denom[1] > 32 ) ? { 1'b0, (|quotient[29:19])?11'h000 : (quotient[18-:11] ^ 11'h7FF) } :
                   ( del_valid[15] ) ? 12'h7FF : r_out;	
 end
 
