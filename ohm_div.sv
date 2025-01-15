@@ -12,7 +12,7 @@ module igniter_resistance
 	
 	// Raw resistance
 	input valid_in,
-	input [11:0] r_in,
+	input [11:0] r_in, // adc format, +ve only
 
 	// PWM Output
 	output pwm,
@@ -22,7 +22,7 @@ module igniter_resistance
 	
 	// Resistance Output
 	output logic valid_out,
-	output logic [11:0] r_out
+	output logic [11:0] r_out // adc format, +ve only
 );
 	
 	// Triggering with 64K holdoff
@@ -33,6 +33,8 @@ module igniter_resistance
 		end else begin
 			if( enable && ( holdoff == 0 ) ) begin // start
 				holdoff <= 1;
+			end else if( enable && holdoff == 16'hffff ) begin // wait until enable released)
+				holdoff <= 16'hffff;			
 			end else if( holdoff != 0 ) begin // holdoff delay until wrap
 				holdoff <= holdoff + 1;
 			end else begin
@@ -41,11 +43,11 @@ module igniter_resistance
 		end
 	end
 	
-	// PWM output
+	// PWM output, 2usec
 	assign pwm = ( ( holdoff != 0 ) && ( holdoff < ( 48 * 2 ))) ? 1'b1 : 1'b0;
 	
 	// Accumulate and average
-	logic [17:0] acc; // max 128 samples of 12 bits
+	logic [17:0] acc; // max 128 samples of 11 bits
 	logic [7:0] cnt;
 	always @(posedge clk) begin
 		if( reset ) begin
@@ -55,18 +57,23 @@ module igniter_resistance
 			valid_out <= 0;
 		end else begin 
 			// accumulate valid samples
-			if( holdoff != 0 && holdoff < 4096 && valid_in ) begin
-				cnt <= cnt + 1;
-				acc <= acc + { 7'h00, r_in[11:0] ^ 12'h7ff };
+			if( holdoff > 256 && holdoff < 4096 && valid_in ) begin
+				cnt <= ( cnt == 8'hff ) ? 8'hff : cnt + 1;
+				acc <= acc + { 7'h00, r_in[10:0] ^ 11'h7ff };
 				valid_out <= 1;
-				r_out <= ( cnt == (8'h01)) ? { 1'b0, ~acc[10-:11] }  :
-							( cnt == (8'h02)) ? { 1'b0, ~acc[11-:11] }  :
-							( cnt == (8'h04)) ? { 1'b0, ~acc[12-:11] }  :
-							( cnt == (8'h08)) ? { 1'b0, ~acc[13-:11] }  :
-							( cnt == (8'h10)) ? { 1'b0, ~acc[14-:11] }  :
-							( cnt == (8'h20)) ? { 1'b0, ~acc[15-:11] }  :
-							( cnt == (8'h40)) ? { 1'b0, ~acc[16-:11] }  :
-							( cnt == (8'h80)) ? { 1'b0, ~acc[17-:11] }  : r_out;
+				r_out <= ( cnt == (8'h01)) ? { 1'b0, acc[10-:11] ^ 11'h7ff }  :
+							( cnt == (8'h02)) ? { 1'b0, acc[11-:11] ^ 11'h7ff }  :
+							( cnt == (8'h04)) ? { 1'b0, acc[12-:11] ^ 11'h7ff }  :
+							( cnt == (8'h08)) ? { 1'b0, acc[13-:11] ^ 11'h7ff }  :
+							( cnt == (8'h10)) ? { 1'b0, acc[14-:11] ^ 11'h7ff }  :
+							( cnt == (8'h20)) ? { 1'b0, acc[15-:11] ^ 11'h7ff }  :
+							( cnt == (8'h40)) ? { 1'b0, acc[16-:11] ^ 11'h7ff }  :
+							( cnt == (8'h80)) ? { 1'b0, acc[17-:11] ^ 11'h7ff }  : r_out;
+			end else if( holdoff == 0 ) begin
+				cnt <= 0;
+				acc <= 0;
+				valid_out <= valid_out;
+				r_out <= r_out;
 			end else begin
 				cnt <= cnt;
 				acc <= acc;

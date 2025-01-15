@@ -734,8 +734,13 @@ assign pwm = pwm_pulse | res_pwm;
 	
 	// 12 bit resistance number is 6.5. so 
 	// plotting as 8.4 with { 2`b00, in[10:1] } will give Ohms. A decimal point woudl be nice
-	logic res_str;
-	hex_overlay #(.LEN(3)) _res  (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char), .x('h1B),.y('h13), .out( res_str   ), .in( { 2'b00, ~igniter_res[10:1] } ) );
+	logic [5:0] res_str;
+	hex_overlay    #(.LEN(2)) _res0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('h1A),.y('h13), .out( res_str[0] ), .in( { 2'b00, igniter_res[10:5] ^ 6'h3F } ) );
+	string_overlay #(.LEN(1)) _res1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h1C),.y('h13), .out( res_str[1] ), .str(".") );
+	hex_overlay    #(.LEN(1)) _res2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('h1D),.y('h13), .out( res_str[2] ), .in( { igniter_res[4:1] ^ 4'hF } ) );
+	string_overlay #(.LEN(3)) _res3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h1B),.y('h11), .out( res_str[3] ), .str("hex") );
+	string_overlay #(.LEN(3)) _res4 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h1B),.y('h12), .out( res_str[4] ), .str("---") );
+	string_overlay #(.LEN(3)) _res5 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h16),.y('h13), .out( res_str[5] ), .str("Ohm") );
 	
 	// 12bit hex overlays(4)
 	logic [3:0] hex_str;
@@ -765,7 +770,7 @@ assign pwm = pwm_pulse | res_pwm;
 	                 (|bin_str ) |
 						  (|hex_str ) |
 						  ( key_strg) |
-						  ( res_str ) |
+						  (|res_str ) |
 						  (|id_str  ) ;
 	
 	// video encoder
