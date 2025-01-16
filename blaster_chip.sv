@@ -706,19 +706,43 @@ assign pwm = pwm_pulse | res_pwm;
 
 	// 4ch Oscilloscope mem & vga display
 	logic [7:0] scope_red, scope_green, scope_blue;
-	vga_scope _scope(
+
+	//vga_scope _scope(
+	//	.clk(   hdmi_clk ),
+	//	.reset( reset ),
+	//	// video sync 
+	//	.blank( blank ), 
+	//	.hsync( hsync ),
+	//	.vsync( vsync ),
+	//	// Font data
+	//	.ascii_char( ascii_char ),
+	//	.hex_char( hex_char ),
+	//	.bin_char( bin_char ),
+	//	.char_x( char_x ),
+	//	.char_y( char_y ),
+	//	// capture inputs
+	//	.ad_a0( ad_a0 ),
+	//	.ad_a1( ad_a1 ),
+	//	.ad_b0( ad_b0 ),
+	//	.ad_b1( ad_b1 ),
+	//	.ad_strobe( ad_strobe ),
+	//	.ad_clk( clk ),
+	//	// video output
+	//	.red(   scope_red ),
+	//	.green( scope_green ),
+	//	.blue(  scope_blue )
+	//);
+	
+	// 4ch Oscilloscope mem & vga display
+	logic [7:0] tiny_red, tiny_green, tiny_blue;
+	logic tiny;
+	tiny_scope _tiny_scope(
 		.clk(   hdmi_clk ),
 		.reset( reset ),
 		// video sync 
 		.blank( blank ), 
 		.hsync( hsync ),
 		.vsync( vsync ),
-		// Font data
-		.ascii_char( ascii_char ),
-		.hex_char( hex_char ),
-		.bin_char( bin_char ),
-		.char_x( char_x ),
-		.char_y( char_y ),
 		// capture inputs
 		.ad_a0( ad_a0 ),
 		.ad_a1( ad_a1 ),
@@ -727,10 +751,12 @@ assign pwm = pwm_pulse | res_pwm;
 		.ad_strobe( ad_strobe ),
 		.ad_clk( clk ),
 		// video output
-		.red(   scope_red ),
-		.green( scope_green ),
-		.blue(  scope_blue )
+		.red(   tiny_red ),
+		.green( tiny_green ),
+		.blue(  tiny_blue )
 	);
+	assign tiny = |{ tiny_red, tiny_green, tiny_blue };
+	
 	
 	// 12 bit resistance number is 6.5. so 
 	// plotting as 8.4 with { 2`b00, in[10:1] } will give Ohms. A decimal point woudl be nice
@@ -785,9 +811,9 @@ assign pwm = pwm_pulse | res_pwm;
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( test_red   | {8{overlay}} | scope_red   ),
-		.green( test_green | {8{overlay}} | scope_green ),
-		.blue	( test_blue  | {8{overlay}} | scope_blue  ),
+		.red	( ( tiny ) ? tiny_red   : ( test_red   | {8{overlay}} | scope_red   ) ),
+		.green( ( tiny ) ? tiny_green : ( test_green | {8{overlay}} | scope_green ) ),
+		.blue	( ( tiny ) ? tiny_blue  : ( test_blue  | {8{overlay}} | scope_blue  ) ),
 		.hdmi_data( hdmi_data )
 	);	
 	
@@ -836,6 +862,8 @@ assign pwm = pwm_pulse | res_pwm;
 		.green( wave_scope_green ),
 		.blue(  wave_scope_blue )	
 	);	
+
+	
 
 	// video encoder
 	logic [7:0] hdmi2_data;

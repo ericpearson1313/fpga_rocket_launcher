@@ -1,3 +1,19 @@
+
+
+
+
+
+
+
+
+
+///////////////////////////////////
+//////
+//////   VGA SCROLLING SCOPE DISPLAY
+//////
+/////////////////////////////////
+
+
 module vga_scope
 // Scrolling scope with 60Hz capure rate (in Vsync)
 // Includes min/max on each signal ast full rate (glitch capture)
@@ -209,11 +225,244 @@ module vga_scope
 					( pel_gd ) ? 24'h808080 : 24'h000000;
 endmodule
 
+///////////////////////////////////
+//////
+//////   VGA TINY SCOPE DISPLAY
+//////
+/////////////////////////////////
+
+
+module tiny_scope
+// Scrolling scope with 60Hz/n capture rate (in Vsync)
+// Includes min/max on each signal at full rate (glitch capture!)
+// Vertical scale = 1/2, takes 96 pels of height 
+// 6x gridlines, offset, horizontal, 64/N ~ 1sec
+// Vertical offset and horizontal start/stop parameterized
+#(
+	parameter V_START	= 459 - 96,
+	parameter H_START = 500, // Starting pel horizontally
+	parameter H_END 	= 799, // Last pel horizontally
+	parameter N 		= 3, // how many 60Hz frames to accumulate 
+	parameter BG_COLOR= 24'h1d1d1d /* smpte_eerie_black */
+	)
+	
+(
+	input clk,
+	input reset,
+	input blank,
+	input hsync,
+	input vsync,
+	input [11:0] ad_a0,
+	input [11:0] ad_a1,
+	input [11:0] ad_b0,
+	input [11:0] ad_b1,
+	input ad_strobe,
+	input ad_clk,
+	output [7:0] red,
+	output [7:0] green,
+	output [7:0] blue
+);
+
+// sram write upon vsync 
+
+	logic [9:0] rd_addr, wr_addr;
+	logic [7:0] a0, a1, b0, b1;
+	logic we;
+	logic vsync_d1;
+	logic blank_d1;
+	logic [9:0] xcnt, ycnt;
+	
+	
+	// AD CLK based state machine, gets Min,Max and latches at rising vsync.
+	// Counter to accumulate over N vsync's
+	logic [3:0] vsync_cnt;
+	logic [5:0] sec_cnt; // 60 ticks/sec
+	logic [3:0] vsync_del;
+	logic [11:0] ad_a0_min_cur, ad_a0_max_cur;
+	logic [11:0] ad_a1_min_cur, ad_a1_max_cur;
+	logic [11:0] ad_b0_min_cur, ad_b0_max_cur;
+	logic [11:0] ad_b1_min_cur, ad_b1_max_cur;
+	logic [11:0] ad_a0_min, ad_a0_max;
+	logic [11:0] ad_a1_min, ad_a1_max;
+	logic [11:0] ad_b0_min, ad_b0_max;
+	logic [11:0] ad_b1_min, ad_b1_max;	
+	logic gd_mark, gd_mark_cur;
+	always @(posedge ad_clk) begin
+		if( ad_strobe ) begin
+			vsync_del[3:0] <= { vsync_del[2:0], vsync };
+			vsync_cnt <= ( !vsync_del[2] & vsync_del[3] ) ? ( vsync_cnt == N - 1 ) ? 0 : vsync_cnt + 1 : vsync_cnt; // count on falling
+			sec_cnt   <= ( !vsync_del[2] & vsync_del[3] ) ? (   sec_cnt == 59    ) ? 0 :   sec_cnt + 1 : sec_cnt;   // count to 60 falling
+			if( vsync_del[2] & !vsync_del[3] & vsync_cnt == 0 ) begin // rising edge of Nth vsync
+				// star a new cycle based on current sample
+				ad_a0_min_cur <= ad_a0;
+				ad_a0_max_cur <= ad_a0;
+				ad_a1_min_cur <= ad_a1;
+				ad_a1_max_cur <= ad_a1;
+				ad_b0_min_cur <= ad_b0;
+				ad_b0_max_cur <= ad_b0;
+				ad_b1_min_cur <= ad_b1;
+				ad_b1_max_cur <= ad_b1;
+				gd_mark_cur   <= ( sec_cnt == 0 ) ? 1'b1 : 1'b0;
+				// capture and hold the mins/maxes 
+				// will be picked up on falling vsync edge
+				ad_a0_min <= ad_a0_min_cur;
+				ad_a0_max <= ad_a0_max_cur;
+				ad_a1_min <= ad_a1_min_cur;
+				ad_a1_max <= ad_a1_max_cur;
+				ad_b0_min <= ad_b0_min_cur;
+				ad_b0_max <= ad_b0_max_cur;
+				ad_b1_min <= ad_b1_min_cur;
+				ad_b1_max <= ad_b1_max_cur;
+				gd_mark   <= gd_mark_cur;
+			end else begin // on the other data cycles
+				// Update mins/maxes
+				ad_a0_min_cur <= ( ad_a0_min_cur[11:0] > ad_a0[11:0] ) ? ad_a0 : ad_a0_min_cur ;
+				ad_a0_max_cur <= ( ad_a0_max_cur[11:0] < ad_a0[11:0] ) ? ad_a0 : ad_a0_max_cur ;
+				ad_a1_min_cur <= ( ad_a1_min_cur[11:0] > ad_a1[11:0] ) ? ad_a1 : ad_a1_min_cur ;
+				ad_a1_max_cur <= ( ad_a1_max_cur[11:0] < ad_a1[11:0] ) ? ad_a1 : ad_a1_max_cur ;
+				ad_b0_min_cur <= ( ad_b0_min_cur[11:0] > ad_b0[11:0] ) ? ad_b0 : ad_b0_min_cur ;
+				ad_b0_max_cur <= ( ad_b0_max_cur[11:0] < ad_b0[11:0] ) ? ad_b0 : ad_b0_max_cur ;
+				ad_b1_min_cur <= ( ad_b1_min_cur[11:0] > ad_b1[11:0] ) ? ad_b1 : ad_b1_min_cur ;
+				ad_b1_max_cur <= ( ad_b1_max_cur[11:0] < ad_b1[11:0] ) ? ad_b1 : ad_b1_max_cur ;
+				gd_mark_cur   <= ( sec_cnt == 0 ) ? 1'b1 : gd_mark_cur; // Capture if a sec tick occured
+				// Hold frame value;
+				ad_a0_min <= ad_a0_min;
+				ad_a0_max <= ad_a0_max;
+				ad_a1_min <= ad_a1_min;
+				ad_a1_max <= ad_a1_max;
+				ad_b0_min <= ad_b0_min;
+				ad_b0_max <= ad_b0_max;
+				ad_b1_min <= ad_b1_min;
+				ad_b1_max <= ad_b1_max;
+				gd_mark   <= gd_mark;
+			end
+		end else begin // non same cycles, just hold everything
+			vsync_cnt <= vsync_cnt;
+			vsync_del <= vsync_del;
+			// Update mins/maxes
+			ad_a0_min_cur <= ad_a0_min_cur;
+			ad_a0_max_cur <= ad_a0_max_cur;
+			ad_a1_min_cur <= ad_a1_min_cur;
+			ad_a1_max_cur <= ad_a1_max_cur;
+			ad_b0_min_cur <= ad_b0_min_cur;
+			ad_b0_max_cur <= ad_b0_max_cur;
+			ad_b1_min_cur <= ad_b1_min_cur;
+			ad_b1_max_cur <= ad_b1_max_cur;
+			gd_mark_cur   <= gd_mark_cur;
+			// Hold frame value;
+			ad_a0_min <= ad_a0_min;
+			ad_a0_max <= ad_a0_max;
+			ad_a1_min <= ad_a1_min;
+			ad_a1_max <= ad_a1_max;
+			ad_b0_min <= ad_b0_min;
+			ad_b0_max <= ad_b0_max;
+			ad_b1_min <= ad_b1_min;
+			ad_b1_max <= ad_b1_max;
+			gd_mark   <= gd_mark;
+		end
+	end
+		
+	// Capture Buffer Write COntrol 
+	
+	always @(posedge clk) begin
+		if ( reset ) begin
+			we <= 0;
+			wr_addr <= H_END - H_START; // Start at right edge aligned
+			vsync_d1 <= 0;
+		end else begin
+			vsync_d1 <= vsync;
+			we <= ( !vsync && vsync_d1 && vsync_cnt == 0 ) ? 1'b1 : 1'b0; // vsync falling
+			wr_addr <= ( !vsync && vsync_d1 && vsync_cnt == 0 ) ? wr_addr + 1 : wr_addr ; // wrap
+		end
+	end	
+
+	// sram read with horzonal pixel counter, which starts with wr_addr - 639
+		
+	always @(posedge clk) begin
+		if ( reset ) begin
+			xcnt <= 0;
+			ycnt <= 0;
+			rd_addr <= 0;
+			blank_d1 <= 0;
+		end else begin
+			blank_d1 <= blank;
+			xcnt <= ( blank ) ? 0 : xcnt + 1;
+			ycnt <= ( vsync ) ? 0 : 
+					  ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
+			rd_addr <= wr_addr - (H_END - H_START) + xcnt;
+		end
+	end
+
+	// Srams to hold the data
+
+	logic [7:0] a0_min, a0_max;
+	logic [7:0] a1_min, a1_max;
+	logic [7:0] b0_min, b0_max;
+	logic [7:0] b1_min, b1_max;	
+	logic [7:0] vgrid;
+	
+	sram1024x8 _a0_mem_max (.clock(clk),.data(ad_a0_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_max));
+	sram1024x8 _a1_mem_max (.clock(clk),.data(ad_a1_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_max));
+	sram1024x8 _b0_mem_max (.clock(clk),.data(ad_b0_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_max));
+	sram1024x8 _b1_mem_max (.clock(clk),.data(ad_b1_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_max));
+	sram1024x8 _a0_mem_min (.clock(clk),.data(ad_a0_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_min));
+	sram1024x8 _a1_mem_min (.clock(clk),.data(ad_a1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_min));
+	sram1024x8 _b0_mem_min (.clock(clk),.data(ad_b0_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_min));
+	sram1024x8 _b1_mem_min (.clock(clk),.data(ad_b1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_min));
+	sram1024x8 _grid_mem   (.clock(clk),.data({7'b0, gd_mark}),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(vgrid ));
+	
+	// Display Logic rd_data vs ycnt to give veritcal axis
+	// Scope screen is 256 rows on bottom 480 line display and takes the full 800 width. 
+	// The four channels will be different colors.
+	// if heights off bottom matches value, turn on the pel.
+	
+	logic pel_gd, pel_a0, pel_a1, pel_b0, pel_b1, pel_bg;
+
+	
+	always @(posedge clk) begin
+		if ( reset ) begin
+				pel_bg <= 0;
+				pel_gd <= 0;
+				pel_a0 <= 0;
+				pel_a1 <= 0;
+				pel_b1 <= 0;
+				pel_b0 <= 0;
+		end else begin
+			if( ycnt >= V_START && ycnt < V_START + 96 &&
+			    xcnt >= H_START && xcnt <= H_END ) begin
+				pel_bg <= ( xcnt >= H_START && xcnt <= H_END ) ? 1'b1 : 1'b0;
+				pel_gd <= ( vgrid || ycnt[4:0] == 2'b01000 ) ? 1'b1 : 1'b0; // a grid
+				pel_a0 <= ( a0_max[7:1] >= (ycnt - (V_START + 40)) && a0_min[7:1] <= (ycnt - (V_START + 40)) ) ? 1'b1 : 1'b0; 
+				pel_a1 <= ( a1_max[7:1] >= (ycnt - (V_START + 56)) && a1_min[7:1] <= (ycnt - (V_START + 56)) ) ? 1'b1 : 1'b0; 
+				pel_b0 <= ( b0_max[7:1] >= (ycnt - (V_START + 72)) && b0_min[7:1] <= (ycnt - (V_START + 72)) ) ? 1'b1 : 1'b0; 
+				pel_b1 <= ( b1_max[7:1] >= (ycnt - (V_START + 88)) && b1_min[7:1] <= (ycnt - (V_START + 88)) ) ? 1'b1 : 1'b0; 
+			end else begin
+				pel_bg <= 0;
+				pel_gd <= 0;
+				pel_a0 <= 0;
+				pel_a1 <= 0;
+				pel_b1 <= 0;
+				pel_b0 <= 0;
+			end
+		end
+	end	
+	
+	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
+	assign { red, green, blue } = 
+					( pel_a0 ) ? 24'hFFFFFF :
+					( pel_a1 ) ? 24'hff0000 :
+					( pel_b0 ) ? 24'h00ff00 :
+					( pel_b1 ) ? 24'h0000ff :
+					( pel_gd ) ? 24'h808080 : 
+					( pel_bg ) ? BG_COLOR   : 
+									 24'h000000 ;
+endmodule
+
 
 
 ///////////////////////////////////
 //////
-//////   VGA WAVE DISPLAY
+//////   VGA WAVEFORM DISPLAY
 //////
 /////////////////////////////////
 
