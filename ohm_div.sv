@@ -25,16 +25,16 @@ module igniter_resistance
 	output logic [11:0] r_out // adc format, +ve only
 );
 	
-	// Triggering with 64K holdoff
-	logic [15:0] holdoff;
+	// Triggering with 1M holdoff
+	logic [19:0] holdoff;
 	always @(posedge clk) begin
 		if( reset ) begin
 			holdoff <= 0;
 		end else begin
 			if( enable && ( holdoff == 0 ) ) begin // start
 				holdoff <= 1;
-			end else if( enable && holdoff == 16'hffff ) begin // wait until enable released)
-				holdoff <= 16'hffff;			
+			end else if( enable && holdoff == 20'h80000 ) begin // wait until enable released)
+				holdoff <= 20'h80000;			
 			end else if( holdoff != 0 ) begin // holdoff delay until wrap
 				holdoff <= holdoff + 1;
 			end else begin
@@ -69,11 +69,16 @@ module igniter_resistance
 							( cnt == (8'h20)) ? { 1'b0, acc[15-:11] ^ 11'h7ff }  :
 							( cnt == (8'h40)) ? { 1'b0, acc[16-:11] ^ 11'h7ff }  :
 							( cnt == (8'h80)) ? { 1'b0, acc[17-:11] ^ 11'h7ff }  : r_out;
-			end else if( holdoff == 0 ) begin
+			end else if( holdoff == 0 ) begin // Idle
 				cnt <= 0;
 				acc <= 0;
 				valid_out <= valid_out;
 				r_out <= r_out;
+			end else if( holdoff == 4096 && cnt == 0 ) begin // no resistance readings, so open circuit OR zero cap voltage
+				cnt <= cnt;
+				acc <= acc;
+				valid_out <= valid_out;
+				r_out <= 12'h7DC ^ 12'h7ff;	// 3E.E ohms is code for "no valid reading / open circuit"		
 			end else begin
 				cnt <= cnt;
 				acc <= acc;
