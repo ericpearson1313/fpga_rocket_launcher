@@ -436,7 +436,6 @@ module tiny_scope
 	// if heights off bottom matches value, turn on the pel.
 	
 	logic pel_gd, pel_a0, pel_a1, pel_b0, pel_b1, pel_bg;
-
 	
 	always @(posedge clk) begin
 		if ( reset ) begin
@@ -450,11 +449,11 @@ module tiny_scope
 			if( ycnt >= V_START && ycnt < V_START + 96 &&
 			    xcnt >= H_START && xcnt <= H_END ) begin
 				pel_bg <= ( xcnt >= H_START && xcnt <= H_END ) ? 1'b1 : 1'b0;
-				pel_gd <= ( vgrid  || ycnt[4:0] == 2'b01000 ) ? 1'b1 : 1'b0; // a grid
-				pel_a0 <= ( a0_max[7:1] >= (ycnt - (V_START + 40)) && a0_min[7:1] <= (ycnt - (V_START + 40)) ) ? 1'b1 : 1'b0; 
-				pel_a1 <= ( a1_max[7:1] >= (ycnt - (V_START + 56)) && a1_min[7:1] <= (ycnt - (V_START + 56)) ) ? 1'b1 : 1'b0; 
-				pel_b0 <= ( b0_max[7:1] >= (ycnt - (V_START + 72)) && b0_min[7:1] <= (ycnt - (V_START + 72)) ) ? 1'b1 : 1'b0; 
-				pel_b1 <= ( b1_max[7:1] >= (ycnt - (V_START + 88)) && b1_min[7:1] <= (ycnt - (V_START + 88)) ) ? 1'b1 : 1'b0; 
+				pel_gd <= ( vgrid  || ((ycnt-V_START)&15)==8 ) ? 1'b1 : 1'b0; // a grid
+				pel_a0 <= ( a0_max[7:1] >= (ycnt - (V_START - 24)) && a0_min[7:1] <= (ycnt - (V_START - 24)) ) ? 1'b1 : 1'b0; 
+				pel_a1 <= ( a1_max[7:1] >= (ycnt - (V_START -  8)) && a1_min[7:1] <= (ycnt - (V_START -  8)) ) ? 1'b1 : 1'b0; 
+				pel_b0 <= ( b0_max[7:1] >= (ycnt - (V_START +  8)) && b0_min[7:1] <= (ycnt - (V_START +  8)) ) ? 1'b1 : 1'b0; 
+				pel_b1 <= ( b1_max[7:1] >= (ycnt - (V_START + 24)) && b1_min[7:1] <= (ycnt - (V_START + 24)) ) ? 1'b1 : 1'b0; 
 			end else begin
 				pel_bg <= 0;
 				pel_gd <= 0;
