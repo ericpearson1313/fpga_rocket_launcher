@@ -163,14 +163,24 @@ module vga_scope
 	logic [7:0] b0_min, b0_max;
 	logic [7:0] b1_min, b1_max;	
 	
-	sram1024x8 _a0_mem_max (.clock(clk),.data(ad_a0_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_max));
-	sram1024x8 _a1_mem_max (.clock(clk),.data(ad_a1_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_max));
-	sram1024x8 _b0_mem_max (.clock(clk),.data(ad_b0_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_max));
-	sram1024x8 _b1_mem_max (.clock(clk),.data(ad_b1_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_max));
-	sram1024x8 _a0_mem_min (.clock(clk),.data(ad_a0_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_min));
-	sram1024x8 _a1_mem_min (.clock(clk),.data(ad_a1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_min));
-	sram1024x8 _b0_mem_min (.clock(clk),.data(ad_b0_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_min));
-	sram1024x8 _b1_mem_min (.clock(clk),.data(ad_b1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_min));
+	
+	generic_sram2p #(64, 10, 1024 ) _mem
+    (
+	   .dout 	    ( { a0_max,a1_max,b0_max,b1_max,a0_min,a1_min,b0_min,b1_min } ),
+		.clk		    (clk),
+	   .wen		    (we),
+      .ren         (1'b1),
+	   .waddr	    (wr_addr),
+	   .raddr	    (rd_addr),
+	   .din 		    ({ad_a0_max[11:4],
+		               ad_a1_max[11:4],
+		               ad_b0_max[11:4],
+		               ad_b1_max[11:4],
+		               ad_a0_min[11:4],
+		               ad_a1_min[11:4],
+		               ad_b0_min[11:4],
+		               ad_b1_min[11:4] } )
+	);	
 	
 	// Display Logic rd_data vs ycnt to give veritcal axis
 	// Scope screen is 256 rows on bottom 480 line display and takes the full 800 width. 
@@ -227,7 +237,7 @@ endmodule
 
 ///////////////////////////////////
 //////
-//////   VGA TINY SCOPE DISPLAY
+//////   TINY SCOPE DISPLAY
 //////
 /////////////////////////////////
 
@@ -265,7 +275,7 @@ module tiny_scope
 
 // sram write upon vsync 
 
-	logic [9:0] rd_addr, wr_addr;
+	logic [8:0] rd_addr, wr_addr;
 	logic [7:0] a0, a1, b0, b1;
 	logic we;
 	logic vsync_d1;
@@ -389,27 +399,36 @@ module tiny_scope
 			xcnt <= ( blank ) ? 0 : xcnt + 1;
 			ycnt <= ( vsync ) ? 0 : 
 					  ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
-			rd_addr <= wr_addr - (H_END - H_START) + xcnt;
+			rd_addr <= wr_addr - (H_END - H_START) + xcnt - H_START;
 		end
 	end
 
 	// Srams to hold the data
 
-	logic [7:0] a0_min, a0_max;
-	logic [7:0] a1_min, a1_max;
-	logic [7:0] b0_min, b0_max;
-	logic [7:0] b1_min, b1_max;	
-	logic [7:0] vgrid;
-	
-	sram1024x8 _a0_mem_max (.clock(clk),.data(ad_a0_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_max));
-	sram1024x8 _a1_mem_max (.clock(clk),.data(ad_a1_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_max));
-	sram1024x8 _b0_mem_max (.clock(clk),.data(ad_b0_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_max));
-	sram1024x8 _b1_mem_max (.clock(clk),.data(ad_b1_max[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_max));
-	sram1024x8 _a0_mem_min (.clock(clk),.data(ad_a0_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a0_min));
-	sram1024x8 _a1_mem_min (.clock(clk),.data(ad_a1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(a1_min));
-	sram1024x8 _b0_mem_min (.clock(clk),.data(ad_b0_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b0_min));
-	sram1024x8 _b1_mem_min (.clock(clk),.data(ad_b1_min[11:4]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(b1_min));
-	sram1024x8 _grid_mem   (.clock(clk),.data({7'b0, gd_mark}),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we),.q(vgrid ));
+	logic [7:1] a0_min, a0_max;
+	logic [7:1] a1_min, a1_max;
+	logic [7:1] b0_min, b0_max;
+	logic [7:1] b1_min, b1_max;	
+	logic vgrid;
+
+    generic_sram2p #(57, 9, 512 ) _mem
+    (
+	   .dout 	    ( { a0_max,a1_max,b0_max,b1_max,a0_min,a1_min,b0_min,b1_min,vgrid } ),
+		.clk		    (clk),
+	   .wen		    (we),
+      .ren         (1'b1),
+	   .waddr	    (wr_addr),
+	   .raddr	    (rd_addr),
+	   .din 		    ({ad_a0_max[11:5],
+		               ad_a1_max[11:5],
+		               ad_b0_max[11:5],
+		               ad_b1_max[11:5],
+		               ad_a0_min[11:5],
+		               ad_a1_min[11:5],
+		               ad_b0_min[11:5],
+		               ad_b1_min[11:5],
+		               gd_mark           } )
+	);	
 	
 	// Display Logic rd_data vs ycnt to give veritcal axis
 	// Scope screen is 256 rows on bottom 480 line display and takes the full 800 width. 
@@ -431,7 +450,7 @@ module tiny_scope
 			if( ycnt >= V_START && ycnt < V_START + 96 &&
 			    xcnt >= H_START && xcnt <= H_END ) begin
 				pel_bg <= ( xcnt >= H_START && xcnt <= H_END ) ? 1'b1 : 1'b0;
-				pel_gd <= ( vgrid || ycnt[4:0] == 2'b01000 ) ? 1'b1 : 1'b0; // a grid
+				pel_gd <= ( vgrid  || ycnt[4:0] == 2'b01000 ) ? 1'b1 : 1'b0; // a grid
 				pel_a0 <= ( a0_max[7:1] >= (ycnt - (V_START + 40)) && a0_min[7:1] <= (ycnt - (V_START + 40)) ) ? 1'b1 : 1'b0; 
 				pel_a1 <= ( a1_max[7:1] >= (ycnt - (V_START + 56)) && a1_min[7:1] <= (ycnt - (V_START + 56)) ) ? 1'b1 : 1'b0; 
 				pel_b0 <= ( b0_max[7:1] >= (ycnt - (V_START + 72)) && b0_min[7:1] <= (ycnt - (V_START + 72)) ) ? 1'b1 : 1'b0; 
