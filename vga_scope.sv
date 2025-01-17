@@ -1,12 +1,4 @@
 
-
-
-
-
-
-
-
-
 ///////////////////////////////////
 //////
 //////   VGA SCROLLING SCOPE DISPLAY
@@ -249,10 +241,12 @@ module tiny_scope
 // 6x gridlines, offset, horizontal, 64/N ~ 1sec
 // Vertical offset and horizontal start/stop parameterized
 #(
-	parameter V_START	= 459 - 96,
-	parameter H_START = 500, // Starting pel horizontally
-	parameter H_END 	= 799, // Last pel horizontally
+	parameter V_START	= 240;//459 - 96,
+	parameter V_HEIGHT= 192;//96; // supported 96 at 1/2 vert scale, or 192 for full 1:1 vert scale
+	parameter H_START = 450, // Starting pel horizontally
+	parameter H_END 	= 750, // Last pel horizontally
 	parameter N 		= 3, // how many 60Hz frames to accumulate 
+	parameter GD_COLOR= 24'h32006a, /* smpte_deep_violet */
 	parameter BG_COLOR= 24'h1d1d1d /* smpte_eerie_black */
 	)
 	
@@ -405,13 +399,13 @@ module tiny_scope
 
 	// Srams to hold the data
 
-	logic [7:1] a0_min, a0_max;
-	logic [7:1] a1_min, a1_max;
-	logic [7:1] b0_min, b0_max;
-	logic [7:1] b1_min, b1_max;	
+	logic [7:0] a0_min, a0_max;
+	logic [7:0] a1_min, a1_max;
+	logic [7:0] b0_min, b0_max;
+	logic [7:0] b1_min, b1_max;	
 	logic vgrid;
 
-    generic_sram2p #(57, 9, 512 ) _mem
+    generic_sram2p #(65, 9, 512 ) _mem
     (
 	   .dout 	    ( { a0_max,a1_max,b0_max,b1_max,a0_min,a1_min,b0_min,b1_min,vgrid } ),
 		.clk		    (clk),
@@ -419,14 +413,14 @@ module tiny_scope
       .ren         (1'b1),
 	   .waddr	    (wr_addr),
 	   .raddr	    (rd_addr),
-	   .din 		    ({ad_a0_max[11:5],
-		               ad_a1_max[11:5],
-		               ad_b0_max[11:5],
-		               ad_b1_max[11:5],
-		               ad_a0_min[11:5],
-		               ad_a1_min[11:5],
-		               ad_b0_min[11:5],
-		               ad_b1_min[11:5],
+	   .din 		    ({ad_a0_max[11:4],
+		               ad_a1_max[11:4],
+		               ad_b0_max[11:4],
+		               ad_b1_max[11:4],
+		               ad_a0_min[11:4],
+		               ad_a1_min[11:4],
+		               ad_b0_min[11:4],
+		               ad_b1_min[11:4],
 		               gd_mark           } )
 	);	
 	
@@ -446,14 +440,22 @@ module tiny_scope
 				pel_b1 <= 0;
 				pel_b0 <= 0;
 		end else begin
-			if( ycnt >= V_START && ycnt < V_START + 96 &&
+			if( ycnt >= V_START && ycnt < V_START + V_HEIGHT &&
 			    xcnt >= H_START && xcnt <= H_END ) begin
 				pel_bg <= ( xcnt >= H_START && xcnt <= H_END ) ? 1'b1 : 1'b0;
-				pel_gd <= ( vgrid  || ((ycnt-V_START)&15)==8 ) ? 1'b1 : 1'b0; // a grid
-				pel_a0 <= ( a0_max[7:1] >= (ycnt - (V_START - 24)) && a0_min[7:1] <= (ycnt - (V_START - 24)) ) ? 1'b1 : 1'b0; 
-				pel_a1 <= ( a1_max[7:1] >= (ycnt - (V_START -  8)) && a1_min[7:1] <= (ycnt - (V_START -  8)) ) ? 1'b1 : 1'b0; 
-				pel_b0 <= ( b0_max[7:1] >= (ycnt - (V_START +  8)) && b0_min[7:1] <= (ycnt - (V_START +  8)) ) ? 1'b1 : 1'b0; 
-				pel_b1 <= ( b1_max[7:1] >= (ycnt - (V_START + 24)) && b1_min[7:1] <= (ycnt - (V_START + 24)) ) ? 1'b1 : 1'b0; 
+				if( V_HEIGHT == 96 ) begin // 96 is 1/2 height
+					pel_gd <= ( vgrid  || ((ycnt-V_START)&15)==8 ) ? 1'b1 : 1'b0; // a grid
+					pel_a0 <= ( a0_max[7:1] >= (ycnt - (V_START - 24)) && a0_min[7:1] <= (ycnt - (V_START - 24)) ) ? 1'b1 : 1'b0; 
+					pel_a1 <= ( a1_max[7:1] >= (ycnt - (V_START -  8)) && a1_min[7:1] <= (ycnt - (V_START -  8)) ) ? 1'b1 : 1'b0; 
+					pel_b0 <= ( b0_max[7:1] >= (ycnt - (V_START +  8)) && b0_min[7:1] <= (ycnt - (V_START +  8)) ) ? 1'b1 : 1'b0; 
+					pel_b1 <= ( b1_max[7:1] >= (ycnt - (V_START + 24)) && b1_min[7:1] <= (ycnt - (V_START + 24)) ) ? 1'b1 : 1'b0; 
+				end else begin // assume 192 full scale 
+					pel_gd <= ( vgrid  || ((ycnt-V_START)&31)==16 ) ? 1'b1 : 1'b0; // a grid
+					pel_a0 <= ( a0_max[7:0] >= (ycnt - (V_START - 48)) && a0_min[7:0] <= (ycnt - (V_START - 48)) ) ? 1'b1 : 1'b0; 
+					pel_a1 <= ( a1_max[7:0] >= (ycnt - (V_START - 16)) && a1_min[7:0] <= (ycnt - (V_START - 16)) ) ? 1'b1 : 1'b0; 
+					pel_b0 <= ( b0_max[7:0] >= (ycnt - (V_START + 16)) && b0_min[7:0] <= (ycnt - (V_START + 16)) ) ? 1'b1 : 1'b0; 
+					pel_b1 <= ( b1_max[7:0] >= (ycnt - (V_START + 48)) && b1_min[7:0] <= (ycnt - (V_START + 48)) ) ? 1'b1 : 1'b0; 
+				end
 			end else begin
 				pel_bg <= 0;
 				pel_gd <= 0;
@@ -471,7 +473,7 @@ module tiny_scope
 					( pel_a1 ) ? 24'hff0000 :
 					( pel_b0 ) ? 24'h00ff00 :
 					( pel_b1 ) ? 24'h0000ff :
-					( pel_gd ) ? 24'h808080 : 
+					( pel_gd ) ? GD_COLOR   : 
 					( pel_bg ) ? BG_COLOR   : 
 									 24'h000000 ;
 endmodule
