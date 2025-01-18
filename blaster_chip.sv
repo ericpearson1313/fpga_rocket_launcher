@@ -204,10 +204,10 @@ logic ad_strobe;
 ////////////////////////////////////////////
 // PWM Current limited pulse generator
 ////////////////////////////////////////////
-
-	logic pwm_pulse;
-logic [15:0] pulse_time;
-logic [3:0] pulse_count;
+logic [11:0] 	iest;
+logic 			pwm_pulse;
+logic [15:0] 	pulse_time;
+logic [3:0] 	pulse_count;
 
 
 always @(posedge clk) begin
@@ -221,8 +221,10 @@ always @(posedge clk) begin
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count	
-			end else if(( pulse_time >= (48  * 16))    || // usec @ 48 Mhz 
-			   ( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2 + 20)))) begin //  >2 amp * 205 DN/A measured + 10%
+			end else if(( pulse_time >= (48  * 16))    								// usec @ 48 Mhz 
+						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2 + 20)))	// measure iout > 2.2 amps
+						||	( pulse_count != 3 && ((iest ^ 12'h7ff) > ( 205 * 2 + 20 )))	// for any other than the first pulse. est iout > 2.2 amps
+						) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
 				pulse_time <= 0;
 				pulse_count <= pulse_count - 1;
@@ -232,7 +234,7 @@ always @(posedge clk) begin
 				pulse_time <= pulse_time + 1; // inc count
 			end
 		end else if( !pwm_pulse && pulse_count > 0 ) begin // wait for ad_a0 to fall
-			if( pulse_time < 48 ) begin // min pulse width
+			if( pulse_time < 48 * 3 ) begin // min pulse width
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count					
@@ -318,7 +320,6 @@ adc_module_4ch  _adc (
 
 // Modelling Coil Current
 // estimate is before sample and 16x finer timing
-logic [11:0] iest;
 model_coil _model (
 	// Input clock
 	.clk( clk ),
