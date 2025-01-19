@@ -207,7 +207,7 @@ logic ad_strobe;
 logic [11:0] 	iest;
 logic 			pwm_pulse;
 logic [15:0] 	pulse_time;
-logic [3:0] 	pulse_count;
+logic [9:0] 	pulse_count;
 logic				ramp_flag;
 
 
@@ -219,7 +219,7 @@ always @(posedge clk) begin
 		ramp_flag <= 0;
 	end else begin
 		if( pwm_pulse ) begin // turn off pulse if time or current level exceeded
-			if( pulse_time < 48 ) begin // min pulse width
+			if( pulse_time < 32 ) begin // min pulse width
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count	
@@ -240,7 +240,7 @@ always @(posedge clk) begin
 				pulse_time <= pulse_time + 1; // inc count
 			end
 		end else if( !pwm_pulse && pulse_count > 0 ) begin // wait for ad_a0 to fall
-			if( pulse_time < 48 * 3 ) begin // min pulse width
+			if( pulse_time < (48 * 3) ) begin // min pulse width
 				ramp_flag <= ramp_flag;
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
@@ -260,9 +260,9 @@ always @(posedge clk) begin
 			ramp_flag <= 1; // short back to back pulses
 			pwm_pulse <= 1; // Set pwm output
 			pulse_time <= 1; // start max width counter
-			pulse_count <= 10; // two pulses
+			pulse_count <= 30; // two pulses
 		end else begin // await trigger
-			ramp_flag <= 0;
+			ramp_flag <= 1;
 			pwm_pulse <= 0;
 			pulse_time <= 0;		
 			pulse_count <= 0;
