@@ -208,6 +208,7 @@ logic [11:0] 	iest;
 logic 			pwm_pulse;
 logic [15:0] 	pulse_time;
 logic [3:0] 	pulse_count;
+logic				ramp_flag;
 
 
 always @(posedge clk) begin
@@ -215,43 +216,53 @@ always @(posedge clk) begin
 		pwm_pulse <= 0;
 		pulse_time <= 0;
 		pulse_count <= 0;
+		ramp_flag <= 0;
 	end else begin
 		if( pwm_pulse ) begin // turn off pulse if time or current level exceeded
 			if( pulse_time < 48 ) begin // min pulse width
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count	
-			end else if(( pulse_time >= (48  * 16))    								// usec @ 48 Mhz 
-						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2 + 20)))	// measure iout > 2.2 amps
-						||	( pulse_count != 3 && ((iest ^ 12'h7ff) > ( 205 * 2 + 20 )))	// for any other than the first pulse. est iout > 2.2 amps
+				ramp_flag <= ramp_flag;
+			end else if(( ramp_flag )															// min pulses during current ramp
+			         || ( pulse_time >= (48  * 16))    									// usec @ 48 Mhz 
+						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2 + 20)))		// measure iout > 2.2 amps (panic only?)
+						||	(                ((iest ^ 12'h7ff) > (205 * 2 + 20 )))	// est iout > 2.2 amps
 						) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
 				pulse_time <= 0;
 				pulse_count <= pulse_count - 1;
+				ramp_flag <= ramp_flag;
 			end else begin
+				ramp_flag <= ramp_flag;
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count
 			end
 		end else if( !pwm_pulse && pulse_count > 0 ) begin // wait for ad_a0 to fall
 			if( pulse_time < 48 * 3 ) begin // min pulse width
+				ramp_flag <= ramp_flag;
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count					
 			end else if ( ( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (205 * 2 - 20))) ) begin //  <2 amp * 205 DN/A measured - 10%
+				ramp_flag <= ramp_flag;
 				pwm_pulse <= 1;
 				pulse_time <= 1;
 				pulse_count <= pulse_count;
-			end else begin
+			end else begin // current above min tolerance
+				ramp_flag <= 0;  // cleared now meeting min tolerage
 				pwm_pulse <= 0;
 				pulse_time <= pulse_time + 1; 
 				pulse_count <= pulse_count;
 			end			
 		end else if( (fire_button || key == 5'h10) && count[15:0] == 0 ) begin // (re)Triggered by fire key at 64k/48Mhz=1.3ms period
+			ramp_flag <= 1; // short back to back pulses
 			pwm_pulse <= 1; // Set pwm output
 			pulse_time <= 1; // start max width counter
-			pulse_count <= 3; // two pulses
+			pulse_count <= 10; // two pulses
 		end else begin // await trigger
+			ramp_flag <= 0;
 			pwm_pulse <= 0;
 			pulse_time <= 0;		
 			pulse_count <= 0;
