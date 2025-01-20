@@ -62,7 +62,7 @@ end
 
 // Scale current estimation to ADC current units
 // 42089 = ( 0.2005V/DN * 205DN/A + 0.5 ) << 10
-// can be unsigned mult
+// can be unsigned mult 34b = 18b * 16b
 logic [33:0] current;
 always @(posedge clk) begin : _i_mult
 	current[33:0] <= i_acc[36:19] * 16'd42089;
@@ -73,10 +73,10 @@ logic [11:0] icor;
 logic pwm_del;
 always @(posedge clk) begin
 	pwm_del <= pwm;
-	icor <= ( pwm & !pwm_del ) ? ( iout[11:0] ^ 12'h7ff ) - current[32-:12] : icor; // latch error at start of pwm cycle
+	icor <= ( pwm & !pwm_del ) ? ( iout[11:0] ^ 12'h7ff ) - current[33-:12] : icor; // latch error at start of pwm cycle
 end
 
 // select the window (will always be positive)
-assign iest_coil[11:0] = ( current[32:21] + icor ) ^ 12'h7FF;
+assign iest_coil[11:0] = ( current[33-:12] + icor ) ^ 12'h7FF;
 
 endmodule // model_coil
