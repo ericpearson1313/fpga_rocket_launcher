@@ -1,3 +1,4 @@
+
 `timescale 1ns / 1ps
 module blaster_chip
 
@@ -224,10 +225,10 @@ always @(posedge clk) begin
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count	
 				ramp_flag <= ramp_flag;
-			end else if(( ramp_flag )															// min pulses during current ramp
+			end else if( 0//( ramp_flag )															// min pulses during current ramp
 			         || ( pulse_time >= (48  * 16))    									// usec @ 48 Mhz 
 						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2 + 20)))		// measure iout > 2.2 amps (panic only?)
-						||	(                ((iest ^ 12'h7ff) > (205 * 2 + 20 )))	// est iout > 2.2 amps
+						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (205 * 2 + 20 )))	// est iout > 2.2 amps
 						) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
 				pulse_time <= 0;
@@ -240,7 +241,7 @@ always @(posedge clk) begin
 				pulse_time <= pulse_time + 1; // inc count
 			end
 		end else if( !pwm_pulse && pulse_count > 0 ) begin // wait for ad_a0 to fall
-			if( pulse_time < (48 * 3) ) begin // min pulse width
+			if( pulse_time < (48 * 4) ) begin // min pulse width
 				ramp_flag <= ramp_flag;
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
@@ -748,7 +749,10 @@ assign pwm = pwm_pulse | res_pwm;
 	// 4ch Oscilloscope mem & vga display
 	logic [7:0] tiny_red, tiny_green, tiny_blue;
 	logic tiny;
-	tiny_scope _tiny_scope(
+	tiny_scope #( 
+		.V_HEIGHT( 96 ),
+		.V_START( 479 - 96 - 16 )
+	 ) _tiny_scope(
 		.clk(   hdmi_clk ),
 		.reset( reset ),
 		// video sync 
@@ -773,13 +777,11 @@ assign pwm = pwm_pulse | res_pwm;
 	// 12 bit resistance number is 6.5. so 
 	// plotting as 8.4 with { 2`b00, in[10:1] } will give Ohms. A decimal point woudl be nice
 	logic [6:0] res_str;
-	hex_overlay    #(.LEN(2)) _res0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('h1A),.y('h13), .out( res_str[0] ), .in( { 2'b00, igniter_res[10:5] ^ 6'h3F } ) );
-	string_overlay #(.LEN(1)) _res1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h1C),.y('h13), .out( res_str[1] ), .str(".") );
-	hex_overlay    #(.LEN(1)) _res2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('h1D),.y('h13), .out( res_str[2] ), .in( { igniter_res[4:1] ^ 4'hF } ) );
-	string_overlay #(.LEN(3)) _res3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h1B),.y('h11), .out( res_str[3] ), .str("hex") );
-	string_overlay #(.LEN(3)) _res4 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h1B),.y('h12), .out( res_str[4] ), .str("---") );
-	string_overlay #(.LEN(3)) _res5 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h16),.y('h13), .out( res_str[5] ), .str("Ohm") );
-	string_overlay #(.LEN(11))_res6 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h20),.y('h13), .out( res_str[6] ), .str("(3E.E=Open)") );
+	hex_overlay    #(.LEN(2)) _res0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('h2A),.y('d57), .out( res_str[0] ), .in( { 2'b00, igniter_res[10:5] ^ 6'h3F } ) );
+	string_overlay #(.LEN(1)) _res1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h2C),.y('d57), .out( res_str[1] ), .str(".") );
+	hex_overlay    #(.LEN(1)) _res2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('h2D),.y('d57), .out( res_str[2] ), .in( { igniter_res[4:1] ^ 4'hF } ) );
+	string_overlay #(.LEN(6)) _res5 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h24),.y('d57), .out( res_str[5] ), .str("Ohm 0x") );
+	string_overlay #(.LEN(11))_res6 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h30),.y('d57), .out( res_str[6] ), .str("(3E.E=Open)") );
 	
 	
 	// 12bit hex overlays(4)
@@ -810,7 +812,7 @@ assign pwm = pwm_pulse | res_pwm;
 	                 (|bin_str ) |
 						  (|hex_str ) |
 						  ( key_strg) |
-						  (|res_str ) |
+						 // (|res_str ) |
 						  (|id_str  ) ;
 	
 	// video encoder
@@ -823,9 +825,9 @@ assign pwm = pwm_pulse | res_pwm;
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( ( tiny ) ? tiny_red   : ( test_red   | {8{overlay}} | scope_red   ) ),
-		.green( ( tiny ) ? tiny_green : ( test_green | {8{overlay}} | scope_green ) ),
-		.blue	( ( tiny ) ? tiny_blue  : ( test_blue  | {8{overlay}} | scope_blue  ) ),
+		.red	( ( test_red   | {8{overlay}} | scope_red   ) ),
+		.green( ( test_green | {8{overlay}} | scope_green ) ),
+		.blue	( ( test_blue  | {8{overlay}} | scope_blue  ) ),
 		.hdmi_data( hdmi_data )
 	);	
 	
@@ -887,9 +889,9 @@ assign pwm = pwm_pulse | res_pwm;
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( wave_scope_red   ),
-		.green( wave_scope_green ),
-		.blue	( wave_scope_blue  ),
+		.red	( ( tiny ) ? tiny_red   : (wave_scope_red   | {8{|res_str}})),
+		.green( ( tiny ) ? tiny_green : (wave_scope_green | {8{|res_str}})),
+		.blue	( ( tiny ) ? tiny_blue  : (wave_scope_blue  | {8{|res_str}})),
 		.hdmi_data( hdmi2_data )
 	);
 
