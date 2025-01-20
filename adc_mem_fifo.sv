@@ -104,14 +104,13 @@ module generic_sram2p
   input   [ADDR_WIDTH-1:0]	raddr;         
   input   [DATA_WIDTH-1:0] din;           
 
-  reg [ADDR_WIDTH-1:0] addr_reg;
+  reg [DATA_WIDTH-1:0] data_reg;
   reg [DATA_WIDTH-1:0] mem [DATA_WORDS-1:0];
   always @(posedge clk)
 	begin
-                if(ren)
-		addr_reg <= raddr;
 		if(wen)
 			mem[waddr]<= din;
+		data_reg <= mem[raddr];
 	end
-	assign dout = mem[addr_reg];
+	assign dout = data_reg;
 endmodule
