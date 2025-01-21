@@ -262,6 +262,7 @@ module tiny_scope
 	input [11:0] ad_b1,
 	input ad_strobe,
 	input ad_clk,
+	input halt,
 	output [7:0] red,
 	output [7:0] green,
 	output [7:0] blue
@@ -375,8 +376,13 @@ module tiny_scope
 			vsync_d1 <= 0;
 		end else begin
 			vsync_d1 <= vsync;
-			we <= ( !vsync && vsync_d1 && vsync_cnt == 0 ) ? 1'b1 : 1'b0; // vsync falling
-			wr_addr <= ( !vsync && vsync_d1 && vsync_cnt == 0 ) ? wr_addr + 1 : wr_addr ; // wrap
+			if( halt ) begin
+				we <= 0;
+				wr_addr <= wr_addr;
+			end else begin
+				we <= ( !vsync && vsync_d1 && vsync_cnt == 0 ) ? 1'b1 : 1'b0; // vsync falling
+				wr_addr <= ( !vsync && vsync_d1 && vsync_cnt == 0 ) ? wr_addr + 1 : wr_addr ; // wrap
+			end
 		end
 	end	
 

@@ -159,7 +159,7 @@ assign anain[8:5] = count[24:21];
 assign anain[8]=count[24];
 
 //assign speaker = count[14]  & (!iset[0] || key == 5'h11);
-assign dump = !iset[1]  | key == 5'h1B;
+
 assign cont_led = !(!iset[1] | cont); 
 assign arm_led = fire_button | lt3420_done ;
 assign lt3420_charge = !iset[2] | key == 5'h1A;
@@ -197,14 +197,53 @@ end
 assign speaker = spk_toggle & spk_en ; 
 assign speaker_n = !speaker;
 
+//////////////////////////////////////////////
+// fire button 10ms debounce 
+// signal to get 1.3 sec of pwm current control
+// signal One shot capture mode on 1st rising pwm edge 1.3 sec
+// signal to set discharge at 1.3sec
+// signal to stop tiny scroll window at 4.3 sec
+//////////////////////////////////////////////
+
+logic [27:0] fire_count; 
+logic fire_flag;
+logic fire_done ; // self discharge 
+logic scroll_halt;
+logic cap_halt; // full rate capture
 
 
-logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
-logic ad_strobe;
+parameter DEBOUNCE_10MS = 10 * 1000 * 48; // from 48 Mhz clk
+parameter PWM_START     = DEBOUNCE_10MS; // Enable PWM current control 
+parameter PWM_END			= (48+16) * 1000 * 1000; // Total time 1.333 sec
+parameter SCROLL_HALT	= (48*4+16) * 1000 * 1000; // Total time 1.333 sec
+parameter CAP_HALT		= PWM_START + 1000 * 16; // stop capture before re-trigger or wrap
+
+always @(posedge clk) begin
+	if( reset ) begin // for now, later should allow arm release
+		fire_count <= 0;
+		fire_flag <= 0;
+		fire_done <= 0;
+		scroll_halt <= 0;
+		cap_halt <= 0;
+	end else begin
+		fire_count <= ( !fire_button && fire_count < DEBOUNCE_10MS ) ? 0 : fire_count + 1; // committed when past debounce
+		fire_flag <= ( fire_count == PWM_START ) ? 1'b1 : ( fire_count == PWM_END ) ? 1'b0 : fire_flag;
+		scroll_halt <= ( fire_count == SCROLL_HALT ) ? 1'b1 : scroll_halt;
+		cap_halt <= ( fire_count == CAP_HALT ) ? 1'b1 : cap_halt;
+		fire_done <= ( fire_count == PWM_END ) ? 1'b1 : fire_done;
+	end
+end
+
+assign dump = fire_done | !iset[1]  | key == 5'h1B; // always dump after firing
+
+
+
 
 ////////////////////////////////////////////
 // PWM Current limited pulse generator
 ////////////////////////////////////////////
+logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
+logic ad_strobe;
 logic [11:0] 	iest;
 logic 			pwm_pulse;
 logic [15:0] 	pulse_time;
@@ -240,7 +279,7 @@ always @(posedge clk) begin
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count
 			end
-		end else if( !pwm_pulse && pulse_count > 0 ) begin // wait for ad_a0 to fall
+		end else if( !pwm_pulse && ( fire_flag || pulse_count > 0 ) ) begin // wait for ad_a0 to fall
 			if( pulse_time < (48 * 4) ) begin // min pulse width
 				ramp_flag <= ramp_flag;
 				pwm_pulse <= pwm_pulse;
@@ -257,7 +296,7 @@ always @(posedge clk) begin
 				pulse_time <= pulse_time + 1; 
 				pulse_count <= pulse_count;
 			end			
-		end else if( (fire_button || key == 5'h10) && count[15:0] == 0 ) begin // (re)Triggered by fire key at 64k/48Mhz=1.3ms period
+		end else if( ( key == 5'h10) && count[15:0] == 0 ) begin // (re)Triggered by fire key at 64k/48Mhz=1.3ms period
 			ramp_flag <= 1; // short back to back pulses
 			pwm_pulse <= 1; // Set pwm output
 			pulse_time <= 1; // start max width counter
@@ -435,7 +474,7 @@ assign pwm = pwm_pulse | res_pwm;
 	always @(posedge clk) begin
 		pwm_del <= pwm;
 		retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
-		base_addr <= ( !pwm_del && pwm && retrigger == 0 ) ? (awaddr - (16 * 64)) : base_addr; // 64 samples before pwm rising edge
+		base_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? (awaddr - (16 * 64)) : base_addr; // 64 samples before pwm rising edge
 	end 
 	
 	psram_ctrl _psram_ctl(
@@ -571,8 +610,13 @@ assign pwm = pwm_pulse | res_pwm;
 			awaddr <= 25'b0;
 			awvalid <= 0;
 		end else begin
-			awvalid <= !almost_empty; // race if mem ctrl reads ahead, but not here
-			awaddr <= ( awready & awvalid ) ? awaddr + 25'd16 : awaddr;
+			if( cap_halt ) begin
+				awvalid <= 0;
+				awaddr <= awaddr;
+			end else begin
+				awvalid <= !almost_empty; // race if mem ctrl reads ahead, but not here
+				awaddr <= ( awready & awvalid ) ? awaddr + 25'd16 : awaddr;
+			end
 		end
 	end
 
@@ -750,8 +794,13 @@ assign pwm = pwm_pulse | res_pwm;
 	logic [7:0] tiny_red, tiny_green, tiny_blue;
 	logic tiny;
 	tiny_scope #( 
-		.V_HEIGHT( 96 ),
-		.V_START( 479 - 96 - 16 )
+		.V_HEIGHT( 192 ), // 96 or 192 options
+		.V_START ( 80  ),
+		.H_START	( 480 ),
+		.H_END 	( 784 ),
+		.N       ( 3   ), // 60 Hz frames per col pel
+		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
+		.BG_COLOR( 24'h00214c /* smpte_oxford_blue */ ) //24'h1d1d1d /* smpte_eerie_black */ )	
 	 ) _tiny_scope(
 		.clk(   hdmi_clk ),
 		.reset( reset ),
@@ -759,6 +808,8 @@ assign pwm = pwm_pulse | res_pwm;
 		.blank( blank ), 
 		.hsync( hsync ),
 		.vsync( vsync ),
+		// scroll halt input
+		.halt ( scroll_halt ),
 		// capture inputs
 		.ad_a0( ad_a0 ),
 		.ad_a1( ad_a1 ),
