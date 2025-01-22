@@ -146,7 +146,7 @@ assign tx232 = rx232;
 logic arm_led;
 logic cont_led;
 assign arm_led_n = !arm_led;
-assign cont_led_n = !cont_led;
+assign cont_led_n = cont_led; // not complemented as we added a NPN 12v led driver
 
 // AIN
 assign anain[3:1] = iset[2:0]; // active low switch inputs
@@ -158,22 +158,47 @@ end
 assign anain[8:5] = count[24:21];
 assign anain[8]=count[24];
 
-//assign speaker = count[14]  & (!iset[0] || key == 5'h11);
 
-assign cont_led = !(!iset[1] | cont); 
-assign arm_led = fire_button | lt3420_done ;
-assign lt3420_charge = !iset[2] | key == 5'h1A;
+
+
+assign arm_led = lt3420_done ;
+
+////////////////////////////////
+// Power On auto charge and continuity until fire button
+////////////////////////////////
+
+logic charge;  // charge cap flag
+logic continuity; // test cont flag
+always @( posedge clk ) begin
+	if( reset ) begin
+		charge <= !iset[2]; //Latch on reset
+		continuity <= 0;
+	end else begin
+		if( lt3420_done && charge ) begin // switch to continuity
+			charge <= 0;
+			continuity <= 1;
+		end else if( continuity && fire_button ) begin
+			charge <= 0;
+			continuity <= 0;
+		end else begin
+			charge <= charge;
+			continuity <= continuity;	
+		end
+	end
+end
+assign lt3420_charge = charge | key == 5'h1A;
 
 				 
 
 
-////////////////////////////////
+
 //////////////////////////////
 
 
 
 // Speaker is differential out gives 6Vp-p
 logic [15:0] tone_cnt;
+logic cont_tone;
 logic spk_en, spk_toggle;
 
 always @(posedge clk) begin
@@ -186,7 +211,7 @@ always @(posedge clk) begin
 								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
 								   ( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
 								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-								   ( key == 5'h18 ) ? { 1'b1, 16'h1665 } : 0;
+								   ( key == 5'h18 || ( cont_tone && !iset[0] ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
 	end else begin
 		tone_cnt <= tone_cnt - 1;
 		spk_en <= spk_en;
@@ -412,10 +437,14 @@ igniter_resistance _res_measurement (
 	.r_in( res_calc ),
 	// PWM output and enable input
 	.pwm( res_pwm ),
-	.enable( key == 5'h19 ),
+	.enable( key == 5'h19 || continuity ),
 	// Avg Resistance output
 	.valid_out( ),
-	.r_out( igniter_res )
+	.r_out( igniter_res ),
+	// Tone and LED output
+	.tone( cont_tone ),
+	.led( cont_led )
+	
 );
 
 assign pwm = pwm_pulse | res_pwm;
