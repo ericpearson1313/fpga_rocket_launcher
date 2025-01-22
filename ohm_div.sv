@@ -20,21 +20,25 @@ module igniter_resistance
 	// input Enable
 	input enable,
 	
+	// Outputs
+	output tone,
+	output led,
+	
 	// Resistance Output
 	output logic valid_out,
 	output logic [11:0] r_out // adc format, +ve only
 );
 	
-	// Triggering with 1M holdoff
-	logic [19:0] holdoff;
+	// Triggering with 0.6 Sec holdoff
+	logic [24:0] holdoff;
 	always @(posedge clk) begin
 		if( reset ) begin
 			holdoff <= 0;
 		end else begin
-			if( enable && ( holdoff == 0 ) ) begin // start
+			if( !enable ) begin
+				holdoff <= 0;
+			end else if( enable && ( holdoff == 0 ) ) begin // start
 				holdoff <= 1;
-			end else if( enable && holdoff == 20'h80000 ) begin // wait until enable released)
-				holdoff <= 20'h80000;			
 			end else if( holdoff != 0 ) begin // holdoff delay until wrap
 				holdoff <= holdoff + 1;
 			end else begin
@@ -74,10 +78,10 @@ module igniter_resistance
 				acc <= 0;
 				valid_out <= valid_out;
 				r_out <= r_out;
-			end else if( holdoff == 4096 && cnt == 0 ) begin // no resistance readings, so open circuit OR zero cap voltage
+			end else if( holdoff == 4095 && cnt == 0 ) begin // no resistance readings, so open circuit OR zero cap voltage
 				cnt <= cnt;
 				acc <= acc;
-				valid_out <= valid_out;
+				valid_out <= 1;
 				r_out <= 12'h7DC ^ 12'h7ff;	// 3E.E ohms is code for "no valid reading / open circuit"		
 			end else begin
 				cnt <= cnt;
@@ -87,6 +91,28 @@ module igniter_resistance
 			end
 		end
 	end
+	
+	// Set LED if between 1 and 16 ohms
+	always @(posedge clk) begin
+		if( reset ) begin
+			led <= 0;
+		end else begin // if 1 to 16 ohms show continuity (r_out in 6.5 format)
+			led <= ( holdoff == 4096 ) ? ((( r_out ^ 12'h7ff ) >= 12'h020 &&  ( r_out ^ 12'h7ff ) < 12'h200 ) ? 1'b1 : 1'b0 ) : led;
+		end
+	end
+	
+	// Tones 
+	// < 1 ohm - 4 beeps
+	// 1 to 8 ohms - 1 beep
+	// 0x3ee - 3 beeps
+	// > 8 ohms - 2 beeps 
+	
+	assign tone = ( holdoff[24-:4] == 1 ) ? 1'b1 : // always a single beep
+					  ( holdoff[24-:4] == 3 && !(( r_out ^ 12'h7ff ) > 12'h020 &&  ( r_out ^ 12'h7ff ) < 12'h100 )) ? 1'b1 : // two beeps if not in 1 to 8 ohm range
+					  ( holdoff[24-:4] == 5 && ( ( r_out ^ 12'h7ff ) == 12'h7DC || ( r_out ^ 12'h7ff ) < 12'h020 )) ? 1'b1 : // three beeps if open or shorted
+					  ( holdoff[24-:4] == 7 && ( ( r_out ^ 12'h7ff ) < 12'h020 )) ? 1'b1 :  1'b0; // four beeps if shorted
+				 
+		
 endmodule
 
 
