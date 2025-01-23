@@ -23,6 +23,7 @@ module igniter_resistance
 	// Outputs
 	output tone,
 	output led,
+	output energy, // high when power accumulation should occur
 	
 	// Resistance Output
 	output logic valid_out,
@@ -111,7 +112,10 @@ module igniter_resistance
 					  ( holdoff[24-:4] == 3 && !(( r_out ^ 12'h7ff ) > 12'h020 &&  ( r_out ^ 12'h7ff ) < 12'h100 )) ? 1'b1 : // two beeps if not in 1 to 8 ohm range
 					  ( holdoff[24-:4] == 5 && ( ( r_out ^ 12'h7ff ) == 12'h7DC || ( r_out ^ 12'h7ff ) < 12'h020 )) ? 1'b1 : // three beeps if open or shorted
 					  ( holdoff[24-:4] == 7 && ( ( r_out ^ 12'h7ff ) < 12'h020 )) ? 1'b1 :  1'b0; // four beeps if shorted
-				 
+		
+	// signal energy acculation
+	
+	assign energy = ( holdoff != 0 && holdoff < 4096 ) ? 1'b1 : 1'b0;
 		
 endmodule
 
