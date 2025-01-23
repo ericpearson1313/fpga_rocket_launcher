@@ -145,8 +145,8 @@ assign tx232 = rx232;
 // LEDs active low
 logic arm_led;
 logic cont_led;
-assign arm_led_n = !arm_led;
-assign cont_led_n = cont_led; // not complemented as we added a NPN 12v led driver
+assign arm_led_n = arm_led;	// not complemented bc external NPN
+assign cont_led_n = cont_led; //  we added a NPN  to drive 12v led
 
 // AIN
 assign anain[3:1] = iset[2:0]; // active low switch inputs
@@ -186,6 +186,7 @@ always @( posedge clk ) begin
 		end
 	end
 end
+
 assign lt3420_charge = charge | key == 5'h1A;
 
 				 
@@ -198,7 +199,7 @@ assign lt3420_charge = charge | key == 5'h1A;
 
 // Speaker is differential out gives 6Vp-p
 logic [15:0] tone_cnt;
-logic cont_tone;
+logic cont_tone, first_tone;
 logic spk_en, spk_toggle;
 
 always @(posedge clk) begin
@@ -211,7 +212,7 @@ always @(posedge clk) begin
 								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
 								   ( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
 								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-								   ( key == 5'h18 || ( cont_tone && !iset[0] ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
+								   ( key == 5'h18 || ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
 	end else begin
 		tone_cnt <= tone_cnt - 1;
 		spk_en <= spk_en;
@@ -444,6 +445,7 @@ igniter_resistance _res_measurement (
 	.r_out( igniter_res ),
 	// Tone and LED output
 	.tone( cont_tone ),
+	.first_tone( first_tone ),
 	.led( cont_led ),
 	.energy( res_flag )
 );
