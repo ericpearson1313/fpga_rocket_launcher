@@ -427,6 +427,7 @@ ohm_div _resistance (
 );
 
 logic res_pwm;
+logic res_flag;
 logic [11:0] igniter_res;
 igniter_resistance _res_measurement (
 	// Input clock
@@ -443,8 +444,8 @@ igniter_resistance _res_measurement (
 	.r_out( igniter_res ),
 	// Tone and LED output
 	.tone( cont_tone ),
-	.led( cont_led )
-	
+	.led( cont_led ),
+	.energy( res_flag )
 );
 
 assign pwm = pwm_pulse | res_pwm;
@@ -468,7 +469,42 @@ assign pwm = pwm_pulse | res_pwm;
 		.key( key )
 	);
 	
+// Energy Accumulators
+// Accululated during fire_flag | res_flag.
+logic [43:0] eout, ecap; // accumulated cap energy and output energy as 44 bits
+logic acc_flag, acc_flag_d, strobe_d;
+logic [21:0] pout, pcap; // instantaneous power
+logic [10:0] vout, vcap, iout, icap;
+
+// clip inputs to +ve
+assign vout = ( ad_b1[11] || ad_b1[10:4] == 7'h7F ) ? 11'b0 : ( ad_b1[10:0] ^ 11'h7FF );
+assign vcap = ( ad_a1[11] || ad_a1[10:4] == 7'h7F ) ? 11'b0 : ( ad_a1[10:0] ^ 11'h7ff );
+assign iout = ( ad_a0[11] || ad_a0[10:4] == 7'h7F ) ? 11'b0 : ( ad_a0[10:0] ^ 11'h7ff );
+assign icap = ( ad_b0[11] || ad_b0[10:4] == 7'h7F ) ? 11'b0 : ( ad_b0[10:0] ^ 11'h7ff );
+
+// accumulate during fire pulse or individual continuity test pulses
+assign acc_flag = fire_flag | res_flag;
+
+// Acculuate both Cap and Output power products.
+always @(posedge clk) begin
+	strobe_d <= ad_strobe;
+	// P = I * V
+   pout[21:0] <= vout[10:0] * iout[10:0];
+   pcap[21:0] <= vcap[10:0] * icap[10:0];
+	if( strobe_d ) begin
+		acc_flag_d <= acc_flag;
+		// raw power loaded at flag rise, acculuated during flag, and held afterwards
+		eout[43:0] <= ( acc_flag && !acc_flag_d ) ? { 22'b0, pout[21:0] } : ( acc_flag ) ? ({ 22'b0, pout[21:0] } + eout[43:0]) : eout[43:0];
+		ecap[43:0] <= ( acc_flag && !acc_flag_d ) ? { 22'b0, pcap[21:0] } : ( acc_flag ) ? ({ 22'b0, pcap[21:0] } + ecap[43:0]) : ecap[43:0];
+	end else begin
+		acc_flag_d <= acc_flag_d;
+		eout[43:0] <= eout[43:0];
+		ecap[43:0] <= ecap[43:0];
+	end
+end
 	
+	
+ 
 
 // SPI 8 Memory interface
 
@@ -856,15 +892,29 @@ assign pwm = pwm_pulse | res_pwm;
 	assign tiny = |{ tiny_red, tiny_green, tiny_blue };
 	
 	
+	// Energy accumulator
+	logic [7:0] pwr_str;
+	string_overlay #(.LEN(8)) _pwr0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d100),.y('d1), .out( pwr_str[0] ), .str("Cap J 0x") );
+	hex_overlay    #(.LEN(2)) _pwr1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d108),.y('d1), .out( pwr_str[1] ), .in( ecap[39-:8] ) );
+	string_overlay #(.LEN(1)) _pwr2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d110),.y('d1), .out( pwr_str[2] ), .str(".") );
+	hex_overlay    #(.LEN(5)) _pwr3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d111),.y('d1), .out( pwr_str[3] ), .in( ecap[31-:20]) );
+
+	string_overlay #(.LEN(8)) _pwr4 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d100),.y('d3), .out( pwr_str[4] ), .str("Out J 0x") );
+	hex_overlay    #(.LEN(2)) _pwr5 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d108),.y('d3), .out( pwr_str[5] ), .in( eout[39-:8] ) );
+	string_overlay #(.LEN(1)) _pwr6 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d110),.y('d3), .out( pwr_str[6] ), .str(".") );
+	hex_overlay    #(.LEN(5)) _pwr7 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d111),.y('d3), .out( pwr_str[7] ), .in( eout[31-:20]) );
+	
+	
+	
 	// 12 bit resistance number is 6.5. so 
 	// plotting as 8.4 with { 2`b00, in[10:1] } will give Ohms. A decimal point woudl be nice
-	logic [6:0] res_str;
-	hex_overlay    #(.LEN(2)) _res0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('h2A),.y('d57), .out( res_str[0] ), .in( { 2'b00, igniter_res[10:5] ^ 6'h3F } ) );
-	string_overlay #(.LEN(1)) _res1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h2C),.y('d57), .out( res_str[1] ), .str(".") );
-	hex_overlay    #(.LEN(1)) _res2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('h2D),.y('d57), .out( res_str[2] ), .in( { igniter_res[4:1] ^ 4'hF } ) );
-	string_overlay #(.LEN(6)) _res5 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h24),.y('d57), .out( res_str[5] ), .str("Ohm 0x") );
-	string_overlay #(.LEN(11))_res6 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h30),.y('d57), .out( res_str[6] ), .str("(3E.E=Open)") );
-	
+	logic [4:0] res_str;
+	string_overlay #(.LEN(8)) _res0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d100),.y('d5), .out( res_str[0] ), .str("Res $ 0x") );
+	hex_overlay    #(.LEN(2)) _res1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d108),.y('d5), .out( res_str[1] ), .in( { 2'b00, igniter_res[10:5] ^ 6'h3F } ) );
+	string_overlay #(.LEN(1)) _res2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d110),.y('d5), .out( res_str[2] ), .str(".") );
+	hex_overlay    #(.LEN(1)) _res3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d111),.y('d5), .out( res_str[3] ), .in( { igniter_res[4:1] ^ 4'hF } ) );
+	string_overlay #(.LEN(11))_res4 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d117),.y('d5), .out( res_str[4] ), .str("(3E.E=Open)") );
+
 	
 	// Port Names
 	logic [3:0] in_str;
@@ -900,33 +950,34 @@ assign pwm = pwm_pulse | res_pwm;
 	assign overlay = (|diag_str) | 
 	                 (|bin_str ) |
 						  (|hex_str ) |
+						  (|pwr_str ) |
 						  (|in_str  ) |
 						  ( key_strg) |
 						  (|res_str ) |
 						  (|id_str  ) ;
 	
 	// video encoder
-	logic [7:0] hdmi_data;
-	video_encoder _encode
-	(
-		.clk(  hdmi_clk  ),
-		.clk5( hdmi_clk5 ),
-		.reset( reset ),
-		.blank( blank ),
-		.hsync( hsync ),
-		.vsync( vsync ),
-		.red	( ( test_red   | {8{overlay}} | scope_red   ) ),
-		.green( ( test_green | {8{overlay}} | scope_green ) ),
-		.blue	( ( test_blue  | {8{overlay}} | scope_blue  ) ),
-		.hdmi_data( hdmi_data )
-	);	
+	//logic [7:0] hdmi_data;
+	//video_encoder _encode
+	//(
+	//	.clk(  hdmi_clk  ),
+	//	.clk5( hdmi_clk5 ),
+	//	.reset( reset ),
+	//	.blank( blank ),
+	//	.hsync( hsync ),
+	//	.vsync( vsync ),
+	//	.red	( ( test_red   | {8{overlay}} | scope_red   ) ),
+	//	.green( ( test_green | {8{overlay}} | scope_green ) ),
+	//	.blue	( ( test_blue  | {8{overlay}} | scope_blue  ) ),
+	//	.hdmi_data( hdmi_data )
+	//);	
 	
-	hdmi_out _hdmi_out ( // LDVS DDR outputs
-		.outclock( hdmi_clk5 ),
-		.din( hdmi_data ),
-		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
-		.pad_out_b( )  // true differential, _b not req
-	);
+	//hdmi_out _hdmi_out ( // LDVS DDR outputs
+	//	.outclock( hdmi_clk5 ),
+	//	.din( hdmi_data ),
+	//	.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
+	//	.pad_out_b( )  // true differential, _b not req
+	//);
 	
 	
 
@@ -985,7 +1036,7 @@ assign pwm = pwm_pulse | res_pwm;
 		.hdmi_data( hdmi2_data )
 	);
 
-	// HDMI Output, DDR outputs
+	// HDMI 2 Output, DDR outputs
 	hdmi_out _hdmi2_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
 		.din( hdmi2_data ),
@@ -993,6 +1044,14 @@ assign pwm = pwm_pulse | res_pwm;
 		.pad_out_b( )  // true differential, _b not req
 	);
 	
+	// send a copy out HDMI 1
+	hdmi_out _hdmi_out ( // LDVS DDR outputs
+		.outclock( hdmi_clk5 ),
+		.din( hdmi2_data ),
+		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
+		.pad_out_b( )  // true differential, _b not req
+	);
+
 endmodule
 
 module key_scan( 
