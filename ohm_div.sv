@@ -62,27 +62,26 @@ module igniter_resistance
 			r_out <= 0;
 			valid_out <= 0;
 		end else begin 
-			// accumulate valid samples
-			if( holdoff > 256 && holdoff < 4096 && valid_in ) begin
+			if( holdoff == 0 ) begin // Idle, just hold values, zero acc
+				cnt <= 0;
+				acc <= 0;
+				valid_out <= valid_out;
+				r_out <= r_out;
+			end else	if( holdoff > 256 && holdoff < 4096 && valid_in ) begin 
+			   // accumulate valid samples
 				cnt <= ( cnt == 8'hff ) ? 8'hff : cnt + 1;
 				acc <= acc + { 7'h00, r_in[10:0] ^ 11'h7ff };
 				valid_out <= 1;
-				r_out <= ( cnt == (8'h01)) ? { 1'b0, acc[10-:11] ^ 11'h7ff }  :
-							( cnt == (8'h02)) ? { 1'b0, acc[11-:11] ^ 11'h7ff }  :
-							( cnt == (8'h04)) ? { 1'b0, acc[12-:11] ^ 11'h7ff }  :
+				r_out <= ( cnt == (8'h04)) ? { 1'b0, acc[12-:11] ^ 11'h7ff }  :
 							( cnt == (8'h08)) ? { 1'b0, acc[13-:11] ^ 11'h7ff }  :
 							( cnt == (8'h10)) ? { 1'b0, acc[14-:11] ^ 11'h7ff }  :
 							( cnt == (8'h20)) ? { 1'b0, acc[15-:11] ^ 11'h7ff }  :
 							( cnt == (8'h40)) ? { 1'b0, acc[16-:11] ^ 11'h7ff }  :
 							( cnt == (8'h80)) ? { 1'b0, acc[17-:11] ^ 11'h7ff }  : r_out;
-			end else if( holdoff == 0 ) begin // Idle
+
+			end else if( holdoff >= 4096 && cnt <= 3 ) begin // no resistance readings, so open circuit OR zero cap voltage
 				cnt <= 0;
 				acc <= 0;
-				valid_out <= valid_out;
-				r_out <= r_out;
-			end else if( holdoff == 4095 && cnt == 0 ) begin // no resistance readings, so open circuit OR zero cap voltage
-				cnt <= cnt;
-				acc <= acc;
 				valid_out <= 1;
 				r_out <= 12'h7DC ^ 12'h7ff;	// 3E.E ohms is code for "no valid reading / open circuit"		
 			end else begin
@@ -99,7 +98,7 @@ module igniter_resistance
 		if( reset ) begin
 			led <= 0;
 		end else begin // if 1 to 16 ohms show continuity (r_out in 6.5 format)
-			led <= ( holdoff == 4096 ) ? ((( r_out ^ 12'h7ff ) >= 12'h020 &&  ( r_out ^ 12'h7ff ) < 12'h200 ) ? 1'b1 : 1'b0 ) : led;
+			led <= ( holdoff == 4097 ) ? ((( r_out ^ 12'h7ff ) >= 12'h020 &&  ( r_out ^ 12'h7ff ) < 12'h200 ) ? 1'b1 : 1'b0 ) : led;
 		end
 	end
 	
