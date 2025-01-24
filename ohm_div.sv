@@ -98,7 +98,7 @@ module igniter_resistance
 		if( reset ) begin
 			led <= 0;
 		end else begin // if 1 to 16 ohms show continuity (r_out in 6.5 format)
-			led <= ( holdoff == 4097 ) ? ((( r_out ^ 12'h7ff ) >= 12'h020 &&  ( r_out ^ 12'h7ff ) < 12'h200 ) ? 1'b1 : 1'b0 ) : led;
+			led <= (enable == 0 ) ? 1'b0 : ( holdoff == 4097 ) ? ((( r_out ^ 12'h7ff ) >= 12'h020 &&  ( r_out ^ 12'h7ff ) < 12'h200 ) ? 1'b1 : 1'b0 ) : led;
 		end
 	end
 	
