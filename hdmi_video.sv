@@ -131,6 +131,12 @@ module video_encoder
 	logic [5:0] tdelay;
 	logic [9:0] shift_d2, shift_d1, shift_d0, shift_ck;
 	always @(posedge clk5) begin
+		if( reset ) begin
+			shift_d0[9:0] <= 0;
+			shift_d1[9:0] <= 0;
+			shift_d2[9:0] <= 0;
+			shift_ck[9:0] <= 0;
+		end else begin
 			tdelay[5:0] <= { tdelay[4:0], toggle };
 			if( tdelay[3] ^ tdelay[4] ) begin // load
 				shift_d0[9:0] <= enc_blue;
@@ -143,6 +149,7 @@ module video_encoder
 				shift_d0[9:0] <= { 2'b00, shift_d0[9:2] };
 				shift_ck[9:0] <= { 2'b00, shift_ck[9:2] };
 			end
+		end
 	end
 	assign hdmi_data = { shift_d2[1], shift_d1[1], shift_d0[1], shift_ck[1], 
 	                     shift_d2[0], shift_d1[0], shift_d0[0], shift_ck[0] };	

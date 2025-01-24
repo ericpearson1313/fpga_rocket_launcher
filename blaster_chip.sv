@@ -871,7 +871,7 @@ end
 		.V_START ( 80  ),
 		.H_START	( 480 ),
 		.H_END 	( 784 ),
-		.N       ( 3   ), // 60 Hz frames per col pel
+		.N       ( 2   ), // 60 Hz frames per col pel
 		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
 		.BG_COLOR( 24'h00214c /* smpte_oxford_blue */ ) //24'h1d1d1d /* smpte_eerie_black */ )	
 	 ) _tiny_scope(
@@ -1032,7 +1032,7 @@ end
 	(
 		.clk  ( hdmi_clk  ),
 		.clk5 ( hdmi_clk5 ),
-		.reset( reset ),
+		.reset( reset | charge ),  // battery limit during charging
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
