@@ -158,11 +158,6 @@ end
 assign anain[8:5] = count[24:21];
 assign anain[8]=count[24];
 
-
-
-
-assign arm_led = lt3420_done ;
-
 ////////////////////////////////
 // Power On auto charge and continuity until fire button
 ////////////////////////////////
@@ -395,6 +390,8 @@ adc_module_4ch  _adc (
 	.ad_strobe( ad_strobe )
 );
 
+
+
 // Modelling Coil Current
 // estimate is before sample and 16x finer timing
 model_coil _model (
@@ -505,8 +502,15 @@ always @(posedge clk) begin
 	end
 end
 	
-	
- 
+// Arm is based on vcap with 300v on thresh and 50v off thresh
+always @( posedge clk ) begin
+	if( reset ) begin
+		arm_led <= 0;
+	end else begin
+		arm_led <= ( strobe_d && vcap > (( 300 * 10000 ) / 2005 ) ) ? 1'b1 :
+		           ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : arm_led;
+	end
+end
 
 // SPI 8 Memory interface
 
