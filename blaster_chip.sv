@@ -211,7 +211,8 @@ always @( posedge clk ) begin
 		if( lt3420_done && charge ) begin // switch to continuity
 			charge <= 0;
 			continuity <= 1;
-		end else if( continuity && fire_flag ) begin
+		end else if( continuity && fire_flag 
+		) begin
 			charge <= 0;
 			continuity <= 0;
 		end else begin
@@ -499,14 +500,17 @@ always @(posedge clk) begin
 end
 	
 // Arm is based on vcap with 300v on thresh and 50v off thresh
+logic cap_charged;
 always @( posedge clk ) begin
 	if( reset ) begin
-		arm_led <= 0;
+		cap_charged <= 0;
 	end else begin
-		arm_led <= ( strobe_d && vcap > (( 300 * 10000 ) / 2005 ) ) ? 1'b1 :
-		           ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : arm_led;
+		cap_charged <= ( strobe_d && vcap > (( 300 * 10000 ) / 2005 ) ) ? 1'b1 :
+		               ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
 	end
 end
+
+assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 
 // SPI 8 Memory interface
 
