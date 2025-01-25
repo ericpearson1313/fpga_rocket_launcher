@@ -158,66 +158,6 @@ end
 assign anain[8:5] = count[24:21];
 assign anain[8]=count[24];
 
-////////////////////////////////
-// Power On auto charge and continuity until fire button
-////////////////////////////////
-
-logic charge;  // charge cap flag
-logic continuity; // test cont flag
-always @( posedge clk ) begin
-	if( reset ) begin
-		charge <= !iset[2]; //Latch on reset
-		continuity <= 0;
-	end else begin
-		if( lt3420_done && charge ) begin // switch to continuity
-			charge <= 0;
-			continuity <= 1;
-		end else if( continuity && fire_button ) begin
-			charge <= 0;
-			continuity <= 0;
-		end else begin
-			charge <= charge;
-			continuity <= continuity;	
-		end
-	end
-end
-
-assign lt3420_charge = charge | key == 5'h1A;
-
-				 
-
-
-
-//////////////////////////////
-
-
-
-// Speaker is differential out gives 6Vp-p
-logic [15:0] tone_cnt;
-logic cont_tone, first_tone;
-logic spk_en, spk_toggle;
-
-always @(posedge clk) begin
-	if( tone_cnt == 0 ) begin
-		spk_toggle <= !spk_toggle;
-		{spk_en, tone_cnt}<= ( key == 5'h11 ) ? { 1'b1, 16'h2CCA } :
-								   ( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
-								   ( key == 5'h13 ) ? { 1'b1, 16'h238D } :
-								   ( key == 5'h14 ) ? { 1'b1, 16'h218E } :
-								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
-								   ( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
-								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-								   ( key == 5'h18 || ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
-	end else begin
-		tone_cnt <= tone_cnt - 1;
-		spk_en <= spk_en;
-		spk_toggle <= spk_toggle;
-	end
-end
-
-assign speaker = spk_toggle & spk_en ; 
-assign speaker_n = !speaker;
-
 //////////////////////////////////////////////
 // fire button 10ms debounce 
 // signal to get 1.3 sec of pwm current control
@@ -257,6 +197,62 @@ end
 
 assign dump = fire_done | !iset[1]  | key == 5'h1B; // always dump after firing
 
+////////////////////////////////
+// Power On auto charge and continuity until fire button
+////////////////////////////////
+
+logic charge;  // charge cap flag
+logic continuity; // test cont flag
+always @( posedge clk ) begin
+	if( reset ) begin
+		charge <= !iset[2]; //Latch on reset
+		continuity <= 0;
+	end else begin
+		if( lt3420_done && charge ) begin // switch to continuity
+			charge <= 0;
+			continuity <= 1;
+		end else if( continuity && fire_flag ) begin
+			charge <= 0;
+			continuity <= 0;
+		end else begin
+			charge <= charge;
+			continuity <= continuity;	
+		end
+	end
+end
+
+assign lt3420_charge = charge | key == 5'h1A;
+
+
+//////////////////////////////
+
+
+
+// Speaker is differential out gives 6Vp-p
+logic [15:0] tone_cnt;
+logic cont_tone, first_tone;
+logic spk_en, spk_toggle;
+
+always @(posedge clk) begin
+	if( tone_cnt == 0 ) begin
+		spk_toggle <= !spk_toggle;
+		{spk_en, tone_cnt}<= ( key == 5'h11 ) ? { 1'b1, 16'h2CCA } :
+								   ( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
+								   ( key == 5'h13 ) ? { 1'b1, 16'h238D } :
+								   ( key == 5'h14 ) ? { 1'b1, 16'h218E } :
+								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
+								   ( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
+								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
+								   ( key == 5'h18 || ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
+	end else begin
+		tone_cnt <= tone_cnt - 1;
+		spk_en <= spk_en;
+		spk_toggle <= spk_toggle;
+	end
+end
+
+assign speaker = spk_toggle & spk_en ; 
+assign speaker_n = !speaker;
 
 
 
