@@ -256,6 +256,24 @@ assign speaker = spk_toggle & spk_en ;
 assign speaker_n = !speaker;
 
 
+////////////////////////////////////////////
+// Burn-through detect 
+// to detect when the current falls to zero during the fire_flag while still have remaining cap voltage.
+// Output voltage is expected to rise to cap voltage. This will happen after current rise.
+ 
+logic burn;
+logic current_seen;
+always @(posedge clk) begin
+	if( reset ) begin
+		burn <= 0;
+		current_seen <= 0;
+	end else begin
+		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (100)))) ? 1'b1 : current_seen; // current > 1 Amp seen
+		burn <= (( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)))  && // output current < 1/4 amp
+					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (511))) && // cap voltage > 100 Volts
+					current_seen ) ? 1'b1 : burn; 
+	end
+end
 
 ////////////////////////////////////////////
 // PWM Current limited pulse generator
@@ -297,7 +315,7 @@ always @(posedge clk) begin
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count
 			end
-		end else if( !pwm_pulse && ( fire_flag || pulse_count > 0 ) ) begin // wait for ad_a0 to fall
+		end else if( !burn && !pwm_pulse && ( fire_flag || pulse_count > 0 ) ) begin // wait for ad_a0 to fall
 			if( pulse_time < (48 * 4) ) begin // min pulse width
 				ramp_flag <= ramp_flag;
 				pwm_pulse <= pwm_pulse;
