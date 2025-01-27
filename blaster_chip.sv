@@ -300,7 +300,7 @@ always @(posedge clk) begin
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count	
 				ramp_flag <= ramp_flag;
-			end else if( 0//( ramp_flag )															// min pulses during current ramp
+			end else if(( burn )																	// burnthrough
 			         || ( pulse_time >= (48  * 16))    									// usec @ 48 Mhz 
 						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2 + 20)))		// measure iout > 2.2 amps (panic only?)
 						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (205 * 2 + 20 )))	// est iout > 2.2 amps
@@ -557,13 +557,16 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	logic awready;
 	
 	// hack view alignment hook
-	logic pwm_del;
+	logic pwm_del, burn_del;
 	logic [15:0] retrigger;
 	logic [24:0] base_addr;
+	logic [24:0] burn_addr;
 	always @(posedge clk) begin
 		pwm_del <= pwm;
+		burn_del <= burn;
 		retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
 		base_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? (awaddr - (16 * 64)) : base_addr; // 64 samples before pwm rising edge
+		burn_addr <= ( !burn_del && burn ) ? (awaddr - (32 * 64)) : burn_addr; // cap point of burnthrough
 	end 
 	
 	psram_ctrl _psram_ctl(
@@ -599,7 +602,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.bvalid( ),
 		.bresp(  ),
 		// Read Addr
-		.araddr( araddr + base_addr ),
+		.araddr( araddr + (( burn ) ? burn_addr : base_addr )),
 		.arlen( 8'h04 ),	// assumed 4
 		.arvalid( arvalid ), // read valid	
 		.arready( arready ),
@@ -699,7 +702,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 			awaddr <= 25'b0;
 			awvalid <= 0;
 		end else begin
-			if( cap_halt ) begin
+			if( cap_halt && awaddr == base_addr) begin
 				awvalid <= 0;
 				awaddr <= awaddr;
 			end else begin
