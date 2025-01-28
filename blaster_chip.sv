@@ -187,7 +187,7 @@ always @(posedge clk) begin
 		scroll_halt <= 0;
 		cap_halt <= 0;
 	end else begin
-		fire_count <= ( !fire_button && fire_count < DEBOUNCE_10MS ) ? 0 : fire_count + 1; // committed when past debounce
+		fire_count <= ( !fire_button && (fire_count < DEBOUNCE_10MS) ) ? 0 : fire_count + 1; // committed when past debounce
 		fire_flag <= ( fire_count == PWM_START ) ? 1'b1 : ( fire_count == PWM_END ) ? 1'b0 : fire_flag;
 		scroll_halt <= ( fire_count == SCROLL_HALT ) ? 1'b1 : scroll_halt;
 		cap_halt <= ( fire_count == CAP_HALT ) ? 1'b1 : cap_halt;
@@ -268,9 +268,9 @@ always @(posedge clk) begin
 		burn <= 0;
 		current_seen <= 0;
 	end else begin
-		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (100)))) ? 1'b1 : current_seen; // current > 1 Amp seen
-		burn <= (( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)))  && // output current < 1/4 amp
-					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (511))) && // cap voltage > 100 Volts
+		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (100)))) ? 1'b1 : current_seen; // current > 1/2 Amp seen
+		burn <= (( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)) || (((ad_b1 ^ 12'h7ff) > (ad_a1 ^ 12'h7ff))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
+					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (256))) && // cap voltage > 50 Volts 
 					current_seen ) ? 1'b1 : burn; 
 	end
 end
@@ -557,16 +557,29 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	logic awready;
 	
 	// hack view alignment hook
-	logic pwm_del, burn_del;
+	logic pwm_del, burn_del, zoom_del;
 	logic [15:0] retrigger;
 	logic [24:0] base_addr;
 	logic [24:0] burn_addr;
+	logic [3:0] zoom;
+	logic zoom_button;
+
+	
 	always @(posedge clk) begin
-		pwm_del <= pwm;
-		burn_del <= burn;
-		retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
-		base_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? (awaddr - (16 * 64)) : base_addr; // 64 samples before pwm rising edge
-		burn_addr <= ( !burn_del && burn ) ? (awaddr - (32 * 64)) : burn_addr; // cap point of burnthrough
+		if( reset ) begin
+			zoom <= 0;
+			zoom_button <= 0;
+		end else begin
+			zoom_button <= ( fire_done &  fire_button && count[17:0] == 0 ) ? 1'b1 :
+			               ( fire_done & !fire_button && count[17:0] == 0 ) ? 1'b0 : zoom_button;								
+			zoom_del <= zoom_button;
+			pwm_del <= pwm;
+			burn_del <= burn;
+			retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
+			base_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? awaddr : base_addr; 
+			burn_addr <= ( !burn_del && burn  ) ? awaddr : burn_addr; 
+			zoom <= ( !zoom_del && zoom_button ) ? ( ( zoom == 13 ) ? 0 : zoom + 1 ) : zoom;
+		end
 	end 
 	
 	psram_ctrl _psram_ctl(
@@ -602,7 +615,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.bvalid( ),
 		.bresp(  ),
 		// Read Addr
-		.araddr( araddr + (( burn ) ? burn_addr : base_addr )),
+		.araddr( ((burn)?burn_addr:base_addr) + ( araddr << zoom ) - (((burn)?(192*16):(64*16))<<zoom) ),
 		.arlen( 8'h04 ),	// assumed 4
 		.arvalid( arvalid ), // read valid	
 		.arready( arready ),
@@ -843,10 +856,10 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	logic [31:0] disp_id;
 	assign disp_id = { id_reg[34:31], id_reg[30:27],id_reg[25:22],id_reg[21:18],id_reg[16:13],id_reg[12: 9],id_reg[ 7: 4],id_reg[ 3: 0] };
 	logic [3:0] id_str;
-	string_overlay #(.LEN(11)) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('h50),.y('d57), .out( id_str[0]), .str( "PSRAM IDreg" ) );
-	hex_overlay    #(.LEN(8 )) _id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char), .x('h50),.y('d58), .out( id_str[1]), .in( disp_id ) );
-   bin_overlay    #(.LEN(1 )) _id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char), .x('h60),.y('d58), .out( id_str[2]), .in( disp_id == 32'h0E96_0001 ) );
-	string_overlay #(.LEN(12)) _id3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('d120),.y('d59), .out( id_str[3]), .str( "Eric Pearson" ) );
+	string_overlay #(.LEN(5)) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('h50),.y('d57), .out( id_str[0]), .str( "PSRAM" ) );
+	//hex_overlay    #(.LEN(8 )) _id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char), .x('h50),.y('d58), .out( id_str[1]), .in( disp_id ) );
+   bin_overlay    #(.LEN(1 )) _id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char), .x('h57),.y('d57), .out( id_str[2]), .in( disp_id == 32'h0E96_0001 ) );
+	//string_overlay #(.LEN(12)) _id3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('d120),.y('d59), .out( id_str[3]), .str( "ERIC PEARSON" ) );
 	
 
 	
