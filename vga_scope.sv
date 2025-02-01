@@ -639,7 +639,7 @@ module vga_wave_display
 	// The four channels will be different colors.
 	// if heights off bottom matches value, turn on the pel.
 
-	logic pel_gd, pel_a0, pel_a01, pel_a1, pel_a2, pel_b0, pel_b01, pel_b1, pel_b2, pel_es, pel_pw;
+	logic pel_gd, pel_a0, pel_a01, pel_a1, pel_a2, pel_b0, pel_b01, pel_b1, pel_b2, pel_es, pel_pw, pel_bn;
 	always @(posedge clk) begin
 		if ( reset ) begin
 				pel_gd <= 0;
@@ -653,6 +653,7 @@ module vga_wave_display
 				pel_b01<= 0;
 				pel_es <= 0;
 				pel_pw <= 0;
+				pel_bn <= 0;
 		end else begin
 			if( ycnt >= 32 && ycnt <= ( 14 * 32 ) ) begin
 				pel_gd <= ( xcnt[5:0] == 6'd63 || ycnt[4:0] == 5'd0 ) ? 1'b1 : 1'b0; // a grid
@@ -667,6 +668,8 @@ module vga_wave_display
 				pel_es <= ( { 1'b0,q0[16:13],q1[16:13]} == ({1'b0,ycnt} - 160) ) ? 1'b1 : 1'b0; 
 				pel_pw <= ( (  q3[13] && ycnt[9:4] == 'd25  ) ||
 			               ( !q3[13] && ycnt[9:0] == 'd415 ) ) ? 1'b1 : 1'b0;
+				pel_bn <= ( (  q3[14] && ycnt[9:4] == 'd27  ) ||
+				            ( !q3[14] && ycnt[9:0] == 'd447 ) ) ? 1'b1 : 1'b0;
 			end else begin
 				pel_gd <= 0;
 				pel_a0 <= 0;
@@ -678,24 +681,25 @@ module vga_wave_display
 				pel_b01<= 0;
 				pel_es <= 0;
 				pel_pw <= 0;
+				pel_bn <= 0;
 			end
 		end
 	end	
 	
 	
 	// Color Legend Strings
-	logic est_str, pwm_str, tit_str;
+	logic est_str, pwm_str, tit_str, bn_str;
 	logic a0_str, a1_str, a2_str, b0_str, b1_str, b2_str, a01_str, b01_str;
 	logic hor_str, ho2_str;
-	string_overlay #(.LEN(50)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h02), .out(tit_str), .str("3MHZ 4CH 12BIT 4MSample TRACE BUFFER, 800x480 XVGA") );	
+	string_overlay #(.LEN(50)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h01), .out(tit_str), .str("3MHZ 4CH 12BIT 4MSample TRACE BUFFER, 800x480 XVGA") );	
 	string_overlay #(.LEN(19)) _a0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h12), .out( a0_str), .str(" A0 OutI  2.5A/div ") );
 	string_overlay #(.LEN(19)) _a1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h16), .out( a1_str), .str(" A1 CapV  100V/div ") );
 	string_overlay #(.LEN(19)) _b0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h1A), .out( b0_str), .str(" B0 CapI  2.5A/div ") );
 	string_overlay #(.LEN(19)) _b1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h1E), .out( b1_str), .str(" B1 OutV  100V/div ") );
 	string_overlay #(.LEN(19)) _est_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h22), .out(est_str), .str("Est OutI  2.5A/div ") );
-	string_overlay #(.LEN(19)) _pwm_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h32), .out(pwm_str), .str("    PWM            ") );
-	string_overlay #(.LEN(19)) _hor_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('d57), .out(hor_str), .str("  HORIZ   21us/div ") );
-	string_overlay #(.LEN(19)) _ho2_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('d58), .out(ho2_str), .str("  total   0.27 mSec") );
+	string_overlay #(.LEN( 3)) _pwm_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h03),.y('h32), .out(pwm_str), .str("PWM") );
+	string_overlay #(.LEN( 4)) _bn_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h03),.y('h36), .out( bn_str), .str("BURN") );
+	string_overlay #(.LEN( 8)) _hor_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h03), .out(hor_str), .str("21us/div") );
 	string_overlay #(.LEN(19)) _b2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h26), .out( b2_str), .str(" B1 OutV* 6.4V/div ") );
 	string_overlay #(.LEN(19)) _a2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h0E), .out( a2_str), .str(" A1 CapV* 6.4V/div ") );
 	string_overlay #(.LEN(19)) _a01_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2A), .out(a01_str), .str(" A0 OutI* 150mA/div") );
@@ -714,7 +718,8 @@ module vga_wave_display
 					( pel_b1 | b1_str  ) ? 24'h0000ff :
 					( pel_b2 | b2_str  ) ? 24'h0000c0 :
 					( pel_es | est_str ) ? 24'hc0c0c0 :
-					( pel_pw | pwm_str ) ? 24'hc0c000 :					
+					( pel_pw | pwm_str ) ? 24'hc0c000 :		
+					( pel_bn | bn_str  ) ? 24'hc0c000 :		
 					( pel_gd           ) ? 24'h32006a : 24'h000000;
 	
 endmodule
