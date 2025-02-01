@@ -260,18 +260,29 @@ assign speaker_n = !speaker;
 // Burn-through detect 
 // to detect when the current falls to zero during the fire_flag while still have remaining cap voltage.
 // Output voltage is expected to rise to cap voltage. This will happen after current rise.
+// After observation the real indication is output voltage rise rate at burnthrough, or open circuit.
  
 logic burn;
 logic current_seen;
+logic [11:0] ad_b1_del;
+logic signed [12:0] dv; // delta voltage
+
+assign dv[12:0] = { ad_b1[11], ad_b1[11:0] ^ 12'h7ff } - { ad_b1_del[11], ad_b1_del[11:0] ^ 12'h7ff };
+
 always @(posedge clk) begin
 	if( reset ) begin
 		burn <= 0;
 		current_seen <= 0;
+		ad_b1_del <= 12'h7ff;
 	end else begin
 		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (100)))) ? 1'b1 : current_seen; // current > 1/2 Amp seen
-		burn <= (( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)) || (((ad_b1 ^ 12'h7ff) > (ad_a1 ^ 12'h7ff))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
+		burn <=((( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)) || (((ad_b1 ^ 12'h7ff) > (ad_a1 ^ 12'h7ff))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
 					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (256))) && // cap voltage > 50 Volts 
-					current_seen ) ? 1'b1 : burn; 
+					current_seen ) ||
+				   ( fire_flag && ( dv > 13'sd40 ))	// dv > +24 V/us
+					) ? 1'b1 : burn; 
+		ad_b1_del <= ad_b1; // ad_b1 only changes on sample x16, but is fine for our detection use
+		//burn <= ( fire_flag && ( dv > 13'sd50 ) ) ? 1'b1 : burn; // rise rate > 10V/sample == 30 V/usec
 	end
 end
 
@@ -676,7 +687,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		ad_data <= { { iest[11:8], ad_a0[11:0] },
 						 { iest[7:4], ad_a1[11:0] },
 						 { iest[3:0], ad_b0[11:0] /*res_calc[11:0]*/ }, // temp override.
-						 { 3'h0, pwm, ad_b1[11:0] } };
+						 { 1'b0, fire_flag, burn, pwm, ad_b1[11:0] } };
 		end else begin
 			ad_data <= ad_data;
 		end
@@ -856,9 +867,9 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	logic [31:0] disp_id;
 	assign disp_id = { id_reg[34:31], id_reg[30:27],id_reg[25:22],id_reg[21:18],id_reg[16:13],id_reg[12: 9],id_reg[ 7: 4],id_reg[ 3: 0] };
 	logic [3:0] id_str;
-	string_overlay #(.LEN(5)) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('h50),.y('d57), .out( id_str[0]), .str( "PSRAM" ) );
+	string_overlay #(.LEN(5)) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('h48), .y('h09), .out( id_str[0]), .str( "PSRAM" ) );
 	//hex_overlay    #(.LEN(8 )) _id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char), .x('h50),.y('d58), .out( id_str[1]), .in( disp_id ) );
-   bin_overlay    #(.LEN(1 )) _id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char), .x('h57),.y('d57), .out( id_str[2]), .in( disp_id == 32'h0E96_0001 ) );
+   bin_overlay    #(.LEN(1 )) _id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char), .x('h46),.y('h09), .out( id_str[2]), .in( disp_id == 32'h0E96_0001 ) );
 	//string_overlay #(.LEN(12)) _id3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('d120),.y('d59), .out( id_str[3]), .str( "ERIC PEARSON" ) );
 	
 
