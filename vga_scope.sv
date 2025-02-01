@@ -699,7 +699,6 @@ module vga_wave_display
 	string_overlay #(.LEN(19)) _est_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h22), .out(est_str), .str("Est OutI  2.5A/div ") );
 	string_overlay #(.LEN( 3)) _pwm_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h03),.y('h32), .out(pwm_str), .str("PWM") );
 	string_overlay #(.LEN( 4)) _bn_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h03),.y('h36), .out( bn_str), .str("BURN") );
-	string_overlay #(.LEN( 8)) _hor_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h03), .out(hor_str), .str("21us/div") );
 	string_overlay #(.LEN(19)) _b2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h26), .out( b2_str), .str(" B1 OutV* 6.4V/div ") );
 	string_overlay #(.LEN(19)) _a2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h0E), .out( a2_str), .str(" A1 CapV* 6.4V/div ") );
 	string_overlay #(.LEN(19)) _a01_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2A), .out(a01_str), .str(" A0 OutI* 150mA/div") );

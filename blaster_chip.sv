@@ -589,7 +589,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 			retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
 			base_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? awaddr : base_addr; 
 			burn_addr <= ( !burn_del && burn  ) ? awaddr : burn_addr; 
-			zoom <= ( !zoom_del && zoom_button ) ? ( ( zoom == 13 ) ? 0 : zoom + 1 ) : zoom;
+			zoom <= ( !zoom_del && zoom_button ) ? ( ( zoom == 12 ) ? 0 : zoom + 1 ) : zoom;
 		end
 	end 
 	
@@ -866,12 +866,25 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	// Overlay PSRAM ID and expected values
 	logic [31:0] disp_id;
 	assign disp_id = { id_reg[34:31], id_reg[30:27],id_reg[25:22],id_reg[21:18],id_reg[16:13],id_reg[12: 9],id_reg[ 7: 4],id_reg[ 3: 0] };
-	logic [3:0] id_str;
+	logic [4:0] id_str;
 	string_overlay #(.LEN(5)) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('h48), .y('h09), .out( id_str[0]), .str( "PSRAM" ) );
 	//hex_overlay    #(.LEN(8 )) _id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char), .x('h50),.y('d58), .out( id_str[1]), .in( disp_id ) );
    bin_overlay    #(.LEN(1 )) _id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char), .x('h46),.y('h09), .out( id_str[2]), .in( disp_id == 32'h0E96_0001 ) );
 	//string_overlay #(.LEN(12)) _id3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x('d120),.y('d59), .out( id_str[3]), .str( "ERIC PEARSON" ) );
-	
+	string_overlay #(.LEN( 9)) _id4 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h03), .out(id_str[4]), 
+	.str(	( zoom == 0 ) ? " 21us/div" :
+			( zoom == 1 ) ? " 43us/div" :
+			( zoom == 2 ) ? " 85us/div" :
+			( zoom == 3 ) ? "170us/div" :
+			( zoom == 4 ) ? "340us/div" :
+			( zoom == 5 ) ? "680us/div" :
+			( zoom == 6 ) ? "1.4ms/div" :
+			( zoom == 7 ) ? "2.7ms/div" :
+			( zoom == 8 ) ? "5.5ms/div" :
+			( zoom == 9 ) ? " 11ms/div" :
+			( zoom == 10) ? " 22ms/div" :
+			( zoom == 11) ? " 44ms/div" :
+			/*zoom == 12)*/ " 87ms/div" ) );
 
 	
 	// Overlay the Keystroke
