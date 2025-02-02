@@ -174,7 +174,7 @@ logic cap_halt; // full rate capture
 
 
 parameter DEBOUNCE_10MS = 10 * 1000 * 48; // from 48 Mhz clk
-parameter PWM_START     = DEBOUNCE_10MS; // Enable PWM current control 
+parameter PWM_START     = DEBOUNCE_10MS + 1; // Enable PWM current control 
 parameter PWM_END			= (48+16) * 1000 * 1000; // Total time 1.333 sec
 parameter SCROLL_HALT	= (48*4+16) * 1000 * 1000; // Total time 1.333 sec
 parameter CAP_HALT		= PWM_START + 1000 * 16; // stop capture before re-trigger or wrap
@@ -508,7 +508,7 @@ assign iout = ( ad_a0[11] || ad_a0[10:4] == 7'h7F ) ? 11'b0 : ( ad_a0[10:0] ^ 11
 assign icap = ( ad_b0[11] || ad_b0[10:4] == 7'h7F ) ? 11'b0 : ( ad_b0[10:0] ^ 11'h7ff );
 
 // accumulate during fire pulse or individual continuity test pulses
-assign acc_flag = fire_flag | res_flag;
+assign acc_flag = ( fire_flag & !burn ) | res_flag;
 
 // Acculuate both Cap and Output power products.
 always @(posedge clk) begin
@@ -726,7 +726,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 			awaddr <= 25'b0;
 			awvalid <= 0;
 		end else begin
-			if( cap_halt && awaddr == base_addr) begin
+			if( cap_halt && awaddr[24:4] == (base_addr[24:4] - 16384) ) begin // approx 10 ms before start
 				awvalid <= 0;
 				awaddr <= awaddr;
 			end else begin
