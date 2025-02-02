@@ -278,7 +278,7 @@ always @(posedge clk) begin
 		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (100)))) ? 1'b1 : current_seen; // current > 1/2 Amp seen
 		burn <=((( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)) || (((ad_b1 ^ 12'h7ff) > (ad_a1 ^ 12'h7ff))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
 					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (256))) && // cap voltage > 50 Volts 
-					current_seen ) ||
+					current_seen && fire_flag ) ||
 				   ( fire_flag && ( dv > 13'sd40 ))	// dv > +24 V/us
 					) ? 1'b1 : burn; 
 		ad_b1_del <= ad_b1; // ad_b1 only changes on sample x16, but is fine for our detection use
