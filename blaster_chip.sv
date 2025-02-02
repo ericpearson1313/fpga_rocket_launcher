@@ -188,7 +188,7 @@ always @(posedge clk) begin
 		cap_halt <= 0;
 	end else begin
 		fire_count <= ( !fire_button && (fire_count < DEBOUNCE_10MS) ) ? 0 : fire_count + 1; // committed when past debounce
-		fire_flag <= ( fire_count == PWM_START ) ? 1'b1 : ( fire_count == PWM_END ) ? 1'b0 : fire_flag;
+		fire_flag <= ( fire_count == PWM_START && !fire_done ) ? 1'b1 : ( fire_count == PWM_END ) ? 1'b0 : fire_flag;
 		scroll_halt <= ( fire_count == SCROLL_HALT ) ? 1'b1 : scroll_halt;
 		cap_halt <= ( fire_count == CAP_HALT ) ? 1'b1 : cap_halt;
 		fire_done <= ( fire_count == PWM_END ) ? 1'b1 : fire_done;
