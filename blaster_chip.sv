@@ -692,7 +692,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		ad_data <= { { iest[11:8], ad_a0[11:0] },
 						 { iest[7:4], ad_a1[11:0] },
 						 { iest[3:0], ad_b0[11:0] /*res_calc[11:0]*/ }, // temp override.
-						 { 1'b0, fire_flag, burn, pwm, ad_b1[11:0] } };
+						 { 1'b0, fire_button, burn, pwm, ad_b1[11:0] } };
 		end else begin
 			ad_data <= ad_data;
 		end
