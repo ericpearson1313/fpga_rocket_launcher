@@ -278,7 +278,8 @@ always @(posedge clk) begin
 		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (100)))) ? 1'b1 : current_seen; // current > 1/2 Amp seen
 		burn <=((( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)) || (((ad_b1 ^ 12'h7ff) > (ad_a1 ^ 12'h7ff))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
 					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (256))) && // cap voltage > 50 Volts 
-					current_seen && fire_flag ) ||
+					current_seen && fire_flag ) || 
+					//( fire_flag && (!ad_a0[11]&&((ad_a0 ^ 12'h7ff) > ( 205 * 6 )))) || // temp trigger for 6A
 				   ( fire_flag && ( dv > 13'sd40 ))	// dv > +24 V/us
 					) ? 1'b1 : burn; 
 		ad_b1_del <= ad_b1; // ad_b1 only changes on sample x16, but is fine for our detection use
@@ -297,6 +298,10 @@ logic [15:0] 	pulse_time;
 logic [9:0] 	pulse_count;
 logic				ramp_flag;
 
+logic [11:0] 	thresh_hi, thresh_lo;
+
+always @(posedge clk) thresh_hi <= (fire_flag && fire_count >= 28'h00_80000 ) ? ( 205 * 4 + 20 ) : ( 205 * 2 + 20 ); // setpoint 2Amp start, +1/6 sec in 4Amp
+always @(posedge clk) thresh_lo <= (fire_flag && fire_count >= 28'h00_80000 ) ? ( 205 * 4 - 20 ) : ( 205 * 2 - 20 );
 
 always @(posedge clk) begin
 	if( reset ) begin
@@ -313,8 +318,8 @@ always @(posedge clk) begin
 				ramp_flag <= ramp_flag;
 			end else if(( burn )																	// burnthrough
 			         || ( pulse_time >= (48  * 16))    									// usec @ 48 Mhz 
-						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (205 * 2 + 20)))		// measure iout > 2.2 amps (panic only?)
-						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (205 * 2 + 20 )))	// est iout > 2.2 amps
+						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (thresh_hi)))		// measure iout > 2.2 amps (panic only?)
+						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (thresh_hi)))	// est iout > 2.2 amps
 						) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
 				pulse_time <= 0;
@@ -332,7 +337,7 @@ always @(posedge clk) begin
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count					
-			end else if ( ( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (205 * 2 - 20))) ) begin //  <2 amp * 205 DN/A measured - 10%
+			end else if ( ( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (thresh_lo))) ) begin //  <2 amp * 205 DN/A measured - 10%
 				ramp_flag <= ramp_flag;
 				pwm_pulse <= 1;
 				pulse_time <= 1;
