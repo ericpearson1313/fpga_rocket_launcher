@@ -175,8 +175,7 @@ logic fire_button_debounce;
 
 debounce _firedb ( .clk( clk ), .reset( reset ), .in( fire_button ), .out( fire_button_debounce ) );
 
-parameter DEBOUNCE_10MS = 10 * 1000 * 48; // from 48 Mhz clk
-parameter PWM_START     = DEBOUNCE_10MS + 1; // Enable PWM current control 
+parameter PWM_START     = 1; // Enable PWM current control 
 parameter PWM_END			= (48+16) * 1000 * 1000; // Total time 1.333 sec
 parameter SCROLL_HALT	= (48*4+16) * 1000 * 1000; // Total time 1.333 sec
 parameter CAP_HALT		= PWM_START + 1000 * 16; // stop capture before re-trigger or wrap
@@ -189,7 +188,7 @@ always @(posedge clk) begin
 		scroll_halt <= 0;
 		cap_halt <= 0;
 	end else begin
-		fire_count <= ( !fire_button && (fire_count < DEBOUNCE_10MS) ) ? 0 : fire_count + 1; // committed when past debounce
+		fire_count <= ( fire_count == 0 && !fire_button_debounce ) ? 0 : fire_count + 1; // committed when past debounce
 		fire_flag <= ( fire_count == PWM_START && !fire_done ) ? 1'b1 : ( fire_count == PWM_END ) ? 1'b0 : fire_flag;
 		scroll_halt <= ( fire_count == SCROLL_HALT ) ? 1'b1 : scroll_halt;
 		cap_halt <= ( fire_count == CAP_HALT ) ? 1'b1 : cap_halt;
@@ -1126,6 +1125,12 @@ endmodule
 
 // 1024 moving window debounce 80/20
 // tick is about 1 per 480 cycles
+
+localparam DB_STATE_IDLE 		= 0;
+localparam DB_STATE_PRESS 		= 3;
+localparam DB_STATE_RELEASE 	= 1;
+
+			
 module debounce(
 	input clk,
 	input reset,
@@ -1134,48 +1139,24 @@ module debounce(
 	);
 	
 	logic [21:0] count;
-	logic state;
+	logic [1:0] state;
 	
 	always @(posedge clk) begin
 		if( reset ) begin
-			out <= 1'b0;
-			state <= 0;
+			state <= DB_STATE_IDLE;
 			count <= 22'h0;
 		end else begin
-			state <= ( !state && in ) ? 1 : ( state && count == 0 && !in ) ? 0 : state;
-			out   <= ( !state && in ) ? 1 : ( out && count == 22'h2FFFFF ) ? 0 : out; 
-			count <= ( !state && in ) ? 22'h3FFFFF : ( out ) ? count - 1 : ( state && in ) ? 22'h3FFFFF : ( count == 0 ) ? 0 : count - 1; 
+			state <= ( state == DB_STATE_IDLE    && count == 22'h040000 ) ? DB_STATE_PRESS : 	// 5ms pressed 
+						( state == DB_STATE_PRESS   && count == 22'h100000 ) ? DB_STATE_RELEASE : // 20ms output pulse
+						( state == DB_STATE_RELEASE && count == 22'h3FFFFF ) ? DB_STATE_IDLE    : // wait 80 ms release
+															  								  state;	// else hold state
+			count <= ( state == DB_STATE_IDLE    && !in ) ? 0 :
+						( state == DB_STATE_RELEASE &&  in ) ? 0 : count + 1;
 	   end
 	end
 	
-	//logic mem [1023:0];
-	//logic [10:0] div; // clock divider
-	//logic [9:0] count; // moving window count
-	//logic [9:0] idx; // mem address
-	//logic prev; // previous cycle was tick
-	//logic in_reg; // delayed version of in, as written
-	//logic read; // read data 10245 cycle in the past
-	//
-	//always @(posedge clk) begin
-	//	if( reset ) begin
-	//		prev <= 0;
-	//		div <= 0;
-	//		out <= 0;
-	//		count <= 0;
-	//		idx <= 0;
-	//	end else begin
-	//		div <= ( div == 9'd2000 ) ? 0 : div + 1;	// aboutn 480 cyc at 48 mhz gives 10us period
-	//		idx <= ( div == 0 ) ? idx + 1 : idx; 		// 1024 ram entries give a 10ms window
-	//		in_reg <= ( div == 0 ) ? in : in_reg;		// save input data
-	//		if( div == 0 ) begin
-	//			mem[idx] <= in;		// and write input data
-	//			read <= mem[idx];		// and read old data from 10ms before
-	//		end
-	//		prev <= ( div == 0 ) ? 1'b1 : 1'b0;			// take note for next cycle
-	//		count <= ( prev ) ? ( count + { 9'h0, in_reg } - { 9'h0, read }) : count;		// add the current and remove the old
-	//		out <= ( out && count < 10'h040 ) ? 1'b0 : ( !out && count >= 10'h3C0 ) ? 1'b1 : out;	// hystersis
-	//	end
-	//end
+	assign out = ( state == DB_STATE_PRESS ) ? 1'b1 : 1'b0;	// debounced output pulse
+
 endmodule
 	
 
