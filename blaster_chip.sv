@@ -171,7 +171,9 @@ logic fire_flag;
 logic fire_done ; // self discharge 
 logic scroll_halt;
 logic cap_halt; // full rate capture
+logic fire_button_debounce;
 
+debounce _firedb ( .clk( clk ), .reset( reset ), .in( fire_button ), .out( fire_button_debounce ) );
 
 parameter DEBOUNCE_10MS = 10 * 1000 * 48; // from 48 Mhz clk
 parameter PWM_START     = DEBOUNCE_10MS + 1; // Enable PWM current control 
@@ -237,7 +239,7 @@ logic spk_en, spk_toggle;
 always @(posedge clk) begin
 	if( tone_cnt == 0 ) begin
 		spk_toggle <= !spk_toggle;
-		{spk_en, tone_cnt}<= ( key == 5'h11 ) ? { 1'b1, 16'h2CCA } :
+		{spk_en, tone_cnt}<= ( key == 5'h11 || fire_button_debounce ) ? { 1'b1, 16'h2CCA } :
 								   ( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
 								   ( key == 5'h13 ) ? { 1'b1, 16'h238D } :
 								   ( key == 5'h14 ) ? { 1'b1, 16'h218E } :
@@ -586,8 +588,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 			zoom <= 0;
 			zoom_button <= 0;
 		end else begin
-			zoom_button <= ( fire_done &  fire_button && count[17:0] == 0 ) ? 1'b1 :
-			               ( fire_done & !fire_button && count[17:0] == 0 ) ? 1'b0 : zoom_button;								
+			zoom_button <= ( fire_done &  fire_button_debounce ) ? 1'b1 : 1'b0;
 			zoom_del <= zoom_button;
 			pwm_del <= pwm;
 			burn_del <= burn;
@@ -1122,6 +1123,61 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	);
 
 endmodule
+
+// 1024 moving window debounce 80/20
+// tick is about 1 per 480 cycles
+module debounce(
+	input clk,
+	input reset,
+	input in,
+	output out
+	);
+	
+	logic [21:0] count;
+	logic state;
+	
+	always @(posedge clk) begin
+		if( reset ) begin
+			out <= 1'b0;
+			state <= 0;
+			count <= 22'h0;
+		end else begin
+			state <= ( !state && in ) ? 1 : ( state && count == 0 && !in ) ? 0 : state;
+			out   <= ( !state && in ) ? 1 : ( out && count == 22'h2FFFFF ) ? 0 : out; 
+			count <= ( !state && in ) ? 22'h3FFFFF : ( out ) ? count - 1 : ( state && in ) ? 22'h3FFFFF : ( count == 0 ) ? 0 : count - 1; 
+	   end
+	end
+	
+	//logic mem [1023:0];
+	//logic [10:0] div; // clock divider
+	//logic [9:0] count; // moving window count
+	//logic [9:0] idx; // mem address
+	//logic prev; // previous cycle was tick
+	//logic in_reg; // delayed version of in, as written
+	//logic read; // read data 10245 cycle in the past
+	//
+	//always @(posedge clk) begin
+	//	if( reset ) begin
+	//		prev <= 0;
+	//		div <= 0;
+	//		out <= 0;
+	//		count <= 0;
+	//		idx <= 0;
+	//	end else begin
+	//		div <= ( div == 9'd2000 ) ? 0 : div + 1;	// aboutn 480 cyc at 48 mhz gives 10us period
+	//		idx <= ( div == 0 ) ? idx + 1 : idx; 		// 1024 ram entries give a 10ms window
+	//		in_reg <= ( div == 0 ) ? in : in_reg;		// save input data
+	//		if( div == 0 ) begin
+	//			mem[idx] <= in;		// and write input data
+	//			read <= mem[idx];		// and read old data from 10ms before
+	//		end
+	//		prev <= ( div == 0 ) ? 1'b1 : 1'b0;			// take note for next cycle
+	//		count <= ( prev ) ? ( count + { 9'h0, in_reg } - { 9'h0, read }) : count;		// add the current and remove the old
+	//		out <= ( out && count < 10'h040 ) ? 1'b0 : ( !out && count >= 10'h3C0 ) ? 1'b1 : out;	// hystersis
+	//	end
+	//end
+endmodule
+	
 
 module key_scan( 
 	input [6:0] keypad_in,
