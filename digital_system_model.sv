@@ -58,13 +58,13 @@ logic pwm_del;
 always @(posedge clk) pwm_del <= pwm;
 always @(posedge clk) begin
 	if( reset ) begin
-		i_acc <= 36'b0;
+		i_acc[35:0] <= 36'b0;
 	end else if( pwm & ~pwm_del ) begin // load read value on pwm rise.
-		i_acc[35-:12] <= { ( iout[11] ) ? 12'h0 : ( iout[11:0] ^ 12'h7ff ), 24'h00_0000 };
+		i_acc[35:0] <= { ( iout[11] ) ? 12'h0 : ( iout[11:0] ^ 12'h7ff ), 24'h00_0000 };
 	end else if ( iest_next[35] || iest_next[35-:25] == 0 ) begin // clip to zero if small or -ve
-		i_acc <= 0;
+		i_acc[35:0] <= 0;
 	end else begin
-		i_acc <= iest_next; // default load next
+		i_acc[35:0] <= iest_next; // default load next
 	end
 end
 
