@@ -1,204 +1,70 @@
-// 5x7 font display engine
-module font57
+// Text overlay generator
+// Generates fixed text overlaying the screen
+// Uses a font_rom to hold a 5x7 font (2x M9K)
+// and a char_rom to hold the text overlay 128 x 30 (4x M9K)
+module text_overlay
 (
 	input clk,
 	input reset,
 	input blank,
 	input hsync,
 	input vsync,
-	output [7:0] char_x,
-	output [7:0] char_y,
-	output [15:0] char_data
+	output overlay
 );
 
-logic [2:0] cntx6;
-logic [2:0] cnty8;
-logic [8:0] ycnt;
-logic [5:0] bitidx;
-logic blank_d1;
+	// Load the font rom
+	reg font_rom [12287:0]; // indexed by ( col[2:0]<<(3+8) + row[2:0]<<8 + char[7:0] ) 
+	initial $readmemb("font_rom_init.txt", font_rom);
+
+	// Load the overlay text for the screen
+	reg [7:0] text_rom [0:32767]; // indexed by { x[6:0], y[4:0] } giving 30 rows of 128 chars
+	initial $readmemh("text_overlay_rom_init.txt", text_rom);
+	
+	// Generate the timing signals
+	
+	logic [7:0] char_x;
+	logic [7:0] char_y;
+	logic [2:0] cntx6;
+	logic [8:0] ycnt;
+	logic blank_d1;
 
 	always @(posedge clk) begin
 		if( reset ) begin
 			char_x <= 0;
-			cntx6 <= 5;
+			cntx6 <= 0;
 			ycnt <= 0;
 			blank_d1 <= 0;
 		end else begin
 			blank_d1 <= blank;
-			cntx6 <= ( blank || cntx6 == 0 ) ? 5 : cntx6 - 1;
-			char_x <= ( blank ) ? 0 : ( cntx6 == 0 ) ? char_x + 1 : char_x;
+			cntx6 <= ( blank || cntx6 == 5 ) ? 0 : cntx6 + 1;
+			char_x <= ( blank ) ? 0 : ( cntx6 == 5 ) ? char_x + 1 : char_x;
 			ycnt <= ( vsync ) ? 0 : 
 		        ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
 		end
 	end
-	assign cnty8[2:0] = ~ycnt[2:0];
-	assign char_y[7:0] = { 2'b00, ycnt[8:3] };
-	assign bitidx[5:0] = { 2'b00, cnty8[2:0], 1'B0 } +  { 1'b0, cnty8[2:0], 2'b00 } + { 3'b000, cntx6[2:0] };
-
-logic [47:0] hex_0={ 6'b000000,
-							6'b011100,
-							6'b100010,
-							6'b100110,
-							6'b101010,
-							6'b110010,
-							6'b100010,
-							6'b011100 };
-
-logic [47:0] hex_1={ 6'b000000,
-							6'b001000,
-							6'b011000,
-							6'b001000,
-							6'b001000,
-							6'b001000,
-							6'b001000,
-							6'b011100 };
-
-logic [47:0] hex_2={ 6'b000000,
-							6'b011100,
-							6'b100010,
-							6'b000010,
-							6'b011100,
-							6'b100000,
-							6'b100000,
-							6'b111110 };
-
-logic [47:0] hex_3={ 6'b000000,
-							6'b011100,
-							6'b100010,
-							6'b000010,
-							6'b001100,
-							6'b000010,
-							6'b100010,
-							6'b011100 };
-
-logic [47:0] hex_4={ 6'b000000,
-							6'b000100,
-							6'b001100,
-							6'b010100,
-							6'b100100,
-							6'b111110,
-							6'b000100,
-							6'b000100 };
-
-logic [47:0] hex_5={ 6'b000000,
-							6'b111110,
-							6'b100000,
-							6'b100000,
-							6'b111100,
-							6'b000010,
-							6'b100010,
-							6'b011100 };
-
-logic [47:0] hex_6={ 6'b000000,
-							6'b000110,
-							6'b001000,
-							6'b010000,
-							6'b111100,
-							6'b100010,
-							6'b100010,
-							6'b011100 };
-
-logic [47:0] hex_7={ 6'b000000,
-							6'b111110,
-							6'b000010,
-							6'b000010,
-							6'b000100,
-							6'b001000,
-							6'b010000,
-							6'b100000 };
-
-logic [47:0] hex_8={ 6'b000000,
-							6'b011100,
-							6'b100010,
-							6'b100010,
-							6'b011100,
-							6'b100010,
-							6'b100010,
-							6'b011100 };
-
-logic [47:0] hex_9={ 6'b000000,
-							6'b011100,
-							6'b100010,
-							6'b100010,
-							6'b011110,
-							6'b000010,
-							6'b000100,
-							6'b011000 };
-
-logic [47:0] hex_A={ 6'b000000,
-							6'b001000,
-							6'b010100,
-							6'b100010,
-							6'b100010,
-							6'b111110,
-							6'b100010,
-							6'b100010 };
-
-logic [47:0] hex_B={ 6'b000000,
-							6'b111100,
-							6'b100010,
-							6'b100010,
-							6'b111100,
-							6'b100010,
-							6'b100010,
-							6'b111100 };
-
-logic [47:0] hex_C={ 6'b000000,
-							6'b011100,
-							6'b100010,
-							6'b100000,
-							6'b100000,
-							6'b100000,
-							6'b100010,
-							6'b011100 };
-
-logic [47:0] hex_D={ 6'b000000,
-							6'b111100,
-							6'b100010,
-							6'b100010,
-							6'b100010,
-							6'b100010,
-							6'b100010,
-							6'b111100 };
-
-logic [47:0] hex_E={ 6'b000000,
-							6'b111110,
-							6'b100000,
-							6'b100000,
-							6'b111100,
-							6'b100000,
-							6'b100000,
-							6'b111110 };
-
-logic [47:0] hex_F={ 6'b000000,
-							6'b111110,
-							6'b100000,
-							6'b100000,
-							6'b111100,
-							6'b100000,
-							6'b100000,
-							6'b100000 };
-								
-	always @( posedge clk )  begin
-		char_data['h0] <= hex_0[bitidx];
-		char_data['h1] <= hex_1[bitidx];									
-		char_data['h2] <= hex_2[bitidx];									
-		char_data['h3] <= hex_3[bitidx];									
-		char_data['h4] <= hex_4[bitidx];									
-		char_data['h5] <= hex_5[bitidx];									
-		char_data['h6] <= hex_6[bitidx];									
-		char_data['h7] <= hex_7[bitidx];									
-		char_data['h8] <= hex_8[bitidx];									
-		char_data['h9] <= hex_9[bitidx];									
-		char_data['hA] <= hex_A[bitidx];									
-		char_data['hB] <= hex_B[bitidx];									
-		char_data['hC] <= hex_C[bitidx];									
-		char_data['hD] <= hex_D[bitidx];									
-		char_data['hE] <= hex_E[bitidx];									
-		char_data['hF] <= hex_F[bitidx];
-    end
+	
+	// Read and overlay the roms
+	logic [7:0] charcode;
+	logic fontout;
+	always @(posedge clk) begin
+		// read char rom
+		charcode[7:0] <= text_rom[{ char_x[6:0], ycnt[8:4] }];
+		// Read the font rom
+		fontout <= font_rom[ { cntx6[2:0], ycnt[2:0], charcode[7:0] } ];
+	end
+	
+	// Gate overlay to left 128 chars of 30 odd rows 
+	assign overlay = ( ycnt[3] && !char_x[7] ) ? fontout : 1'b0; // only display odd lines and first 128 chars
 endmodule
 
+
+// Ascii font generator
+// The font codes are generated by spreadsheet: font_5x7_gen.xlsx
+// input: video sync
+// output: char x,y indexing chars places on 6x8 pel grid
+// output: binary array of ascii chars rendered over the full screen
+// A char can be generated and or'ed into the display
+// = ( char_x == x & char_y == y & ascii_char("Y") )
 module ascii_font57
 (
 	input clk,
@@ -463,4 +329,5 @@ always_comb begin
 	end
 	out = |char_overlay; // Reduction-OR
 end	
-endmodule		
+endmodule	
+
