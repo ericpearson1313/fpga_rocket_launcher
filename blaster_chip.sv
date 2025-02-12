@@ -801,18 +801,6 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.blue	( test_blue  )
 	);	
 	
-	// Ascii text overlay
-	logic text;
-	text_overlay _overlay 
-	(
-		.clk( hdmi_clk  ),
-		.reset( reset ),
-		.blank( blank ),
-		.hsync( hsync ),
-		.vsync( vsync ),
-		.overlay( text )
-	);
-	
 	//////////////////////
 	//////////////////////
    //
@@ -1034,7 +1022,6 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 						  (|pwr_str ) |
 						  (|in_str  ) |
 						  ( key_strg) |
-						  ( text    ) |
 						  (|res_str ) |
 						  (|id_str  ) ;
 	

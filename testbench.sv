@@ -1,9 +1,41 @@
 // top level launcher sim.
 `timescale 1ns / 1ps
 module testbench( );
-`define DIV_TEST
+
+`define FONT_GEN
+//`define DIV_TEST
 //`define PSRAM_TEST
 //`define BLASTER_TEST
+
+///////////////////////////////
+`ifdef FONT_GEN
+	
+	logic clk, reset;
+	logic blank, hsync, vsync;
+	logic [7:0] char_x, char_y;
+	logic [255:0] ascii_char;
+	logic [15:0] hex_char;
+	logic [1:0] bin_char;
+
+	ascii_font57 _font
+	(
+		.clk( 0 ),
+		.reset( 0 ),
+		.blank( 0 ),
+		.hsync( 0 ),
+		.vsync( 0 ),
+		.char_x( char_x ), // 0 to 105 chars horizontally
+		.char_y( char_y ), // o to 59 rows vertically
+		.hex_char   ( hex_char ),
+		.binary_char( bin_char ),
+		.ascii_char ( ascii_char )	
+	);
+
+	 initial begin
+        #(2.5ns)
+        $stop;
+	 end
+`endif // FONT_GEN
 
 ///////////////////////////////
 `ifdef DIV_TEST

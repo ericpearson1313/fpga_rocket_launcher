@@ -9,15 +9,15 @@ module text_overlay
 	input blank,
 	input hsync,
 	input vsync,
-	output overlay
+	output logic overlay
 );
 
 	// Load the font rom
-	reg font_rom [12287:0]; // indexed by ( col[2:0]<<(3+8) + row[2:0]<<8 + char[7:0] ) 
+	reg font_rom [16383:0]; // indexed by ( col[2:0]<<(3+8) + row[2:0]<<8 + char[7:0] ) 
 	initial $readmemb("font_rom_init.txt", font_rom);
 
 	// Load the overlay text for the screen
-	reg [7:0] text_rom [0:32767]; // indexed by { x[6:0], y[4:0] } giving 30 rows of 128 chars
+	reg [7:0] text_rom [4097:0]; // indexed by { x[6:0], y[4:0] } giving 30 rows of 128 chars
 	initial $readmemh("text_overlay_rom_init.txt", text_rom);
 	
 	// Generate the timing signals
@@ -72,11 +72,11 @@ module ascii_font57
 	input blank,
 	input hsync,
 	input vsync,
-	output [7:0] char_x,
-	output [7:0] char_y,
-	output [255:0] ascii_char, // supported chars else zero
-	output [1:0] binary_char, // for binary display
-	output [15:0]  hex_char  // easy to use for hex display
+	output logic [7:0] char_x,
+	output logic [7:0] char_y,
+	output logic [255:0] ascii_char, // supported chars else zero
+	output logic [1:0] binary_char, // for binary display
+	output logic [15:0]  hex_char  // easy to use for hex display
 );
 
 
@@ -154,6 +154,29 @@ assign pel[7][3] = {50'b11111_01010_01110_10000_00010_00000_01000_00100_10001_00
 assign pel[7][4] = {50'b00000_11111_10101_01000_00100_11111_01000_00100_11011_01000};
 assign pel[7][5] = {50'b00000_01010_00100_00100_01000_00000_01000_00100_01010_10011};
 assign pel[7][6] = {50'b00000_01010_00000_00010_10000_00000_00100_01000_11011_00011};
+
+// synthesis translate_off
+// take advantage and write out font_rom_init.txt
+// simulate testbenche and `define FONT_GEN
+// Run in sim to write out this matrix
+	logic font_rom [16383:0]; // indexed by ( col[2:0]<<(3+8) + row[2:0]<<8 + char[7:0] ) 
+	initial begin
+		// zero the rom
+		for( int cc = 0; cc < 8; cc++ )
+			for( int rr = 0; rr < 8; rr ++ )
+				for( int aa = 0; aa < 256; aa++ )
+					font_rom[ (cc<<11)+(rr<<8)+aa ] = 0;
+		// load the font bits into the ROM
+		for( int bb = 0; bb < 8; bb++ ) // number of blocks of 10 chars, extend to array size
+			for( int rr = 0; rr < 7; rr++ ) // number of rows in 5x7 font
+				for( int cc = 0; cc < 10; cc++ ) // number of chars per block
+					for( int pp = 0; pp < 5; pp++ )
+						font_rom[ (pp<<11)+(rr<<8)+code[bb][cc] ] = pel[bb][rr][cc][pp];
+		// Write out the font file - find it in the sim directory
+		$writememb("font_rom_init.txt", font_rom );
+	end
+// synthesis translate_on
+
 
 logic [2:0] cntx6;
 logic [8:0] ycnt;
@@ -248,7 +271,7 @@ module string_overlay
 	input [7:0] x,
 	input [7:0] y,
 	// The video output is a single bit
-	output out 
+	output logic out 
 );	
 
 logic [LEN-1:0] char_overlay;
@@ -282,7 +305,7 @@ module hex_overlay
 	input [7:0] x,
 	input [7:0] y,
 	// The video output is a single bit
-	output out 
+	output logic out 
 );	
 
 logic [LEN-1:0] char_overlay;
@@ -315,7 +338,7 @@ module bin_overlay
 	input [7:0] x,
 	input [7:0] y,
 	// The video output is a single bit
-	output out 
+	output logic out 
 );	
 
 logic [LEN-1:0] char_overlay;
