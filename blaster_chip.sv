@@ -1119,15 +1119,18 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	
 	assign { overlay_red, overlay_green, overlay_blue } =
 			( overlay ) ? 24'hFFFFFF :
-			( text_ovl && text_color == 4'h1 ) ? 24'hFFFFFF :
-			( text_ovl && text_color == 4'h2 ) ? 24'hff0000 :
-			( text_ovl && text_color == 4'h3 ) ? 24'hf00000 :			
+			( text_ovl && text_color == 4'h1 ) ? 24'hf00000 :
+			( text_ovl && text_color == 4'h2 ) ? 24'hFFFFFF :
+			( text_ovl && text_color == 4'h3 ) ? 24'hff0000 :			
 			( text_ovl && text_color == 4'h4 ) ? 24'h00ff00 :
-			( text_ovl && text_color == 4'h5 ) ? 24'h00c000 :
-			( text_ovl && text_color == 4'h6 ) ? 24'h0000ff :
+			( text_ovl && text_color == 4'h5 ) ? 24'h0000ff :
+			( text_ovl && text_color == 4'h6 ) ? 24'hc0c0c0 :
 			( text_ovl && text_color == 4'h7 ) ? 24'h0000c0 :
-			( text_ovl && text_color == 4'h8 ) ? 24'hc0c0c0 :
-			( text_ovl && text_color == 4'h9 ) ? 24'hc0c000 : 24'h000000;
+			( text_ovl && text_color == 4'h8 ) ? 24'h00c0c0 :
+			( text_ovl && text_color == 4'h9 ) ? 24'h00c000 : 
+			( text_ovl && text_color == 4'hA ) ? 24'hc0c000 : 
+			( text_ovl                       ) ? 24'hf0f000 : 
+															 24'h000000 ;
 
 	// video encoder
 	logic [7:0] hdmi2_data;
@@ -1141,7 +1144,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.vsync( vsync ),
 		.red	((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   ),
 		.green((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green ),
-		.blue	((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_bluoe ),
+		.blue	((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue ),
 		.hdmi_data( hdmi2_data )
 	);
 

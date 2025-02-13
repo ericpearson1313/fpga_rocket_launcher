@@ -123,7 +123,7 @@ module text_overlay
 	end
 	
 	// Gate overlay to left 128 chars of 30 odd rows 
-	assign overlay = ( !ycnt[3] && !char_x[7] ) ? fontout : 1'b0; // only display even lines and first 128 chars
+	assign overlay = fontout; //( !ycnt[3] && !char_x[7] ) ? fontout : 1'b0; // only display even lines and first 128 chars
 	assign color = color_reg;
 endmodule
 
