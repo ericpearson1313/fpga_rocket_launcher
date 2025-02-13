@@ -15,7 +15,7 @@ module ufm_flash (
 	);
 
 	altera_onchip_flash #(
-		.INIT_FILENAME                       (""),
+		.INIT_FILENAME                       ("flash_rom.hex.mif"),
 		.INIT_FILENAME_SIM                   (""),
 		.DEVICE_FAMILY                       ("MAX 10"),
 		.PART_NAME                           ("10M04SCE144C8G"),

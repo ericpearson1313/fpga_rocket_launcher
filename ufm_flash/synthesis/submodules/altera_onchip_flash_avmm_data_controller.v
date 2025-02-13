@@ -664,7 +664,7 @@ module altera_onchip_flash_avmm_data_controller (
             // FSM for read only operation. It is the simplify version of erase/write/read FSM
             // -------------------------------------------------------------------                
         
-            always @ (posedge clock) begin : _rd_fsm
+            always @ (posedge clock) begin
                 if (~reset_n_w) begin
                     op_state <= OP_STATE_IDLE;
                     csr_status_r_pass <= 0;
