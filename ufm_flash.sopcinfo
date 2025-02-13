@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <EnsembleReport name="ufm_flash" kind="ufm_flash" version="1.0" fabric="QSYS">
  <!-- Format version 23.1 991 (Future versions may contain additional information.) -->
- <!-- 2025.02.13.14:03:13 -->
+ <!-- 2025.02.13.17:07:46 -->
  <!-- A collection of modules and connections -->
  <parameter name="AUTO_GENERATION_ID">
   <type>java.lang.Integer</type>
-  <value>1739473392</value>
+  <value>1739484466</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -208,7 +208,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.memoryInfo.MEM_INIT_FILENAME</name>
-   <value>flash_rom.hex</value>
+   <value>flash_rom</value>
   </assignment>
   <assignment>
    <name>embeddedsw.memoryInfo.USE_BYTE_ADDRESSING_FOR_HEX</name>
@@ -320,7 +320,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="initializationFileName">
    <type>java.lang.String</type>
-   <value>flash_rom.hex.mif</value>
+   <value>flash_rom.mif</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -328,7 +328,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="initializationFileNameForSim">
    <type>java.lang.String</type>
-   <value></value>
+   <value>altera_onchip_flash.dat</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -345,7 +345,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="INIT_FILENAME">
    <type>java.lang.String</type>
-   <value>flash_rom.hex.mif</value>
+   <value>flash_rom.mif</value>
    <derived>true</derived>
    <enabled>false</enabled>
    <visible>false</visible>
@@ -353,7 +353,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="INIT_FILENAME_SIM">
    <type>java.lang.String</type>
-   <value></value>
+   <value>altera_onchip_flash.dat</value>
    <derived>true</derived>
    <enabled>false</enabled>
    <visible>false</visible>
