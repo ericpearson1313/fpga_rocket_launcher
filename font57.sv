@@ -9,16 +9,83 @@ module text_overlay
 	input blank,
 	input hsync,
 	input vsync,
-	output logic overlay
+	// Video outpus
+	output logic overlay,
+	output logic [3:0] color,
+	// flash serial avalon read 
+	input flash_clock,
+	output [11:0] flash_addr,
+	output flash_read,
+	input flash_data,
+	input	flash_wait,
+	input	flash_valid
 );
 
-	// Load the font rom
-	reg font_rom [16383:0]; // indexed by ( col[2:0]<<(3+8) + row[2:0]<<8 + char[7:0] ) 
-	initial $readmemb("font_rom_init.txt", font_rom);
+	
 
+	logic [16:0] waddr; // 2^17 bits is full 16Kbytes of flash 
+	logic [11:0] waddr12; 
+	logic [3:0] cnt12;
+	
+	always @(posedge flash_clock) begin
+		if( reset ) begin
+			waddr <= 0;
+			cnt12 <= 0;
+			waddr12<= 0;
+		end else if( waddr != 17'h1FFFF && flash_valid ) begin
+			waddr <= waddr + 1;
+			if( waddr >= 17'h04000 ) begin // loading text
+				cnt12 <= (cnt12 == 11) ? 0 : cnt12 + 1; // rolling count by 12
+				waddr12 <= (cnt12 == 11) ? waddr12 + 1 : waddr12;
+			end
+		end
+	end
+	
+	// Rom Write Flags
+	logic we_font;	// 16384x1b rom
+	logic we_text; // 4096x12b rom
+	assign we_font = ( flash_valid && waddr < 17'h04000 ) ? 1'b1 : 1'b0;
+	assign we_text = ( flash_valid && waddr >= 17'h04000 && cnt12 == 11 ) ? 1'b1 : 1'b0;
+	
+	// Flash Read address
+	assign flash_addr = { waddr[16:12], 7'b0000_000 }; // in 128 x 32bit = 4Kbit bursts
+	
+	// Flash read flag on 4Kbit boundaries, hold with wait
+	logic pend;
+	always @(posedge flash_clock) begin
+		if( reset ) begin
+			flash_read <= 0;
+			pend <= 0;
+		end else begin
+			if( !pend && !flash_read && waddr[11:0] == 0 ) begin
+				flash_read <= 1'b1;
+				pend <= 0;
+			end else if( flash_read && !flash_wait ) begin
+				flash_read <= 1'b0;
+				pend <= 1;
+			end else if( flash_valid ) begin
+				flash_read <= 0;
+				pend <= 0;
+			end
+		end
+	end
+			
+	// Load the font rom because rom init not supported by 'SC' compact devices
+	reg font_rom [16383:0]; // indexed by ( col[2:0]<<(3+8) + row[2:0]<<8 + char[7:0] ) 
+	always @(posedge flash_clock ) 
+		if( we_font ) font_rom[ waddr[13:0] ] <= flash_data;
+
+	// 12 bit shift register for text ram write
+	logic [11:0] flash_data12;
+	always @( posedge flash_clock )
+		if( flash_valid )	
+			flash_data12[11:0] <= { flash_data12[10:0], flash_data };		
+		
 	// Load the overlay text for the screen
-	reg [7:0] text_rom [4097:0]; // indexed by { x[6:0], y[4:0] } giving 30 rows of 128 chars
-	initial $readmemh("text_overlay_rom_init.txt", text_rom);
+	reg [11:0] text_rom [4097:0]; // indexed by { x[6:0], y[4:0] } giving 30 rows of 128 chars
+	always @(posedge flash_clock ) 
+		if( we_text ) 
+			text_rom[ waddr12[11:0] ] <= { flash_data12[10:0], flash_data };
 	
 	// Generate the timing signals
 	
@@ -44,18 +111,23 @@ module text_overlay
 	end
 	
 	// Read and overlay the roms
-	logic [7:0] charcode;
+	logic [11:0] charcode;
+	logic [3:0] color_reg;
 	logic fontout;
 	always @(posedge clk) begin
 		// read char rom
-		charcode[7:0] <= text_rom[{ char_x[6:0], ycnt[8:4] }];
+		charcode[11:0]  <= text_rom[{ char_x[6:0], ycnt[8:4] }];
 		// Read the font rom
 		fontout <= font_rom[ { cntx6[2:0], ycnt[2:0], charcode[7:0] } ];
+		color_reg <= charcode[11:8]; // char color
 	end
 	
 	// Gate overlay to left 128 chars of 30 odd rows 
-	assign overlay = ( ycnt[3] && !char_x[7] ) ? fontout : 1'b0; // only display odd lines and first 128 chars
+	assign overlay = ( !ycnt[3] && !char_x[7] ) ? fontout : 1'b0; // only display even lines and first 128 chars
+	assign color = color_reg;
 endmodule
+
+
 
 
 // Ascii font generator

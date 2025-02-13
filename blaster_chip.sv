@@ -84,9 +84,9 @@ logic clk4; // global 192MhZ spi8 clk
 logic hdmi_clk; 	// Pixel clk, apparentlyi can support 720p
 logic hdmi_clk5;  // 5x pixel clk clock for data xmit, 10b*3=30/3lanes=10ddr=5 
 
-spi8_pll _spll(
+trial_pll _spll(
 	.inclk0 (clk_in),		// External clock input
-	.c0     (clk_out), 	// External clock output differential
+	.c0     (clk_out), 	// Flash Clock 6Mhz, also External clock output differential
 	.c1	  (clk),			// Global Clock ADC rate 48 Mhz
 	.c2	  (clk4),		// Global Clock SPI8 rate 192 Mhz
 	.c3	  (hdmi_clk),	// HDMI pixel clk
@@ -118,27 +118,11 @@ assign reset = (reset_shift[3:0] != 4'hF) ? 1'b1 : 1'b0; // reset de-asserted af
 logic cont;
 assign cont = !cont_n;
 
+
+
 /////////////////////////////////////////////////////////
 
-// Dig I/O divided clocks
-logic [9:0] div_in, div_c0, div_c1, div_c2, div_c3, div_c4, div_c5;
 
-always @(posedge clk_in		) div_in <= div_in + 1;
-always @(posedge clk_out   ) div_c0 <= div_c0 + 1;
-always @(posedge clk   		) div_c1 <= div_c1 + 1;
-always @(posedge clk4   	) div_c2 <= div_c2 + 1;
-always @(posedge hdmi_clk  ) div_c3 <= div_c3 + 1;
-always @(posedge hdmi_clk5 ) div_c4 <= div_c4 + 1;
-always @(posedge clk 		) div_c5 <= div_c5 + 1;
-
-//assign digio[6:0] = { 1'b0,
-//							 div_c5[9],
-//						    div_c4[9],
-//						    div_c3[9],
-//						    div_c2[9],
-//						    div_c1[9],
-//						    div_c0[9],
-//						    div_in[9] };
 
 // Rs232 loopback
 assign tx232 = rx232;
@@ -801,6 +785,48 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.blue	( test_blue  )
 	);	
 	
+	// Flash Memory interface (init font and text overlay)
+	// the serial interface runs at 6 Mhz (max 7 Mhz!)
+	// we assigned c0 the output diff pair clock to this interface.
+	
+	logic [11:0] 	flash_addr; // 32 bit word address, 16Kbytes total flash for M04
+	logic 			flash_read;
+	logic				flash_data;
+	logic 			flash_wait;
+	logic 			flash_valid;
+	ufm_flash _flash (
+		.clock						( clk_out 			 ), // 6 Mhz
+		.avmm_data_addr			( flash_addr[11:0] ), // word address 
+		.avmm_data_read			( flash_read 		 ),
+		.avmm_data_readdata		( flash_data 		 ),
+		.avmm_data_waitrequest	( flash_wait 		 ),
+		.avmm_data_readdatavalid( flash_valid 		 ),
+		.avmm_data_burstcount	( 128 * 32 			 ), // 4K bit burst
+		.reset_n						( !reset 			 )
+	);	
+	
+	// Text Overlay 
+	logic text_ovl;
+	logic [3:0] text_color;
+	text_overlay _text
+	(
+		.clk( hdmi_clk  ),
+		.reset( reset ),
+		.blank( blank ),
+		.hsync( hsync ),
+		.vsync( vsync ),
+		// Overlay output bit for ORing
+		.overlay( text_ovl ),
+		.color( text_color ),
+		// Avalon bus to init font and text rams
+		.flash_clock( clk_out 			 ), // 6 Mhz
+		.flash_addr ( flash_addr[11:0] ), // word address 
+		.flash_read ( flash_read 		 ),
+		.flash_data ( flash_data 		 ),
+		.flash_wait ( flash_wait 		 ),
+		.flash_valid( flash_valid 		 )
+	);
+	
 	//////////////////////
 	//////////////////////
    //
@@ -1021,6 +1047,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 						  (|hex_str ) |
 						  (|pwr_str ) |
 						  (|in_str  ) |
+						  ( text_ovl && text_color == 0 ) | // normal text
 						  ( key_strg) |
 						  (|res_str ) |
 						  (|id_str  ) ;
@@ -1087,7 +1114,20 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.blue(  wave_scope_blue )	
 	);	
 
+	// Overlay Color
+	logic [7:0] overlay_red, overlay_green, overlay_blue;
 	
+	assign { overlay_red, overlay_green, overlay_blue } =
+			( overlay ) ? 24'hFFFFFF :
+			( text_ovl && text_color == 4'h1 ) ? 24'hFFFFFF :
+			( text_ovl && text_color == 4'h2 ) ? 24'hff0000 :
+			( text_ovl && text_color == 4'h3 ) ? 24'hf00000 :			
+			( text_ovl && text_color == 4'h4 ) ? 24'h00ff00 :
+			( text_ovl && text_color == 4'h5 ) ? 24'h00c000 :
+			( text_ovl && text_color == 4'h6 ) ? 24'h0000ff :
+			( text_ovl && text_color == 4'h7 ) ? 24'h0000c0 :
+			( text_ovl && text_color == 4'h8 ) ? 24'hc0c0c0 :
+			( text_ovl && text_color == 4'h9 ) ? 24'hc0c000 : 24'h000000;
 
 	// video encoder
 	logic [7:0] hdmi2_data;
@@ -1099,9 +1139,9 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( ( tiny ) ? tiny_red   : (wave_scope_red   | {8{|overlay}})),
-		.green( ( tiny ) ? tiny_green : (wave_scope_green | {8{|overlay}})),
-		.blue	( ( tiny ) ? tiny_blue  : (wave_scope_blue  | {8{|overlay}})),
+		.red	((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   ),
+		.green((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green ),
+		.blue	((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_bluoe ),
 		.hdmi_data( hdmi2_data )
 	);
 
