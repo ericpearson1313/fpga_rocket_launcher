@@ -129,7 +129,7 @@ int main( int argc, char **argv )
 		for( int ii = 7; ii >=0; ii-- )
 			fputc( (  text[(base+1)>>7][(base+1)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 3; ii >=0; ii-- )
-			fputc( ( color[(base+2)>>7][(base+1)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
+			fputc( ( color[(base+2)>>7][(base+2)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 7; ii >=4; ii-- )
 			fputc( (  text[(base+2)>>7][(base+2)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		fprintf(mif_fp, ";\n");
@@ -137,17 +137,17 @@ int main( int argc, char **argv )
 		// 2nd 
 		fprintf(mif_fp, "%03x : ", addr+1);
 		for( int ii = 3; ii >=0; ii-- )
-			fputc( (  text[(base+2)>>7][(base+5)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
+			fputc( (  text[(base+2)>>7][(base+2)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 3; ii >=0; ii-- )
-			fputc( ( color[(base+3)>>7][(base+2)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
+			fputc( ( color[(base+3)>>7][(base+3)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 7; ii >=0; ii-- )
 			fputc( (  text[(base+3)>>7][(base+3)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 3; ii >=0; ii-- )
-			fputc( ( color[(base+4)>>7][(base+3)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
+			fputc( ( color[(base+4)>>7][(base+4)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 7; ii >=0; ii-- )
 			fputc( (  text[(base+4)>>7][(base+4)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 3; ii >=0; ii-- )
-			fputc( ( color[(base+5)>>7][(base+4)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
+			fputc( ( color[(base+5)>>7][(base+5)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 
 		fprintf(mif_fp, ";\n");
 
@@ -156,11 +156,11 @@ int main( int argc, char **argv )
 		for( int ii = 7; ii >=0; ii-- )
 			fputc( (  text[(base+5)>>7][(base+5)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 3; ii >=0; ii-- )
-			fputc( ( color[(base+6)>>7][(base+5)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
+			fputc( ( color[(base+6)>>7][(base+6)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 7; ii >=0; ii-- )
-			fputc( (  text[(base+8)>>7][(base+6)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
+			fputc( (  text[(base+6)>>7][(base+6)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 3; ii >=0; ii-- )
-			fputc( ( color[(base+7)>>7][(base+6)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
+			fputc( ( color[(base+7)>>7][(base+7)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 		for( int ii = 7; ii >=0; ii-- )
 			fputc( (  text[(base+7)>>7][(base+7)&127] & (1<<ii) ) ? '1' : '0', mif_fp );
 
