@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <EnsembleReport name="ufm_flash" kind="system" version="23.1" fabric="QSYS">
- <!-- Format version 23.1 991 (Future versions may contain additional information.) -->
- <!-- 2025.02.13.17:07:47 -->
+ <!-- Format version 23.1 993 (Future versions may contain additional information.) -->
+ <!-- 2025.02.13.18:02:31 -->
  <!-- A collection of modules and connections -->
  <parameter name="clockCrossingAdapter">
   <type>com.altera.sopcmodel.ensemble.EClockAdapter</type>
@@ -53,7 +53,7 @@
  </parameter>
  <parameter name="generationId">
   <type>int</type>
-  <value>1739484466</value>
+  <value>1739487750</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>true</visible>
@@ -1301,6 +1301,6 @@ parameters are a RESULT of the module parameters. -->
   <displayName>Avalon Memory Mapped Slave</displayName>
   <version>23.1</version>
  </plugin>
- <reportVersion>23.1 991</reportVersion>
- <uniqueIdentifier>00FF05001C6800000195015A90AC</uniqueIdentifier>
+ <reportVersion>23.1 993</reportVersion>
+ <uniqueIdentifier>54B2030480F700000195018CABB2</uniqueIdentifier>
 </EnsembleReport>

@@ -45,9 +45,9 @@ module text_overlay
 	logic we_font;	// 16384x1b rom
 	logic we_text; // 4096x12b rom
 	assign we_font = ( flash_valid && waddr < 17'h04000 ) ? 1'b1 : 1'b0;
-	assign we_text = ( flash_valid && waddr >= 17'h04000 && cnt12 == 11 ) ? 1'b1 : 1'b0;
+	assign we_text = ( flash_valid && waddr >= 17'h04000 && waddr < 17'h10000 && cnt12 == 11 ) ? 1'b1 : 1'b0;
 	
-	// Flash Read address
+	// Flash Read address // 32 bit word address
 	assign flash_addr = { waddr[16:12], 7'b0000_000 }; // in 128 x 32bit = 4Kbit bursts
 	
 	// Flash read flag on 4Kbit boundaries, hold with wait
@@ -82,7 +82,7 @@ module text_overlay
 			flash_data12[11:0] <= { flash_data12[10:0], flash_data };		
 		
 	// Load the overlay text for the screen
-	reg [11:0] text_rom [4097:0]; // indexed by { x[6:0], y[4:0] } giving 30 rows of 128 chars
+	reg [11:0] text_rom [4095:0]; // indexed by { x[6:0], y[4:0] } giving 30 rows of 128 chars
 	always @(posedge flash_clock ) 
 		if( we_text ) 
 			text_rom[ waddr12[11:0] ] <= { flash_data12[10:0], flash_data };
@@ -113,17 +113,19 @@ module text_overlay
 	// Read and overlay the roms
 	logic [11:0] charcode;
 	logic [3:0] color_reg;
+	logic [2:0] cntx6_del;
 	logic fontout;
 	always @(posedge clk) begin
 		// read char rom
-		charcode[11:0]  <= text_rom[{ char_x[6:0], ycnt[8:4] }];
+		charcode[11:0]  <= text_rom[{ ycnt[8:4], char_x[6:0] }];
+		cntx6_del[2:0] <= cntx6[2:0];
 		// Read the font rom
-		fontout <= font_rom[ { cntx6[2:0], ycnt[2:0], charcode[7:0] } ];
+		fontout <= font_rom[ { cntx6_del[2:0], ycnt[2:0], charcode[7:0] } ];
 		color_reg <= charcode[11:8]; // char color
 	end
 	
 	// Gate overlay to left 128 chars of 30 odd rows 
-	assign overlay = fontout; //( !ycnt[3] && !char_x[7] ) ? fontout : 1'b0; // only display even lines and first 128 chars
+	assign overlay = ( !ycnt[3] && !char_x[7] ) ? fontout : 1'b0; // only display even lines and first 128 chars
 	assign color = color_reg;
 endmodule
 
