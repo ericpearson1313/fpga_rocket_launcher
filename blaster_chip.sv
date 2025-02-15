@@ -180,7 +180,7 @@ always @(posedge clk) begin
 	end
 end
 
-assign dump = fire_done | !iset[1]  | key == 5'h1B; // always dump after firing
+assign dump = fire_done  | key == 5'h1B; // always dump after firing
 
 ////////////////////////////////
 // Power On auto charge and continuity until fire button
@@ -304,7 +304,7 @@ always @(posedge clk) begin
 			end else if(( burn )																	// burnthrough
 			         || ( pulse_time >= (48  * 16))    									// usec @ 48 Mhz 
 						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (thresh_hi)))		// measure iout > 2.2 amps (panic only?)
-						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (thresh_hi)))	// est iout > 2.2 amps
+						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (thresh_hi)) && iset[1] )	// est iout > 2.2 amps, disable est use, fb only
 						) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
 				pulse_time <= 0;
