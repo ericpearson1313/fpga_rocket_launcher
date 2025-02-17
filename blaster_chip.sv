@@ -223,13 +223,13 @@ always @(posedge clk) begin
 	if( tone_cnt == 0 ) begin
 		spk_toggle <= !spk_toggle;
 		{spk_en, tone_cnt}<= ( key == 5'h11 || fire_button_debounce ) ? { 1'b1, 16'h2CCA } :
-								   ( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
+								   //( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
 								   ( key == 5'h13 ) ? { 1'b1, 16'h238D } :
-								   ( key == 5'h14 ) ? { 1'b1, 16'h218E } :
+								   //( key == 5'h14 ) ? { 1'b1, 16'h218E } :
 								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
-								   ( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
+								   //( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
 								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-								   ( key == 5'h18 || ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
+								   ( /*key == 5'h18 ||*/ ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
 	end else begin
 		tone_cnt <= tone_cnt - 1;
 		spk_en <= spk_en;
@@ -564,21 +564,29 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	logic [24:0] burn_addr;
 	logic [3:0] zoom;
 	logic zoom_button;
+	logic key_del;
 
 	
 	always @(posedge clk) begin
 		if( reset ) begin
 			zoom <= 0;
 			zoom_button <= 0;
+			key_del <= 0;
 		end else begin
+			key_del <= key[4];
 			zoom_button <= ( fire_done &  fire_button_debounce ) ? 1'b1 : 1'b0;
 			zoom_del <= zoom_button;
 			pwm_del <= pwm;
 			burn_del <= burn;
 			retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
 			base_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? awaddr : base_addr; 
-			burn_addr <= ( !burn_del && burn  ) ? awaddr : burn_addr; 
-			zoom <= ( !zoom_del && zoom_button ) ? ( ( zoom == 12 ) ? 0 : zoom + 1 ) : zoom;
+			burn_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? awaddr : // default to base addr
+			             ( !burn_del && burn                              ) ? awaddr : // snap to burn addr
+							 ( !key_del && key == 5'h16                       ) ? burn_addr + (512<<zoom) :
+							 ( !key_del && key == 5'h14                       ) ? burn_addr - (512<<zoom) :
+							                                                      burn_addr;
+			zoom <= ( !zoom_del && zoom_button || !key_del && key == 5'h12 ) ? ( ( zoom == 12 ) ? 0 : zoom + 1 ) : 
+					  (                             !key_del && key == 5'h18 ) ? ( ( zoom == 0 ) ? 11 : zoom - 1 ) : zoom;
 		end
 	end 
 	
@@ -615,7 +623,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.bvalid( ),
 		.bresp(  ),
 		// Read Addr
-		.araddr( ((burn)?burn_addr:base_addr) + ( araddr << zoom ) - (((burn)?(192*16):(64*16))<<zoom) ),
+		.araddr( burn_addr + ( araddr << zoom ) - (((burn)?(192*16):(64*16))<<zoom) ),
 		.arlen( 8'h04 ),	// assumed 4
 		.arvalid( arvalid ), // read valid	
 		.arready( arready ),
