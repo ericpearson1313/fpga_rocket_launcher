@@ -36,7 +36,8 @@ int main( int argc, char **argv )
 	printf("Read text overlay file\n");
 	for( int ii = 0; ii < 2; ii++ ) // Skip 2 lines
 		while( fgetc( text_fp ) != '\n' );
-	char text[32][128];
+	unsigned char text[32][128];
+	unsigned char c;
 	int color[32][128];
 	for( int row = 0; row < 32; row++ ) {  // clear mems, 32 rows
 		for( int col = 0; col < 128; col++ ) {
@@ -47,14 +48,14 @@ int main( int argc, char **argv )
 	for( int row = 0; row < 30; row++ ) {  // load 30 rows
 		// read text row
 		for( int col = 0; col < 129; col++ ) { // 128 char and newline
-			char c = fgetc( text_fp );
+			c = fgetc( text_fp );
 			if( c == '\n' ) 
 				break;
 			text[row][col] = c;
 		}
 		// read color row
 		for( int col = 0; col < 129; col++ ) {
-			char c = fgetc( text_fp );
+			c = fgetc( text_fp );
 			if( c == '\n' ) 
 				break;
 			color[row][col] =  
