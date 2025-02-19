@@ -4,7 +4,7 @@
   00000000000000000000000
 
 
-                                                                                                                     (3E.E=Open)
+                                                                                                                    (3E.E=Open)
   
                                                                                                                      (3F.F=Init)
 
@@ -12,43 +12,43 @@
 
                                                                                                                       1 sec/div
 
-                                          Ð
+                                          
 
-È A1 CapV* 6.4V/div 
+ A1 CapV* 6.4V/div 
 1111111111111111111
-É
+
 1
-È A0 OutI  2.5A/div 
+ A0 OutI  2.5A/div 
 2222222222222222222
-É
+
 2
-È A1 CapV  100V/div 
+ A1 CapV  100V/div 
 3333333333333333333
-É
+
 3
-È B0 CapI  2.5A/div 
+ B0 CapI  2.5A/div 
 4444444444444444444
-É
+
 4
-È B1 OutV  100V/div 
+ B1 OutV  100V/div 
 5555555555555555555
-É
+
 5
-ÈEst OutI  2.5A/div
+Est OutI  2.5A/div
 6666666666666666666
-É
+
 6
-È B1 OutV* 6.4V/div 
+ B1 OutV* 6.4V/div 
 7777777777777777777
-É
+
 7
-È A0 OutI* 150mA/div
+ A0 OutI* 150mA/div
 88888888888888888888
-É
+
 8
-È B0 CapI* 150mA/div
+ B0 CapI* 150mA/div
 99999999999999999999
-É
+
 9
   PWM
   AAA
@@ -56,7 +56,7 @@
 
   BURN
   AAAA
-                                          Ð
+                                          
            
   FIRE
   AAAA
