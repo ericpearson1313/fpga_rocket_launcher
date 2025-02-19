@@ -156,11 +156,11 @@ module ascii_font57
 
 // Character PELs data entry
 //     blk  char code
-logic [0:7][0:9][7:0] code; // Ascii Code for a give char
+logic [0:8][0:9][7:0] code; // Ascii Code for a give char
 //     blk  row char pel
-logic [0:7][0:6][0:9][0:4] pel; // pel data
+logic [0:8][0:6][0:9][0:4] pel; // pel data
 //     blk char  row  pel 
-logic [0:7][0:9][0:6][0:4] gated; // pel data gated by position
+logic [0:8][0:9][0:6][0:4] gated; // pel data gated by position
 //     ASCII
 logic [255:0] reduc; // Reduciton ORed ASCII ordered 	
 
@@ -228,6 +228,14 @@ assign pel[7][3] = {50'b11111_01010_01110_10000_00010_00000_01000_00100_10001_00
 assign pel[7][4] = {50'b00000_11111_10101_01000_00100_11111_01000_00100_11011_01000};
 assign pel[7][5] = {50'b00000_01010_00100_00100_01000_00000_01000_00100_01010_10011};
 assign pel[7][6] = {50'b00000_01010_00000_00010_10000_00000_00100_01000_11011_00011};
+assign code[8]   = {8'hC8,8'hC9,8'hCA,8'hCB,8'hCC,8'hCD,8'hCE,8'hCF,8'hD0,8'hD1};
+assign pel[8][0] = {50'b00000_11111_11111_11111_00000_00000_11111_00100_00000_11111};
+assign pel[8][1] = {50'b00111_00000_11110_01111_00000_00000_11111_01110_00100_11111};
+assign pel[8][2] = {50'b00100_00000_11100_00111_10000_00001_01110_11111_01110_11111};
+assign pel[8][3] = {50'b00100_00000_11000_00011_11000_00011_01110_00000_11111_11111};
+assign pel[8][4] = {50'b10101_00000_10000_00001_11100_00111_00100_00000_01110_11111};
+assign pel[8][5] = {50'b01110_00000_00000_00000_11110_01111_00100_00000_00100_11111};
+assign pel[8][6] = {50'b00100_00000_00000_00000_11111_11111_00000_00000_00000_11111};
 
 // synthesis translate_off
 // take advantage and write out font_rom_init.txt
@@ -241,7 +249,7 @@ assign pel[7][6] = {50'b00000_01010_00000_00010_10000_00000_00100_01000_11011_00
 				for( int aa = 0; aa < 256; aa++ )
 					font_rom[ (cc<<11)+(rr<<8)+aa ] = 0;
 		// load the font bits into the ROM
-		for( int bb = 0; bb < 8; bb++ ) // number of blocks of 10 chars, extend to array size
+		for( int bb = 0; bb < 9; bb++ ) // number of blocks of 10 chars, extend to array size
 			for( int rr = 0; rr < 7; rr++ ) // number of rows in 5x7 font
 				for( int cc = 0; cc < 10; cc++ ) // number of chars per block
 					for( int pp = 0; pp < 5; pp++ )
@@ -290,13 +298,13 @@ logic blank_d1;
 	
 	always_comb begin : _char_gating
 		// gate the PELS with the within char positions
-		for( int bb = 0; bb < 8; bb++ ) 
+		for( int bb = 0; bb < 9; bb++ ) 
 			for( int rr = 0; rr < 7; rr++ )
 				for( int cc = 0; cc < 10; cc++ )
 					for( int pp = 0; pp < 5; pp++ )
 						gated[bb][cc][rr][pp] = pel[bb][rr][cc][pp] & selx[pp] & sely[rr];
 		reduc = 0; 
-		for( int bb = 0; bb < 8; bb++ ) 
+		for( int bb = 0; bb < 9; bb++ ) 
 			for( int cc = 0; cc < 10; cc++ )
 				reduc[code[bb][cc]] = |gated[bb][cc]; // Reduction-OR for each char
 	end
