@@ -625,15 +625,28 @@ module vga_wave_display
 
 	logic [17:0] q0, q1, q2, q3;
 	
-	sram1024x9_2clk _mem0_0 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[17:9]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[0]),.q(q0[17:9]));
-	sram1024x9_2clk _mem0_1 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[ 8:0]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[0]),.q(q0[ 8:0]));
-	sram1024x9_2clk _mem1_0 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[17:9]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[1]),.q(q1[17:9]));
-	sram1024x9_2clk _mem1_1 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[ 8:0]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[1]),.q(q1[ 8:0]));
-	sram1024x9_2clk _mem2_0 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[17:9]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[2]),.q(q2[17:9]));
-	sram1024x9_2clk _mem2_1 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[ 8:0]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[2]),.q(q2[ 8:0]));
-	sram1024x9_2clk _mem3_0 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[17:9]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[3]),.q(q3[17:9]));
-	sram1024x9_2clk _mem3_1 (.wrclock(mem_clk),.rdclock(clk),.data(rdata[ 8:0]),.rdaddress(rd_addr),.wraddress(wr_addr),.wren(we[3]),.q(q3[ 8:0]));
+	reg [17:0] mem0 [799:0];
+	reg [17:0] mem1 [799:0];
+	reg [17:0] mem2 [799:0];
+	reg [17:0] mem3 [799:0];
 	
+	// Write ports
+	always @(posedge mem_clk) begin
+		if( we[0] ) mem0[wr_addr] <= rdata[17:0];
+		if( we[1] ) mem1[wr_addr] <= rdata[17:0];
+		if( we[2] ) mem2[wr_addr] <= rdata[17:0];
+		if( we[3] ) mem3[wr_addr] <= rdata[17:0];
+	end
+	
+	// Read Ports
+	always @( posedge clk) begin
+		q0 <= mem0[ rd_addr ];
+		q1 <= mem1[ rd_addr ];
+		q2 <= mem2[ rd_addr ];
+		q3 <= mem3[ rd_addr ];
+	end
+	
+
 	// Display Logic rd_data vs ycnt to give veritcal axis
 	// Scope screen is 256 rows on bottom 480 line display and takes the full 800 width. 
 	// The four channels will be different colors.
