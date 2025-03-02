@@ -624,26 +624,20 @@ module vga_wave_display
 	// Srams to hold the data
 
 	logic [17:0] q0, q1, q2, q3;
-	
-	reg [17:0] mem0 [799:0];
-	reg [17:0] mem1 [799:0];
-	reg [17:0] mem2 [799:0];
-	reg [17:0] mem3 [799:0];
-	
+	logic [17:0] rdata_d1, rdata_d2, rdata_d3;
+	reg [71:0] mem [799:0];
+		
 	// Write ports
 	always @(posedge mem_clk) begin
-		if( we[0] ) mem0[wr_addr] <= rdata[17:0];
-		if( we[1] ) mem1[wr_addr] <= rdata[17:0];
-		if( we[2] ) mem2[wr_addr] <= rdata[17:0];
-		if( we[3] ) mem3[wr_addr] <= rdata[17:0];
+		if( we[0] ) rdata_d3 <= rdata;
+		if( we[1] ) rdata_d2 <= rdata;
+		if( we[2] ) rdata_d1 <= rdata;
+		if( we[3] ) mem[wr_addr] <= { rdata[17:0], rdata_d1[17:0], rdata_d2[17:0], rdata_d3[17:0] };
 	end
 	
 	// Read Ports
 	always @( posedge clk) begin
-		q0 <= mem0[ rd_addr ];
-		q1 <= mem1[ rd_addr ];
-		q2 <= mem2[ rd_addr ];
-		q3 <= mem3[ rd_addr ];
+		{ q3,  q2, q1, q0 } <= mem[ rd_addr ];
 	end
 	
 
