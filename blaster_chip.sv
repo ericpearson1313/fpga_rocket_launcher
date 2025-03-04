@@ -695,21 +695,30 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 			               ( ad_strobe_d[2] ) ? ad_data[0] : 16'h0048;
 	assign wrfifo = (ad_strobe & psram_ready) | (|ad_strobe_d);
 	
-	adc_mem_fifo  #( 16, 9, 512 ) _write_fifo
-	( 
-		.clk ( clk ),
-		.reset ( reset ),
-		// status flags
-		.full( ),
-		.empty( ),
-		.almost_empty( almost_empty ),
-		// Input from adc's
-		.we( wrfifo ),
-		.d( wrfifo_data ),
-		// output to write port of psram
-		.re( wready ),
-		.q( wdata )
-	); 
+	adc_fifo _write_fifo
+	(
+	.clock( clk ),
+	.almost_empty( almost_empty ),
+	.wrreq( wrfifo ),
+	.data( wrfifo_data ),
+	.rdreq( wready ),
+	.q( wdata )
+	);
+	//adc_mem_fifo  #( 16, 9, 512 ) _write_fifo
+	//( 
+	//	.clk ( clk ),
+	//	.reset ( reset ),
+	//	// status flags
+	//	.full( ),
+	//	.empty( ),
+	//	.almost_empty( almost_empty ),
+	//	// Input from adc's
+	//	.we( wrfifo ),
+	//	.d( wrfifo_data ),
+	//	// output to write port of psram
+	//	.re( wready ),
+	//	.q( wdata )
+	//); 
 		
 	// Fifo Read / PSRAM Write control. 
 	// when there are 8 or more (!almost_empty)
