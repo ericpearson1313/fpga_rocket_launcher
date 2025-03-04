@@ -189,7 +189,7 @@ end
 logic [10:0] voltage; // in adc units
 assign voltage = ( v_in[11] ) ? 11'h000 : ( v_in[10:0] ^ 11'h7ff );
 logic [26:0] vscale; // scaled to normalize units << 10 precision
-assign vscale[26:0] = voltage * 16'd42089;
+assign vscale[26:0] = voltage * (* multstyle = "dsp" *) 16'd42089; // use a DSP element
 
 // Numerator is 38 bits = 27 num + 11 denom + 1 
 logic [38:0] numer;

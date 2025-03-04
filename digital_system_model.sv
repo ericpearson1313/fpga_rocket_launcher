@@ -48,7 +48,7 @@ assign deltav[12:0] = ( ( pwm ) ? ({ vcap_corr[11], vcap_corr[11:0] }) : 13'h000
 // signed multipley s13 * s17 = s30 (16+1) >> 24
 
 logic [29:0] deltai;
-assign deltai[29:0] = $signed( deltav[12:0] ) * $signed( { 1'b0, 16'd36837 } );
+assign deltai[29:0] = $signed( deltav[12:0] ) * (* multstyle = "dsp" *) $signed( { 1'b0, 16'd36837 } ); // Use a DSP 18x18 block
 
 // Iest current is signed 12.24 in ADC current DN scale
 assign iest_next[35:0] = i_acc[35:0] + { {6{deltai[29]}}, deltai[29:0] };
