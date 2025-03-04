@@ -186,7 +186,7 @@ end
 	
 // Voltage Input
 // clip -ve to zero and format for input
-logic [11:0] voltage; // in adc units
+logic [10:0] voltage; // in adc units
 assign voltage = ( v_in[11] ) ? 11'h000 : ( v_in[10:0] ^ 11'h7ff );
 logic [26:0] vscale; // scaled to normalize units << 10 precision
 assign vscale[26:0] = voltage * 16'd42089;
