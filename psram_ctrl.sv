@@ -40,7 +40,7 @@ module psram_ctrl(
 		output logic	[1:0]	bresp,
 		// Read Addr
 		input	 logic [24:0]	araddr,
-		input	 logic [7:0] 	arlen,	// assumed 4
+		input	 logic [7:0] 	arlen,	// assumed 4, or 32
 		input	 logic 			arvalid,	
 		output logic 			arready,
 		// Read Data
@@ -54,7 +54,7 @@ module psram_ctrl(
 	logic [0:4][0:8][0:24][0:3][3:0] cmds;
 	// Command shift registers
 	//     CMD State
-	logic [0:4][0:24] cmd_sreg, cmd_sreg_d;
+	logic [0:4][0:43] cmd_sreg, cmd_sreg_d;
 	
 	// Anded command reg and command bits, ready for Reduction OR
 	//     SIG   Nib phase CMD State   (output)
@@ -343,6 +343,16 @@ module psram_ctrl(
 			awaddr_reg <= ( awvalid && awready ) ? awaddr : awaddr_reg;
 			araddr_reg <= ( arvalid && arready ) ? araddr : araddr_reg;
 		end
+		
+		// Read burst length 32 register
+		logic bl32_flag;
+		always @(posedge clk) begin		
+			if( reset ) begin 
+				bl32_flag <= 0;
+			end else begin
+				bl32_flag <= ( arvalid && arready ) ? arlen[5] : bl32_flag;
+			end
+		end
 
 		assign awready = ( state == STATE_READY && next_state == STATE_CMD_WRMEM ) ? 1'b1 : 1'b0;
 		assign arready = ( state == STATE_READY && next_state == STATE_CMD_RDMEM ) ? 1'b1 : 1'b0;
@@ -371,8 +381,18 @@ module psram_ctrl(
 		for( int idx = 1; idx < 3; idx++ ) cmd_sreg_d[CRESET][idx] = cmd_sreg[CRESET][idx-1];
 		for( int idx = 1; idx <21; idx++ ) cmd_sreg_d[CRDID7][idx] = cmd_sreg[CRDID7][idx-1];
 		for( int idx = 1; idx < 8; idx++ ) cmd_sreg_d[CWRLAT][idx] = cmd_sreg[CWRLAT][idx-1];
-		for( int idx = 1; idx <15; idx++ ) cmd_sreg_d[CRDMEM][idx] = cmd_sreg[CRDMEM][idx-1];
+		for( int idx = 1; idx <44; idx++ ) cmd_sreg_d[CRDMEM][idx] = cmd_sreg[CRDMEM][idx-1];
 		for( int idx = 1; idx <18; idx++ ) cmd_sreg_d[CWRMEM][idx] = cmd_sreg[CWRMEM][idx-1];
+		// Special case for bl=32 read
+		if( bl32_flag ) begin // BL=32, repeat step 13 29 times
+			cmd_sreg_d[CRDMEM][13] = cmd_sreg[CRDMEM][12] | ( cmd_sreg[CRDMEM][13] & !cmd_sreg[CRDMEM][14+29] ); 
+			cmd_sreg_d[CRDMEM][14] = cmd_sreg[CRDMEM][14+29];
+			cmd_sreg_d[CRDMEM][15] = cmd_sreg[CRDMEM][12];
+		end else begin // default BL = 4, normal step to 14 last
+			cmd_sreg_d[CRDMEM][13] = cmd_sreg[CRDMEM][12];
+			cmd_sreg_d[CRDMEM][14] = cmd_sreg[CRDMEM][13];
+			cmd_sreg_d[CRDMEM][15] = 0;
+		end
 	end
 	
 	always @(posedge clk) begin
