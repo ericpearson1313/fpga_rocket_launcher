@@ -10,9 +10,9 @@
 
 
 
-                                                                                                                      1 sec/div
 
-                                          
+
+                                                                                                                     1 sec/div
 
   A1 CapV* 6.4V/div 
  1111111111111111111
@@ -46,17 +46,17 @@
  88888888888888888888
 
 888
-  B0 CapI* 150mA/div
+  B0 CapI* 150mA/div                                                                              Resistance Beep Codes
  99999999999999999999
-                                       
+                                                                                               1 - OK, between 1$ to 8$
 999
-  PWM
-  AAA
-                                          
+  PWM                                                                                              2 - HIGH, over 8$
 
-  BURN
-  AAAA
+                                                                                                   3 - OPEN, or Cap low voltage
+
+  BURN                                                                                             4 - SHORT, under 1$
+
                                           
            
-  FIRE
-  AAAA
+  FIRE                                                                                                          Commit [0123ABC]
+
