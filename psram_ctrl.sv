@@ -38,11 +38,16 @@ module psram_ctrl(
 		input	 logic 			bready,	// Assume 1, non blocking
 		output logic			bvalid,
 		output logic	[1:0]	bresp,
-		// Read Addr
-		input	 logic [24:0]	araddr,
-		input	 logic [7:0] 	arlen,	// assumed 4, or 32
-		input	 logic 			arvalid,	
-		output logic 			arready,
+		// Read Addr port 0
+		input	 logic [24:0]	araddr0,
+		input	 logic [7:0] 	arlen0,	// assumed 4, or 32
+		input	 logic 			arvalid0,	
+		output logic 			arready0,
+		// Read Addr port 1
+		input	 logic [24:0]	araddr1,
+		input	 logic [7:0] 	arlen1,	// assumed 4, or 32
+		input	 logic 			arvalid1,	
+		output logic 			arready1,
 		// Read Data
 		output logic [17:0]	rdata,   // {2{ rwds, data[7:0}}}
 		output logic 			rvalid,
@@ -289,7 +294,8 @@ module psram_ctrl(
 				STATE_CMD_WRLAT_WAIT :	next_state = ( lastq ) ? STATE_READY : STATE_CMD_WRLAT_WAIT ;
 				// Ready for command, recieve and dispatch
 				STATE_READY        :	next_state = 	( awvalid ) ? 	STATE_CMD_WRMEM :
-																( arvalid ) ? 	STATE_CMD_RDMEM :
+																( arvalid0 ) ? STATE_CMD_RDMEM :
+																( arvalid1 ) ? STATE_CMD_RDMEM :
 																					STATE_READY     ;
 				// Read Mem burst
 				STATE_CMD_RDMEM : 		next_state = STATE_CMD_RDMEM_WAIT;
@@ -341,7 +347,8 @@ module psram_ctrl(
 	
 		always @(posedge clk) begin
 			awaddr_reg <= ( awvalid && awready ) ? awaddr : awaddr_reg;
-			araddr_reg <= ( arvalid && arready ) ? araddr : araddr_reg;
+			araddr_reg <= ( arvalid0 && arready0 ) ? araddr0 : 
+						     ( arvalid1 && arready1 ) ? araddr1 : araddr_reg;
 		end
 		
 		// Read burst length 32 register
@@ -350,12 +357,16 @@ module psram_ctrl(
 			if( reset ) begin 
 				bl32_flag <= 0;
 			end else begin
-				bl32_flag <= ( arvalid && arready ) ? arlen[5] : bl32_flag;
+				bl32_flag <= ( arvalid0 && arready0 ) ? arlen0[5] :
+								 ( arvalid1 && arready1 ) ? arlen1[5] : bl32_flag;
 			end
 		end
 
+		// writes are priority state
 		assign awready = ( state == STATE_READY && next_state == STATE_CMD_WRMEM ) ? 1'b1 : 1'b0;
-		assign arready = ( state == STATE_READY && next_state == STATE_CMD_RDMEM ) ? 1'b1 : 1'b0;
+		// Read arbitter
+		assign arready0 = ( state == STATE_READY && next_state == STATE_CMD_RDMEM &&  arvalid0             ) ? 1'b1 : 1'b0;
+		assign arready1 = ( state == STATE_READY && next_state == STATE_CMD_RDMEM && !arvalid0 && arvalid1 ) ? 1'b1 : 1'b0;
 		
 		// Write Response
 		assign bvalid = ( state == STATE_CMD_WRMEM_WAIT && lastq ) ? 1'b1 : 1'b0;
