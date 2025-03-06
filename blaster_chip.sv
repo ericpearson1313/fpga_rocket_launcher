@@ -156,8 +156,9 @@ logic fire_done ; // self discharge
 logic scroll_halt;
 logic cap_halt; // full rate capture
 logic fire_button_debounce;
+logic long_fire; // fire button held down >1 wsec
 
-debounce _firedb ( .clk( clk ), .reset( reset ), .in( fire_button ), .out( fire_button_debounce ) );
+debounce _firedb ( .clk( clk ), .reset( reset ), .in( fire_button ), .out( fire_button_debounce ), .long( long_fire ));
 
 parameter PWM_START     = 1; // Enable PWM current control 
 parameter PWM_END			= (48+16) * 1000 * 1000; // Total time 1.333 sec
@@ -851,7 +852,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	logic        bv_wvalid;
 	logic blipvert;
 	
-	assign blipvert = ( key == 5'h17 ) ? 1'b1 : 1'b0;
+	assign blipvert = ( key == 5'h17 || long_fire ) ? 1'b1 : 1'b0;
 	
 	blipvert _bv_unit (
 		// System
@@ -1232,36 +1233,59 @@ endmodule
 // 1024 moving window debounce 80/20
 // tick is about 1 per 480 cycles
 
-localparam DB_STATE_IDLE 		= 0;
-localparam DB_STATE_PRESS 		= 3;
-localparam DB_STATE_RELEASE 	= 1;
+
 
 			
 module debounce(
 	input clk,
 	input reset,
 	input in,
-	output out
+	output out,	// fixed pulse 15ms after 5ms pressure
+	output long // after fire held for > 2/3 sec, until release
 	);
 	
-	logic [21:0] count;
-	logic [1:0] state;
+	logic [25:0] count1; // total 1.3 sec
+	logic [22:0] count0;
+	logic [2:0] state;
+
+	// State Machine	
+	localparam S_IDLE 		= 0;
+	localparam S_WAIT_PRESS	= 1;
+	localparam S_WAIT_PULSE	= 2;
+	localparam S_WAIT_LONG	= 3;
+	localparam S_LONG			= 4;
+	localparam S_WAIT_OFF	= 5;
+	localparam S_WAIT_LOFF	= 6;
 	
 	always @(posedge clk) begin
 		if( reset ) begin
-			state <= DB_STATE_IDLE;
-			count <= 22'h0;
+			state <= S_IDLE;
 		end else begin
-			state <= ( state == DB_STATE_IDLE    && count == 22'h040000 ) ? DB_STATE_PRESS : 	// 5ms pressed 
-						( state == DB_STATE_PRESS   && count == 22'h100000 ) ? DB_STATE_RELEASE : // 20ms output pulse
-						( state == DB_STATE_RELEASE && count == 22'h3FFFFF ) ? DB_STATE_IDLE    : // wait 80 ms release
-															  								  state;	// else hold state
-			count <= ( state == DB_STATE_IDLE    && !in ) ? 0 :
-						( state == DB_STATE_RELEASE &&  in ) ? 0 : count + 1;
-	   end
+			case( state )
+				S_IDLE 		 :	state <= ( in ) ? S_WAIT_PRESS : S_IDLE;
+				S_WAIT_PRESS :	state <= (!in ) ? S_IDLE :
+			                           (count1 == ( 5  * 48000 )) ? S_WAIT_PULSE : S_WAIT_PRESS;
+				S_WAIT_PULSE :	state <= (count1 == ( 25 * 48000 )) ? S_WAIT_LONG : S_WAIT_PULSE; 
+				S_WAIT_LONG	 :	state <= (!in ) ? S_WAIT_OFF :
+				                        (count1 >= 26'h20_00000 ) ? S_LONG : S_WAIT_LONG;
+				S_LONG		 :	state <= (!in ) ? S_WAIT_LOFF :  S_LONG;
+				S_WAIT_OFF	 :	state <= ( in ) ? S_WAIT_LONG : 
+				                        (count0 == ( 100 * 48000)) ? S_IDLE : S_WAIT_OFF;
+				S_WAIT_LOFF	 :	state <= ( in ) ? S_LONG :
+												(count0 == ( 100 * 48000)) ? S_IDLE : S_WAIT_LOFF;
+				default: state <= S_IDLE;
+			endcase
+		end
 	end
 	
-	assign out = ( state == DB_STATE_PRESS ) ? 1'b1 : 1'b0;	// debounced output pulse
+	assign out = (state == S_WAIT_PULSE) ? 1'b1 : 1'b0;
+	assign long = (state == S_LONG || state == S_WAIT_LOFF) ? 1'b1 : 1'b0;
+	
+	// Counters
+	always @(posedge clk) begin
+		count0 <= ( state == S_WAIT_OFF || state == S_WAIT_LOFF ) ? count0 + 1 : 0; // count when low waiting
+		count1 <= ( state == S_IDLE ) ? 0 : count1 + 1; 
+	end
 
 endmodule
 	
