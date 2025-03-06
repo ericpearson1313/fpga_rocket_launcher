@@ -228,7 +228,7 @@ always @(posedge clk) begin
 								   //( key == 5'h14 ) ? { 1'b1, 16'h218E } :
 								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
 								   //( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
-								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
+								   //( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
 								   ( /*key == 5'h18 ||*/ ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
 	end else begin
 		tone_cnt <= tone_cnt - 1;
@@ -590,6 +590,11 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		end
 	end 
 	
+	// bv raddr bus 
+	logic [24:0] 	bv_araddr;
+	logic [7:0]  	bv_arlen; // always == 8'd32
+	logic        	bv_arvalid;
+	logic 		 	bv_arready;
 	psram_ctrl _psram_ctl(
 		// System
 		.clk		( clk ),
@@ -622,12 +627,17 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.bready( 1'b1 ),	// Assume 1, non blocking
 		.bvalid( ),
 		.bresp(  ),
-		// Read Addr
-		.araddr( burn_addr + ( araddr << zoom ) - (((burn)?(192*16):(64*16))<<zoom) ),
-		.arlen( 8'h04 ),	// assumed 4
-		.arvalid( arvalid ), // read valid	
-		.arready( arready ),
-		// Read Data
+		// Read Addr, Port 0, bl=4
+		.araddr0 ( burn_addr + ( araddr << zoom ) - (((burn)?(192*16):(64*16))<<zoom) ),
+		.arlen0  ( 8'd04 ),	// assumed 4
+		.arvalid0( arvalid ), // read valid	
+		.arready0( arready ),
+		// Read Addr, Port 1, bl = 32
+		.araddr1 ( bv_araddr ),
+		.arlen1  ( bv_arlen ),	// assumed 32
+		.arvalid1( bv_arvalid ), // read valid	
+		.arready1( bv_arready ),
+		// Read Data, shared
 		.rdata( rdata[17:0] ),
 		.rvalid( rvalid ),
 		.rready( 1'b1 ) // Assumed 1, non blocking
@@ -704,22 +714,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	.rdreq( wready ),
 	.q( wdata )
 	);
-	//adc_mem_fifo  #( 16, 9, 512 ) _write_fifo
-	//( 
-	//	.clk ( clk ),
-	//	.reset ( reset ),
-	//	// status flags
-	//	.full( ),
-	//	.empty( ),
-	//	.almost_empty( almost_empty ),
-	//	// Input from adc's
-	//	.we( wrfifo ),
-	//	.d( wrfifo_data ),
-	//	// output to write port of psram
-	//	.re( wready ),
-	//	.q( wdata )
-	//); 
-		
+
 	// Fifo Read / PSRAM Write control. 
 	// when there are 8 or more (!almost_empty)
 	// psram write awaddr and awvalid write request
@@ -843,7 +838,55 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.flash_wait ( flash_wait 		 ),
 		.flash_valid( flash_valid 		 )
 	);
+
+	/////////////////////////////////////////////////////
+	// BlipVert, 1sec dump of 32M sram on HDMI video out
+	/////////////////////////////////////////////////////
 	
+	// clock crossing of blank
+	logic [1:0] bvena;
+	always @(posedge clk) bvena[1:0] <= { bvena[0], !blank };	
+	
+	logic [16:0] bv_wdata;
+	logic        bv_wvalid;
+	logic blipvert;
+	
+	assign blipvert = ( key == 5'h17 ) ? 1'b1 : 1'b0;
+	
+	blipvert _bv_unit (
+		// System
+		.clk		( clk ),
+		.reset	( reset ),
+		// enable input
+		.enable	( bvena[1] & blipvert ), // Rising edge starts
+		// Psram Port
+		.araddr	( bv_araddr ), 
+		.arlen 	( bv_arlen  ), // bv uses 32 always
+		.arvalid	( bv_arvalid ), // read valid	
+		.arready	( bv_arready ),
+		.rdata	( rdata[17:0] ),
+		.rvalid	( rvalid ),
+		// Output data 
+		.vdata	( bv_wdata ),
+		.vvalid	( bv_wvalid )
+	);
+		
+	
+	// Clock domain crossing fifo 17bit wide
+	logic [16:0] bv_vdata;
+	logic        bv_vvalid_n; // inverse valid
+	bvfifo _bv_fifo (
+		// Write port
+		.wrclk	( clk ),
+		.wrreq	( bv_wvalid ),
+		.data		( bv_wdata[16:0] ),
+		// Read port
+		.rdclk	( hdmi_clk ),
+		.rdreq	( !bv_vvalid_n ), // auto read when not emptyu
+		.rdempty	( bv_vvalid_n ),
+		.q			( bv_vdata[16:0] ),
+		);	
+		
 	//////////////////////
 	//////////////////////
    //
@@ -1159,12 +1202,15 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   ),
-		.green((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green ),
-		.blue	((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue ),
+		.red	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 : (bv_vdata[16] ? 8'h08 : 8'h04) ) 
+		                   : ((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   )),
+		.green( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[15:8] ) 
+		                   : ((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green )),
+		.blue	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[7:0]  ) 
+		                   : ((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue  )),
 		.hdmi_data( hdmi2_data )
 	);
-
+		
 	// HDMI 2 Output, DDR outputs
 	hdmi_out _hdmi2_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
@@ -1284,4 +1330,74 @@ module key_scan(
 					 ( col[2  ] == 3'b1   && row[3] ) ? 5'h1A : 5'h00;		
 		end
 	end	
+endmodule
+
+// BlipVert - From max headroom
+// dump the entire memory as video pixels
+// When enabled during active video line pels (!blank)
+// writes address, end then burst reads 1kB to video each scanline
+
+module blipvert (
+	input clk,
+	input reset,
+	input enable,
+	// Axi4 read Bus
+	output logic [24:0] araddr,
+	output logic [7:0]  arlen,
+	output logic        arvalid,
+	input  logic        arready,
+	input  logic [17:0] rdata,
+	input  logic        rvalid,
+	// Video output data to fifo to hdmi live video
+	output [16:0] vdata,
+	output        vvalid
+	);
+	
+	// State machine
+	logic [1:0] state;
+	localparam S_IDLE 	= 0;
+	localparam S_ADDR 	= 1;
+	localparam S_VALID   = 2;
+	localparam S_WAIT		= 3;
+	
+	always @(posedge clk) begin
+		if( reset ) begin
+			state <= S_IDLE;
+		end else begin
+			case( state )
+				S_IDLE : state <= ( enable ) ? S_ADDR : S_IDLE;
+				S_ADDR : state <= ( enable ) ? S_VALID : S_IDLE;
+				S_VALID: state <= ( !enable ) ? S_IDLE :
+			                      ( arready && arvalid && addr[9:6] == 4'hF ) ? S_WAIT : S_VALID; 
+				S_WAIT : state <= ( enable ) ? S_WAIT : S_IDLE;
+			endcase
+		end
+	end
+	assign arvalid = ( state == S_VALID ) ? 1'b1 : 1'b0;
+
+	// Read Address
+	logic [24:0] addr;
+	logic [24:10] next_addr;
+	
+	assign next_addr[24:10] = addr[24:10] + 1;
+
+	always @(posedge clk) begin
+		if( reset ) begin
+			addr <= 0;
+		end else begin
+			addr[5:0] <= 0;
+			addr[9:6] <= ( state == S_ADDR ) ? 4'h0 :
+			             ( state == S_VALID && arready && arvalid ) ? addr[9:6] + 4'h1 : addr[9:6];
+			addr[24:10] <= ( state == S_ADDR ) ? next_addr[24:10] : addr[24:10];
+		end
+	end
+	assign araddr[24:0] = addr[24:0];
+	assign arlen[7:0] = 8'd32; 
+
+	// Output
+	always @(posedge clk) begin
+		vvalid <= ( state == S_ADDR || ( enable && rvalid )) ? 1'b1 : 1'b0;
+		vdata  <= ( state == S_ADDR ) ? { 2'b10, next_addr[24:10] } : { 1'b0, rdata[16:9], rdata[7:0] };
+	end
+	
 endmodule
