@@ -698,40 +698,20 @@ module vga_wave_display
 	end	
 	
 	
-	// Color Legend Strings
-	logic est_str, pwm_str, tit_str, bn_str, fr_str;
-	logic a0_str, a1_str, a2_str, b0_str, b1_str, b2_str, a01_str, b01_str;
-	logic hor_str, ho2_str;
-	//string_overlay #(.LEN(50)) _title   (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h01), .out(tit_str), .str("3MHZ 4CH 12BIT 4MSample TRACE BUFFER, 800x480 XVGA") );	
-	//string_overlay #(.LEN(19)) _a0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h12), .out( a0_str), .str(" A0 OutI  2.5A/div ") );
-	//string_overlay #(.LEN(19)) _a1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h16), .out( a1_str), .str(" A1 CapV  100V/div ") );
-	//string_overlay #(.LEN(19)) _b0_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h1A), .out( b0_str), .str(" B0 CapI  2.5A/div ") );
-	//string_overlay #(.LEN(19)) _b1_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h1E), .out( b1_str), .str(" B1 OutV  100V/div ") );
-	//string_overlay #(.LEN(19)) _est_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h22), .out(est_str), .str("Est OutI  2.5A/div ") );
-	//string_overlay #(.LEN( 3)) _pwm_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h03),.y('h32), .out(pwm_str), .str("PWM") );
-	//string_overlay #(.LEN( 4)) _bn_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h03),.y('h36), .out( bn_str), .str("BURN") );
-	//string_overlay #(.LEN( 4)) _fr_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h03),.y('h3A), .out( fr_str), .str("FIRE") );
-	//string_overlay #(.LEN(19)) _b2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h26), .out( b2_str), .str(" B1 OutV* 6.4V/div ") );
-	//string_overlay #(.LEN(19)) _a2_str  (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h0E), .out( a2_str), .str(" A1 CapV* 6.4V/div ") );
-	//string_overlay #(.LEN(19)) _a01_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2A), .out(a01_str), .str(" A0 OutI* 150mA/div") );
-	//string_overlay #(.LEN(19)) _b01_str (.clk(clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h02),.y('h2e), .out(b01_str), .str(" B0 CapI* 150mA/div") );
-
-	
 	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
 	assign { red, green, blue } = 
-					( tit_str| hor_str | ho2_str ) ? 24'hFFFFFF : // Title text
-					( pel_a0 | a0_str  ) ? 24'hFFFFFF :
-					( pel_a01|a01_str  ) ? 24'h00c0c0 :
-					( pel_a1 | a1_str  ) ? 24'hff0000 :
-					( pel_a2 | a2_str  ) ? 24'hf00000 :			
-					( pel_b0 | b0_str  ) ? 24'h00ff00 :
-					( pel_b01|b01_str  ) ? 24'h00c000 :
-					( pel_b1 | b1_str  ) ? 24'h0000ff :
-					( pel_b2 | b2_str  ) ? 24'h0000c0 :
-					( pel_es | est_str ) ? 24'hc0c0c0 :
-					( pel_pw | pwm_str ) ? 24'hc0c000 :		
-					( pel_bn | bn_str  ) ? 24'hc0c000 :		
-					( pel_fr | fr_str  ) ? 24'hc0c000 :				
-					( pel_gd           ) ? 24'h32006a : 24'h000000;
+					( pel_a0  ) ? 24'hFFFFFF :
+					( pel_a01 ) ? 24'h00c0c0 :
+					( pel_a1  ) ? 24'hff0000 :
+					( pel_a2  ) ? 24'hf00000 :			
+					( pel_b0  ) ? 24'h00ff00 :
+					( pel_b01 ) ? 24'h00c000 :
+					( pel_b1  ) ? 24'h0000ff :
+					( pel_b2  ) ? 24'h0000c0 :
+					( pel_es  ) ? 24'hc0c0c0 :
+					( pel_pw  ) ? 24'hc0c000 :		
+					( pel_bn  ) ? 24'hc0c000 :		
+					( pel_fr  ) ? 24'hc0c000 :				
+					( pel_gd  ) ? 24'h32006a : 24'h000000;
 	
 endmodule

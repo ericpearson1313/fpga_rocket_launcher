@@ -349,46 +349,6 @@ always @(posedge clk) begin
 end
 
 
-
-blaster _blaster (
-	// Input Buttons
-	.arm_button( arm_button ), // arm is the power button, does this make sense
-	.fire_button( fire_button ), // active high
-
-	// Output LED/SPK
-	.arm_led( /*arm_led*/ ),
-	.cont_led( /*cont_led*/ ),
-	.speaker( /*speaker*/ ),
-	
-	// Charger
-	.lt3420_done( lt3420_done ),
-	.lt3420_charge( /*lt3420_charge*/ ),
-
-	// Voltage Controls
-	.pwm( /*pwm*/ ),
-	.dump( /*dump*/ ),
-
-	// Continuity feedback
-	.cont( cont ),
-	
-	// Current setting
-	.iset( iset  ),
-	
-	// External A/D Converters
-	.ad_cs(  ),
-	.ad_sdata_a( 2'b00 ),
-	.ad_sdata_b( 2'b00 ),
-	.ad_a0(  ),
-	.ad_a1(  ),
-	.ad_b0(  ),
-	.ad_b1(  ),
-	.ad_strobe(  ),
-
-	// Input clock
-	.clk( clk ),
-	.reset( reset )
-);
-
 // Free runnig ADC converters
 // 12 bit, 4 channel simultaneous, 3 Mhz
 adc_module_4ch  _adc (
@@ -885,7 +845,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.rdclk	( hdmi_clk ),
 		.rdreq	( !bv_vvalid_n ), // auto read when not emptyu
 		.rdempty	( bv_vvalid_n ),
-		.q			( bv_vdata[16:0] ),
+		.q			( bv_vdata[16:0] )
 		);	
 		
 	//////////////////////
