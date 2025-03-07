@@ -38,25 +38,25 @@
  6666666666666666666
 
 666
-  B1 OutV* 6.4V/div 
+  B1 OutV* 6.4V/div                                                                               Resistance Beep Codes 
  7777777777777777777
-
+                                                                                                1 - OK, between 1$ to 8$
 777
-  A0 OutI* 150mA/div
+  A0 OutI* 150mA/div                                                                              2 - HIGH, over 8$
  88888888888888888888
-
+                                                                                                3 - OPEN, or Cap low voltage
 888
-  B0 CapI* 150mA/div                                                                              Resistance Beep Codes
+  B0 CapI* 150mA/div                                                                              4 - SHORT, under 1$
  99999999999999999999
-                                                                                               1 - OK, between 1$ to 8$
+                                       
 999
-  PWM                                                                                              2 - HIGH, over 8$
+  PWM
 
-                                                                                                   3 - OPEN, or Cap low voltage
 
-  BURN                                                                                             4 - SHORT, under 1$
+
+  BURN
 
                                           
            
-  FIRE                                                                                                          Commit [0123ABC]
+  FIRE                                                                                                          Commit [0123abc]
 
