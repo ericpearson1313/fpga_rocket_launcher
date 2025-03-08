@@ -4,6 +4,10 @@
 
 FPGA based model rocket digital launch controller.
 
+![git commit hash overlay](commit_overlay.jpeg "Estes Igniter test")
+
+Showing using an Estes igniter. Observed low resistance (~ 1ohm) and takes 4 Joules at 4 amps for about 300msec.
+
 ![Assembled and testing](pcb_v0_8_assy.jpg "Digital Launch Controller Prototype")
 
 [Schematic](fpga_blaster_schem_v0_8.pdf)
