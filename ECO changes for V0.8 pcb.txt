@@ -20,6 +20,7 @@ Add .0022u across differential filters x4
 C40,41,38,39,54,56,55,57 replace with 2.2nf
 u9.14,10,8 wire pin 15 to gnd
 c36,72 remove cap
+Add ISO 12v/12v DCDC converter to add power to top gate drive.
 
 Jan 20, 2025
 
