@@ -2,10 +2,62 @@
 `timescale 1ns / 1ps
 module testbench( );
 
-`define FONT_GEN
+`define HDMI_INFOFRAME
+//`define FONT_GEN
 //`define DIV_TEST
 //`define PSRAM_TEST
 //`define BLASTER_TEST
+
+
+///////////////////////////////
+`ifdef HDMI_INFOFRAME
+
+    //////////////////////
+    // Let there be Clocks!
+    //////////////////////
+    
+    logic clk, clk4;
+    initial begin
+        clk = 1'b1;
+		  clk4 = 1'b1;
+        forever begin
+				#(2.5ns) clk4 = 0;
+				#(2.5ns) clk4 = 1;
+				#(2.5ns) clk4 = 0;
+				#(2.5ns) begin clk4 = 1; clk = ~clk; end
+        end 
+    end
+	 
+	 // Reset generation
+	 
+	 logic reset; // active high
+	 initial begin
+			reset = 1'b1;
+			for( int ii = 0; ii < 10; ii++ ) begin
+				@(posedge clk);
+			end
+			@(negedge clk);
+			reset = 1'b0;
+	 end
+			
+	 // Simulation stop.
+	 
+	 initial begin
+        for( int ii = 0; ii < 100; ii++ ) 
+				@(posedge clk);
+        $stop;
+	 end
+
+	 ////////////////
+	 // UUT
+	 ////////////////
+	 
+	 packet_test _uut (
+		.clk( clk ),
+		.reset( reset )
+	 );
+
+`endif // HDMI_INFOFRAME
 
 ///////////////////////////////
 `ifdef FONT_GEN
