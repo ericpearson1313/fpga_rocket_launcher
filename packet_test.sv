@@ -5,12 +5,14 @@
 // Then the packet assembly inserts the checksums and formats for output
 // as 32 sequential words of 9 bits, ready for insertion in an HDMI data island
 // The output will be saved to rom and writen to files
+// Only executed during simulation
 
 module packet_test ( 
 	input logic clk,
 	input logic reset 
 	);
-	
+
+	// synthesis translate_off	
 	 // Build Up a Packet
 
 	logic [23:0] header_rgb;
@@ -114,11 +116,6 @@ module packet_test (
 		$writememb("info_frame_yuv.txt", buffer_yuv );		
 		$writememb("info_frame_rgb.txt", buffer_rgb );		
 	end
-
-
-			
-			
-		
-			 
+// synthesis translate_on
 	
 endmodule

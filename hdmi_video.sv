@@ -9,6 +9,13 @@ module TDMS_encoder
 	input [7:0] data, // raw 8 bit video
 	input [1:0] c, 	// control bits {c1,c0}
 	input blank,      // !den == video blanking
+	// Additional HDMI controls
+	input video_guard,	// insert video guard bytes
+	input [1:0] channel,	// channel id 0,1,2
+	input data_guard,		// insert guard bytes, but sync on channel 1
+	input island,			// data islands encoded with TERC4
+	input [3:0] island_data,		// Data island data
+	// Encoded output
 	output [9:0] encoded // encoded pixel
 );
 
@@ -64,8 +71,36 @@ assign data_word_disparity[3:0]  = (({ 3'b110, data_word[0] }
 											+   { 3'b000, data_word[7] }));		
 	
 // Now work out what the output should be
+// Added HDMI video and data gurads and data islands,
+// otherwise DVI default of control during blanking
+
 always @(posedge clk) begin
-	if( blank == 1'b1 ) begin
+	if( video_guard ) begin
+		encoded <= ( channel == 0 || channel == 2 ) ? 10'b1011001100 : 10'b0100110011;
+	end else if( data_guard ) begin
+		encoded <= ( channel == 0 || channel == 2 ) ? 10'b0100110011 :
+		           ( c[1:0] == 2'b00 ) ? 10'b1010001110 :
+		           ( c[1:0] == 2'b01 ) ? 10'b1001110001 :
+		           ( c[1:0] == 2'b10 ) ? 10'b0101100011 :
+		           /*c[1:0] == 2'b11*/   10'b1011000011 ;
+	end else if( island ) begin
+		encoded <= 	( island_data[3:0] == 4'h0 ) ? 10'b1010011100  :
+						( island_data[3:0] == 4'h1 ) ? 10'b1001100011  :
+						( island_data[3:0] == 4'h2 ) ? 10'b1011100100  :
+						( island_data[3:0] == 4'h3 ) ? 10'b1011100010  :
+						( island_data[3:0] == 4'h4 ) ? 10'b0101110001  :
+						( island_data[3:0] == 4'h5 ) ? 10'b0100011110  :
+						( island_data[3:0] == 4'h6 ) ? 10'b0110001110  :
+						( island_data[3:0] == 4'h7 ) ? 10'b0100111100  :
+						( island_data[3:0] == 4'h8 ) ? 10'b1011001100  :
+						( island_data[3:0] == 4'h9 ) ? 10'b0100111001  :
+						( island_data[3:0] == 4'ha ) ? 10'b0110011100  :
+						( island_data[3:0] == 4'hb ) ? 10'b1011000110  :
+						( island_data[3:0] == 4'hc ) ? 10'b1010001110  :
+						( island_data[3:0] == 4'hd ) ? 10'b1001110001  :
+						( island_data[3:0] == 4'he ) ? 10'b0101100011  :
+						/*island_data[3:0] == 4'hf )*/ 10'b1011000011  ;	
+	end else if( blank == 1'b1 ) begin
 		encoded <=  ( c[1:0] == 2'b00 ) ? 10'b1101010100 :
 						( c[1:0] == 2'b01 ) ? 10'b0010101011 :
 						( c[1:0] == 2'b10 ) ? 10'b0101010100 : 
@@ -120,9 +155,9 @@ module video_encoder
 
 	logic [9:0] enc_red, enc_green, enc_blue;
 	
-	TDMS_encoder _enc_red(   .clk( clk ),.data( red ),  .c( 2'b00 ),         .blank( blank ),.encoded( enc_red   ) );
-	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ !vsync, !hsync }),.blank( blank ),.encoded( enc_blue  ) );
-	TDMS_encoder _enc_green( .clk( clk ),.data( green ),.c( 2'b00 ),         .blank( blank ),.encoded( enc_green ) );
+	TDMS_encoder _enc_red(   .clk( clk ),.data( red ),  .c( 2'b00 ),           .blank( blank ),.encoded( enc_red   ), .channel( 2'd0 ), .island( 1'b0 ), .data_guard( 1'b0 ), .island_data( 4'b0000 ), .video_guard( 1'b0 ) );
+	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ !vsync, !hsync }),.blank( blank ),.encoded( enc_blue  ), .channel( 2'd1 ), .island( 1'b0 ), .data_guard( 1'b0 ), .island_data( 4'b0000 ), .video_guard( 1'b0 ) );
+	TDMS_encoder _enc_green( .clk( clk ),.data( green ),.c( 2'b00 ),           .blank( blank ),.encoded( enc_green ), .channel( 2'd2 ), .island( 1'b0 ), .data_guard( 1'b0 ), .island_data( 4'b0000 ), .video_guard( 1'b0 ) );
 
 // Determine clk5 load phase;
 	logic toggle; // cross phase signal
