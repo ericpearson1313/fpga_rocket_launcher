@@ -713,6 +713,11 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	logic hdmi_reset;
 	assign hdmi_reset = hdmi_reg[3];
 	
+	logic video_preamble;
+	logic data_preamble;
+	logic video_guard;
+	logic data_guard;
+	logic data_island;
 	
 	// XVGA 800x480x60hz sych generator
 	logic blank, hsync, vsync;
@@ -722,7 +727,13 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.reset( reset ),
 		.blank( blank ),
 		.hsync( hsync ),
-		.vsync( vsync )
+		.vsync( vsync ),
+		// HDMI encoding controls
+		.video_preamble( video_preamble ),
+		.data_preamble ( data_preamble  ),
+		.video_guard   ( video_guard    ),
+		.data_guard    ( data_guard     ),
+		.data_island   ( data_island    )
 	);
 	
 	// Font Generator
@@ -836,6 +847,12 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 	// Clock domain crossing fifo 17bit wide
 	logic [16:0] bv_vdata;
 	logic        bv_vvalid_n; // inverse valid
+	logic [30:0] blank_delay;
+	logic 		 read_fifo;
+	
+	always @(posedge hdmi_clk) // Delay reading to allow starting the fill
+		{ read_fifo, blank_delay } <= { blank_delay, !blank };
+		
 	bvfifo _bv_fifo (
 		// Write port
 		.wrclk	( clk ),
@@ -843,7 +860,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.data		( bv_wdata[16:0] ),
 		// Read port
 		.rdclk	( hdmi_clk ),
-		.rdreq	( !bv_vvalid_n ), // auto read when not emptyu
+		.rdreq	( !bv_vvalid_n & read_fifo ), // auto read when not emptyu
 		.rdempty	( bv_vvalid_n ),
 		.q			( bv_vdata[16:0] )
 		);	
@@ -1163,12 +1180,24 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
-		.red	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 : (bv_vdata[16] ? 8'h08 : 8'h04) ) 
-		                   : ((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   )),
-		.green( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[15:8] ) 
-		                   : ((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green )),
-		.blue	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[7:0]  ) 
-		                   : ((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue  )),
+		// HDMI encoding control
+		.video_preamble( video_preamble ),
+		.data_preamble ( data_preamble  ),
+		.video_guard   ( video_guard    ),
+		.data_guard    ( data_guard     ),
+		.data_island   ( data_island    ),	
+		// YUV mode input
+		.yuv_mode		( blipvert ), // use YUV2 mode, cheap USb capture devices provice lossless YUV2 capture mode 
+		// RBG Data
+//		.red	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 : (bv_vdata[16] ? 8'h08 : 8'h04) ) 
+//		                   : ((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   )),
+//		.green( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[15:8] ) 
+//		                   : ((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green )),
+//		.blue	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[7:0]  ) 
+//		                   : ((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue  )),
+		.red	( (blipvert) ? bv_vdata[7:0]  : ((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   ) ),
+		.green( (blipvert) ? bv_vdata[15:8] : ((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green ) ),
+		.blue	( (blipvert) ? 8'h00          : ((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue  ) ),
 		.hdmi_data( hdmi2_data )
 	);
 		
