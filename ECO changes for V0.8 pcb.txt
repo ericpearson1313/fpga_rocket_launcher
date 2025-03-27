@@ -27,4 +27,8 @@ Jan 20, 2025
 R25,26,33,34 replace 10 ohm with 56 ohm to increase current filtering. 
  observed: had no effect on HAF noise, and current signal too smooth now. (maybe reverse)
 
+Feb, 2025
+
+Added 6K pulldown on pwm signal either end of R105.
+
 
