@@ -16,7 +16,8 @@ module TDMS_encoder
 	input island,			// data islands encoded with TERC4
 	input [3:0] island_data,		// Data island data
 	// Encoded output
-	output [9:0] encoded // encoded pixel
+	output [9:0] encoded, // encoded pixel
+	output [9:0] dvi_encoded // no islands, guards, pre-ambles
 );
 
 logic [8:0] xored, xnored;
@@ -76,13 +77,21 @@ assign data_word_disparity[3:0]  = (({ 3'b110, data_word[0] }
 
 always @(posedge clk) begin
 	if( video_guard ) begin
-		encoded <= ( channel == 0 || channel == 2 ) ? 10'b1011001100 : 10'b0100110011;
+		encoded <= ( channel == 2'd0 || channel == 2'd2 ) ? 10'b1011001100 : 10'b0100110011;
+		dvi_encoded <=  ( c[1:0] == 2'b00 ) ? 10'b1101010100 : // no video guard for DVI
+						    ( c[1:0] == 2'b01 ) ? 10'b0010101011 :
+						    ( c[1:0] == 2'b10 ) ? 10'b0101010100 : 
+					       /*c[1:0] == 2'b11*/   10'b1010101011 ;		
 	end else if( data_guard ) begin
-		encoded <= ( channel == 0 || channel == 2 ) ? 10'b0100110011 :
+		encoded <= ( channel == 2'd0 || channel == 2'd2 ) ? 10'b0100110011 :
 		           ( c[1:0] == 2'b00 ) ? 10'b1010001110 :
 		           ( c[1:0] == 2'b01 ) ? 10'b1001110001 :
 		           ( c[1:0] == 2'b10 ) ? 10'b0101100011 :
 		           /*c[1:0] == 2'b11*/   10'b1011000011 ;
+		dvi_encoded <=  ( c[1:0] == 2'b00 ) ? 10'b1101010100 : // no data guard for DVI
+						    ( c[1:0] == 2'b01 ) ? 10'b0010101011 :
+						    ( c[1:0] == 2'b10 ) ? 10'b0101010100 : 
+					       /*c[1:0] == 2'b11*/   10'b1010101011 ;		
 	end else if( island ) begin
 		encoded <= 	( island_data[3:0] == 4'h0 ) ? 10'b1010011100  :
 						( island_data[3:0] == 4'h1 ) ? 10'b1001100011  :
@@ -100,25 +109,37 @@ always @(posedge clk) begin
 						( island_data[3:0] == 4'hd ) ? 10'b1001110001  :
 						( island_data[3:0] == 4'he ) ? 10'b0101100011  :
 						/*island_data[3:0] == 4'hf )*/ 10'b1011000011  ;	
+		dvi_encoded <=  ( c[1:0] == 2'b00 ) ? 10'b1101010100 : // no data island for DVI
+						    ( c[1:0] == 2'b01 ) ? 10'b0010101011 :
+						    ( c[1:0] == 2'b10 ) ? 10'b0101010100 : 
+					       /*c[1:0] == 2'b11*/   10'b1010101011 ;		
 	end else if( blank == 1'b1 ) begin
 		encoded <=  ( c[1:0] == 2'b00 ) ? 10'b1101010100 :
 						( c[1:0] == 2'b01 ) ? 10'b0010101011 :
 						( c[1:0] == 2'b10 ) ? 10'b0101010100 : 
 					   /*c[1:0] == 2'b11*/   10'b1010101011 ;
+		dvi_encoded <=  ( c[1:0] == 2'b00 ) ? 10'b1101010100 :
+						    ( c[1:0] == 2'b01 ) ? 10'b0010101011 :
+						    ( c[1:0] == 2'b10 ) ? 10'b0101010100 : 
+					       /*c[1:0] == 2'b11*/   10'b1010101011 ;		
 		dc_bias <= 4'd0;
 	end else begin 
 		if( dc_bias == 4'd0 || data_word_disparity == 4'd0 ) begin // dataword has no disparity
-			encoded <= ( data_word[8] ) ? { 2'b01,  data_word[7:0] } : 
-			                              { 2'b10, ~data_word[7:0] } ;
+			encoded <=     ( data_word[8] ) ? { 2'b01,  data_word[7:0] } : 
+			                                  { 2'b10, ~data_word[7:0] } ;
+			dvi_encoded <= ( data_word[8] ) ? { 2'b01,  data_word[7:0] } : 
+			                                  { 2'b10, ~data_word[7:0] } ;
 			dc_bias <= ( data_word[8] ) ? dc_bias + data_word_disparity : 
 			                              dc_bias - data_word_disparity;
 	   end else begin
 		   if( ( dc_bias[3] == 1'b0 && data_word_disparity[3] == 1'b0 ) ||
 		       ( dc_bias[3] == 1'b1 && data_word_disparity[3] == 1'b1 ) ) begin
-				encoded <= { 1'b1, data_word[8], ~data_word[7:0] };
+				encoded     <= { 1'b1, data_word[8], ~data_word[7:0] };
+				dvi_encoded <= { 1'b1, data_word[8], ~data_word[7:0] };
 				dc_bias <= dc_bias + {3'b000,  data_word[8]} - data_word_disparity;
 		   end else begin
-				encoded <= { 1'b0, data_word[8],  data_word[7:0] };
+				encoded     <= { 1'b0, data_word[8],  data_word[7:0] };
+				dvi_encoded <= { 1'b0, data_word[8],  data_word[7:0] };
 				dc_bias <= dc_bias - {3'b000, ~data_word[8]} + data_word_disparity;
 			end
 		end
@@ -139,6 +160,7 @@ module video_encoder
 
 	// HDMI Output
 	output [7:0] hdmi_data, // ddr data for the HDMI port, sync with 5x hdmi clk
+	output [7:0] dvi_data, // same as HDMI but without data islands and guarding
 	
 	// Video Sync Interface, pix clock sync
 	input blank,
@@ -158,12 +180,13 @@ module video_encoder
 	input data_island   ,
 	
 	// Control input
-	input yuv_mode
+	input yuv_mode	// when asserrtted change to HDMI YUV encoded
 );
 
 // TDMS encode each channel.
 
 	logic [9:0] enc_red, enc_green, enc_blue;
+	logic [9:0] dvi_red, dvi_green, dvi_blue;
 	
 //	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ !vsync, !hsync }),.blank( blank ),.encoded( enc_blue  ), .channel( 2'd0 ), .island( 1'b0 ), .data_guard( 1'b0 ), .island_data( 4'b0000 ), .video_guard( 1'b0 ) );
 //	TDMS_encoder _enc_green( .clk( clk ),.data( green ),.c( 2'b00 ),           .blank( blank ),.encoded( enc_green ), .channel( 2'd1 ), .island( 1'b0 ), .data_guard( 1'b0 ), .island_data( 4'b0000 ), .video_guard( 1'b0 ) );
@@ -182,10 +205,19 @@ module video_encoder
 	assign idata[1] = packet[4:1];
 	assign idata[2] = packet[8:5];
 	
-	TDMS_encoder _enc_blue_0(  .clk( clk ),.data( blue ), .c( cdata[0] ), .blank( blank ),.encoded( enc_blue  ), .channel( 2'd0 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[0] ), .video_guard( video_guard ) );
-	TDMS_encoder _enc_green_1( .clk( clk ),.data( green ),.c( cdata[1] ), .blank( blank ),.encoded( enc_green ), .channel( 2'd1 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[1] ), .video_guard( video_guard ) );
-	TDMS_encoder _enc_red_2(   .clk( clk ),.data( red ),  .c( cdata[2] ), .blank( blank ),.encoded( enc_red   ), .channel( 2'd2 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[2] ), .video_guard( video_guard ) );
-
+	TDMS_encoder _enc_blue_0(  .clk( clk ),.data( blue ), .c( cdata[0] ), .blank( blank ), .dvi_encoded( dvi_blue  ),.encoded(  ), .channel( 2'd0 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[0] ), .video_guard( video_guard ) );
+	TDMS_encoder _enc_green_1( .clk( clk ),.data( green ),.c( cdata[1] ), .blank( blank ), .dvi_encoded( dvi_green ),.encoded(  ), .channel( 2'd1 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[1] ), .video_guard( video_guard ) );
+	TDMS_encoder _enc_red_2(   .clk( clk ),.data( red ),  .c( cdata[2] ), .blank( blank ), .dvi_encoded( dvi_red   ),.encoded(  ), .channel( 2'd2 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[2] ), .video_guard( video_guard ) );
+	assign { enc_blue, enc_green, enc_red } = { dvi_blue, dvi_green, dvi_red }; // USE DVI for both, TODO remove
+	
+	//logic [2:0] tmds_mode; // Mode select (0 = control, 1 = video, 2 = video guard, 3 = island, 4 = island guard)
+	//assign tmds_mode[2:0] = ( video_guard ) ? 3'd2 : ( data_guard ) ? 3'd4 : ( data_island ) ? 3'd3 : ( !blank ) ? 3'd1 : 3'd0;
+	//assign { dvi_blue, dvi_green, dvi_red } = { enc_blue, enc_green, enc_red };
+	//
+	//tmds_channel #(.CN(0)) _enc_blue_0 ( .clk_pixel( clk ), .video_data( blue ), .data_island_data( idata[0] ), .control_data( cdata[0] ), .mode( tmds_mode[2:0] ), .tmds(  enc_blue  ) );
+	//tmds_channel #(.CN(1)) _enc_green_1( .clk_pixel( clk ), .video_data( green), .data_island_data( idata[1] ), .control_data( cdata[1] ), .mode( tmds_mode[2:0] ), .tmds(  enc_green ) );
+	//tmds_channel #(.CN(2)) _enc_red_2  ( .clk_pixel( clk ), .video_data( red  ), .data_island_data( idata[2] ), .control_data( cdata[2] ), .mode( tmds_mode[2:0] ), .tmds(  enc_red   ) );
+	
 	// HDMI YUV/RGB Data island generation
 	// yuv_mode controls selection
 	
@@ -216,19 +248,19 @@ module video_encoder
 	auxiliary_video_information_info_frame 		// CEA-861-E InfoFrame Type 2 
 	#(
     .VIDEO_FORMAT              	( 2'b01 		), // 00 = RGB, 01 = YCbCr 4:2:2, 10 = YCbCr 4:4:4
-    .ACTIVE_FORMAT_INFO_PRESENT	( 1'b0 		), 
+    .ACTIVE_FORMAT_INFO_PRESENT	( 1'b0 		), // 
     .BAR_INFO							( 2'b00 		), 
-    .SCAN_INFO							( 2'b00 		), 
-    .COLORIMETRY						( 2'b00 		), 
-    .PICTURE_ASPECT_RATIO			( 2'b00 		), 
+    .SCAN_INFO							( 2'b00 		), // Underscan 2'b10
+    .COLORIMETRY						( 2'b00 		), // smpte 170m - 2'b01
+    .PICTURE_ASPECT_RATIO			( 2'b0 		), // No Date - 2'b00, 4:3 - 2'b01, 16:9 - 2'b10
     .ACTIVE_FORMAT_ASPECT_RATIO	( 4'b0000 	), 
-    .IT_CONTENT						( 1'b0 		), 
+    .IT_CONTENT						( 1'b0 		),
     .EXTENDED_COLORIMETRY			( 3'b000 	), 
-    .RGB_QUANTIZATION_RANGE		( 2'b00 		), 
+    .RGB_QUANTIZATION_RANGE		( 2'b00 		),
     .NON_UNIFORM_PICTURE_SCALING ( 2'b00 		), 
     .VIDEO_ID_CODE               ( 7'h00 		), 
-    .YCC_QUANTIZATION_RANGE		( 2'b00 		), 
-    .CONTENT_TYPE						( 2'b00 		), 
+    .YCC_QUANTIZATION_RANGE		( 2'b00 		), // Full Range YUV 2'b01
+    .CONTENT_TYPE						( 2'b00 		), // Graphics, don't filter
     .PIXEL_REPETITION				( 4'b0000  	)  
 	)
 	_infoframe_yuv
@@ -242,13 +274,13 @@ module video_encoder
     .VIDEO_FORMAT              	( 2'b00 		), // 00 = RGB, 01 = YCbCr 4:2:2, 10 = YCbCr 4:4:4
     .ACTIVE_FORMAT_INFO_PRESENT	( 1'b0 		), 
     .BAR_INFO							( 2'b00 		), 
-    .SCAN_INFO							( 2'b00 		), 
-    .COLORIMETRY						( 2'b00 		), 
-    .PICTURE_ASPECT_RATIO			( 2'b00 		), 
+    .SCAN_INFO							( 2'b00 		), // Underscan 2'b10
+    .COLORIMETRY						( 2'b00 		), // RGB - 2'b00
+    .PICTURE_ASPECT_RATIO			( 2'b00 		), // No Date - 2'b00, 4:3 - 2'b01, 16:9 - 2'b10 
     .ACTIVE_FORMAT_ASPECT_RATIO	( 4'b0000 	), 
-    .IT_CONTENT						( 1'b0 		), 
+    .IT_CONTENT						( 1'b0 		),
     .EXTENDED_COLORIMETRY			( 3'b000 	), 
-    .RGB_QUANTIZATION_RANGE		( 2'b00 		), 
+    .RGB_QUANTIZATION_RANGE		( 2'b00 		), // Full Range RGB 2'b10,
     .NON_UNIFORM_PICTURE_SCALING ( 2'b00 		), 
     .VIDEO_ID_CODE               ( 7'h00 		), 
     .YCC_QUANTIZATION_RANGE		( 2'b00 		), 
@@ -283,83 +315,49 @@ module video_encoder
 	always @(posedge clk) toggle <= !toggle;
 	
 	logic [5:0] tdelay;
-	logic [9:0] shift_d2, shift_d1, shift_d0, shift_ck;
+	logic [1:0][9:0] shift_d2, shift_d1, shift_d0;
+	logic [9:0] shift_ck;
 	always @(posedge clk5) begin
 		if( reset ) begin
-			shift_d0[9:0] <= 0;
-			shift_d1[9:0] <= 0;
-			shift_d2[9:0] <= 0;
-			shift_ck[9:0] <= 0;
+			tdelay <= 0;
+			shift_d0 <= 20'd0;
+			shift_d1 <= 20'd0;
+			shift_d2 <= 20'd0;
+			shift_ck <= 10'd0;
 		end else begin
 			tdelay[5:0] <= { tdelay[4:0], toggle };
 			if( tdelay[3] ^ tdelay[4] ) begin // load
-				shift_d0[9:0] <= enc_blue;
-				shift_d1[9:0] <= enc_green;
-				shift_d2[9:0] <= enc_red;
-				shift_ck[9:0] <= 10'b0000011111;
+				shift_d0 <= { dvi_blue      , enc_blue       };
+				shift_d1 <= { dvi_green     , enc_green      };
+				shift_d2 <= { dvi_red       , enc_red        };
+				shift_ck <= 10'b0000011111;
 			end else begin
-				shift_d2[9:0] <= { 2'b00, shift_d2[9:2] };
-				shift_d1[9:0] <= { 2'b00, shift_d1[9:2] };
-				shift_d0[9:0] <= { 2'b00, shift_d0[9:2] };
-				shift_ck[9:0] <= { 2'b00, shift_ck[9:2] };
+				shift_d2 <= { 2'b00, shift_d2[1][9:2], 2'b00, shift_d2[0][9:2] };
+				shift_d1 <= { 2'b00, shift_d1[1][9:2], 2'b00, shift_d1[0][9:2] };
+				shift_d0 <= { 2'b00, shift_d0[1][9:2], 2'b00, shift_d0[0][9:2] };
+				shift_ck <= { 2'b00, shift_ck[9:2] };
 			end
 		end
 	end
-	assign hdmi_data = { shift_d2[1], shift_d1[1], shift_d0[1], shift_ck[1], 
-	                     shift_d2[0], shift_d1[0], shift_d0[0], shift_ck[0] };	
+	assign hdmi_data = { shift_d2[0][1], shift_d1[0][1], shift_d0[0][1], shift_ck[1], 
+	                     shift_d2[0][0], shift_d1[0][0], shift_d0[0][0], shift_ck[0] };	
+	assign  dvi_data = { shift_d2[1][1], shift_d1[1][1], shift_d0[1][1], shift_ck[1], 
+	                     shift_d2[1][0], shift_d1[1][0], shift_d0[1][0], shift_ck[0] };	
 endmodule // video_encoder0
 
-module vga_sync // Generate a video sync
-(
-	input clk,	// Pixel clk
-	input reset,
-	output blank,
-	output hsync,
-	output vsync
-);
-
-// hcnt, vcnt - free running raw counters for 800x525 video frame (including hvsync)
-logic [9:0] hcnt, vcnt;
-always @(posedge clk) begin
-	if( reset ) begin
-		hcnt <= 0;
-		vcnt <= 0;
-		hsync <= 1'b0;
-		vsync <= 1'b0;
-		blank <= 1'b0; // 1?
-	end else begin 
-		// free run hcnt vcnt 800 x 525
-		if( hcnt < (800-1) ) begin
-			hcnt <= hcnt + 1;
-			vcnt <= vcnt;
-		end else begin
-			hcnt <= 0;
-			if( vcnt < (525-1)) begin 
-				vcnt <= vcnt + 1;
-			end else begin
-				vcnt <= 0;
-			end
-		end
-		// Derive sync and blanking signals from the counters
-		blank <= ( hcnt >= 640 || vcnt >= 480 ) ? 1'b1 : 1'b0;
-		hsync <= ( hcnt >= 656 && hcnt < 752 ) ? 1'b1 : 1'b0;
-		vsync <= ( vcnt >= 490 && vcnt < 492 ) ? 1'b1 : 1'b0;
-	end
-end
-endmodule // vga_sync
 
 module vga_800x480_sync // Generate a video sync
 #(
 // Video Timing Counts
 parameter VERT		= 480,
-parameter VFRONT 	= 10,
-parameter VSYNCP 	= 2,
-parameter VBACK	= 33,
+parameter VFRONT 	= 13, // 10,
+parameter VSYNCP 	= 3,  // 2,
+parameter VBACK	= 29, // 33,
 parameter HORIZ   = 800,
-parameter HFRONT 	= 40,
-parameter HSYNCP 	= 128,
-parameter HBACK	= 88,
-parameter VISLAND = 485 // line we send a data island
+parameter HFRONT 	= 40, // 40,
+parameter HSYNCP 	= 48, // 128,
+parameter HBACK	= 40, // 88,
+parameter VISLAND = VERT+VFRONT+VSYNCP-1 // line we send a data island
 )
 (
 	input clk,	// Pixel clk
@@ -380,8 +378,8 @@ parameter VISLAND = 485 // line we send a data island
 logic [11:0] hcnt, vcnt;
 always @(posedge clk) begin
 	if( reset ) begin
-		hcnt <= (HORIZ+HFRONT+HSYNCP+HBACK-10); // first send video preable and guard
-		vcnt <= (VERT+VFRONT+VSYNCP+VBACK-1);	 // last 10 pels of last frame.
+		hcnt <= 0;
+		vcnt <= VERT;	 // start after active data
 		hsync <= 1'b0;
 		vsync <= 1'b0;
 		blank <= 1'b0;
@@ -406,7 +404,7 @@ always @(posedge clk) begin
 		// Derive sync and blanking signals from the counters
 		blank <= ( hcnt >= HORIZ || vcnt >= VERT ) ? 1'b1 : 1'b0;
 		hsync <= ( hcnt >= HORIZ+HFRONT && hcnt < HORIZ+HFRONT+HSYNCP ) ? 1'b1 : 1'b0;
-		vsync <= ( vcnt >= VERT +VFRONT && vcnt < VERT +VFRONT+VSYNCP ) ? 1'b1 : 1'b0;
+		vsync <= ( hcnt == HORIZ+HFRONT ) ? (( vcnt >= VERT+VFRONT && vcnt < VERT+VFRONT+VSYNCP ) ? 1'b1 : 1'b0 ) : vsync;
 		// HDMI signals
 		// Adding video preable and guard
 		video_preamble <= ( hcnt >= (HORIZ+HFRONT+HSYNCP+HBACK-10) && 
@@ -414,12 +412,10 @@ always @(posedge clk) begin
 								  (vcnt < (VERT-1) || vcnt == (VERT+VFRONT+VSYNCP+VBACK-1)) ) ? 1'b1 : 1'b0;
 		video_guard <=    ( hcnt >= (HORIZ+HFRONT+HSYNCP+HBACK-2) && 
 								  (vcnt < (VERT-1) || vcnt == (VERT+VFRONT+VSYNCP+VBACK-1)) ) ? 1'b1 : 1'b0;
-		data_preamble  <= ( hcnt >= (HORIZ+HFRONT+HSYNCP+HBACK-10) && 
-								  hcnt < (HORIZ+HFRONT+HSYNCP+HBACK-2 ) &&
-								  vcnt == (VISLAND-1) ) ? 1'b1 : 1'b0;
-		data_guard <=    (( vcnt == (VISLAND-1) && hcnt >= (HORIZ+HFRONT+HSYNCP+HBACK-2)) || 
-		                  ( vcnt == (VISLAND  ) && (hcnt == 32 || hcnt == 33))) ? 1'b1 : 1'b0;
-		data_island <=    ( vcnt == (VISLAND  ) &&  hcnt < 32 ) ? 1'b1 : 1'b0;
+		// Adding Data { control 4 preamble 8, guard 2, island 32, guard 2 }						  
+		data_preamble  <= ( vcnt == VISLAND && hcnt >= HORIZ+4 && hcnt < HORIZ+4+8 ) ? 1'b1 : 1'b0;
+		data_guard		<= ( vcnt == VISLAND &&(hcnt == HORIZ+4+8 || hcnt == HORIZ+4+8+1 || hcnt == HORIZ+4+8+2+32 || hcnt == HORIZ+4+8+2+32+1 ) ) ? 1'b1 :1'b0;
+		data_island    <= ( vcnt == VISLAND && hcnt >= HORIZ+4+8+2 && hcnt < HORIZ+4+8+2+32 ) ? 1'b1 : 1'b0;
 	end
 end
 endmodule // vga_800x480 sync

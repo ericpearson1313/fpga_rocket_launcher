@@ -1172,6 +1172,7 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 
 	// video encoder
 	logic [7:0] hdmi2_data;
+	logic [7:0] dvi_data;
 	video_encoder _encode2
 	(
 		.clk  ( hdmi_clk  ),
@@ -1198,18 +1199,19 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.red	( (blipvert) ? bv_vdata[7:0]  : ((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   ) ),
 		.green( (blipvert) ? bv_vdata[15:8] : ((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green ) ),
 		.blue	( (blipvert) ? 8'h00          : ((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue  ) ),
-		.hdmi_data( hdmi2_data )
+		.hdmi_data( hdmi2_data ),
+		.dvi_data( dvi_data ),
 	);
 		
-	// HDMI 2 Output, DDR outputs
+	// HDMI 2 Output, DVI outputs
 	hdmi_out _hdmi2_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
-		.din( hdmi2_data ),
+		.din( dvi_data ),
 		.pad_out( {hdmi2_d2, hdmi2_d1, hdmi2_d0, hdmi2_ck} ), 
 		.pad_out_b( )  // true differential, _b not req
 	);
 	
-	// send a copy out HDMI 1
+	// HDMI 1 output, HDMI outputs, with YUV2 support
 	hdmi_out _hdmi_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
 		.din( hdmi2_data ),
