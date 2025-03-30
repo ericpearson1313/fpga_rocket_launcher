@@ -83,7 +83,7 @@ always @(posedge clk) begin
 						    ( c[1:0] == 2'b10 ) ? 10'b0101010100 : 
 					       /*c[1:0] == 2'b11*/   10'b1010101011 ;	
 	end else if( data_guard ) begin
-		encoded <= ( channel == 2'd0 || channel == 2'd2 ) ? 10'b0100110011 :
+		encoded <= ( channel == 2'd1 || channel == 2'd2 ) ? 10'b0100110011 :
 		           ( c[1:0] == 2'b00 ) ? 10'b1010001110 :
 		           ( c[1:0] == 2'b01 ) ? 10'b1001110001 :
 		           ( c[1:0] == 2'b10 ) ? 10'b0101100011 :
@@ -188,10 +188,6 @@ module video_encoder
 	logic [9:0] enc_red, enc_green, enc_blue;
 	logic [9:0] dvi_red, dvi_green, dvi_blue;
 	
-//	TDMS_encoder _enc_blue(  .clk( clk ),.data( blue ), .c({ !vsync, !hsync }),.blank( blank ),.encoded( enc_blue  ), .channel( 2'd0 ), .island( 1'b0 ), .data_guard( 1'b0 ), .island_data( 4'b0000 ), .video_guard( 1'b0 ) );
-//	TDMS_encoder _enc_green( .clk( clk ),.data( green ),.c( 2'b00 ),           .blank( blank ),.encoded( enc_green ), .channel( 2'd1 ), .island( 1'b0 ), .data_guard( 1'b0 ), .island_data( 4'b0000 ), .video_guard( 1'b0 ) );
-//	TDMS_encoder _enc_red(   .clk( clk ),.data( red ),  .c( 2'b00 ),           .blank( blank ),.encoded( enc_red   ), .channel( 2'd2 ), .island( 1'b0 ), .data_guard( 1'b0 ), .island_data( 4'b0000 ), .video_guard( 1'b0 ) );
-
 	logic [2:0][1:0] cdata;  // hdmi control data
 	logic [2:0][3:0] idata;  // hdmi island data
 	logic [8:0]      packet; // packet data for insertion, 32 cycles
@@ -205,18 +201,17 @@ module video_encoder
 	assign idata[1] = packet[4:1];
 	assign idata[2] = packet[8:5];
 	
-	TDMS_encoder _enc_blue_0(  .clk( clk ),.data( blue ), .c( cdata[0] ), .blank( blank ), .dvi_encoded( dvi_blue  ),.encoded(  ), .channel( 2'd0 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[0] ), .video_guard( video_guard ) );
-	TDMS_encoder _enc_green_1( .clk( clk ),.data( green ),.c( cdata[1] ), .blank( blank ), .dvi_encoded( dvi_green ),.encoded(  ), .channel( 2'd1 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[1] ), .video_guard( video_guard ) );
-	TDMS_encoder _enc_red_2(   .clk( clk ),.data( red ),  .c( cdata[2] ), .blank( blank ), .dvi_encoded( dvi_red   ),.encoded(  ), .channel( 2'd2 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[2] ), .video_guard( video_guard ) );
+	TDMS_encoder _enc_blue_0(  .clk( clk ),.data( blue ), .c( cdata[0] ), .blank( blank ), .dvi_encoded( dvi_blue  ),.encoded( enc_blue  ), .channel( 2'd0 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[0] ), .video_guard( video_guard ) );
+	TDMS_encoder _enc_green_1( .clk( clk ),.data( green ),.c( cdata[1] ), .blank( blank ), .dvi_encoded( dvi_green ),.encoded( enc_green ), .channel( 2'd1 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[1] ), .video_guard( video_guard ) );
+	TDMS_encoder _enc_red_2(   .clk( clk ),.data( red ),  .c( cdata[2] ), .blank( blank ), .dvi_encoded( dvi_red   ),.encoded( enc_red   ), .channel( 2'd2 ), .island( data_island ), .data_guard( data_guard ), .island_data( idata[2] ), .video_guard( video_guard ) );
+	
 	//assign { enc_blue, enc_green, enc_red } = { dvi_blue, dvi_green, dvi_red }; // USE DVI for both, TODO remove
-	
-	logic [2:0] tmds_mode; // Mode select (0 = control, 1 = video, 2 = video guard, 3 = island, 4 = island guard)
-	assign tmds_mode[2:0] = ( video_guard ) ? 3'd2 : ( data_guard ) ? 3'd4 : ( data_island ) ? 3'd3 : ( !blank ) ? 3'd1 : 3'd0;
+	//logic [2:0] tmds_mode; // Mode select (0 = control, 1 = video, 2 = video guard, 3 = island, 4 = island guard)
+	//assign tmds_mode[2:0] = ( video_guard ) ? 3'd2 : ( data_guard ) ? 3'd4 : ( data_island ) ? 3'd3 : ( !blank ) ? 3'd1 : 3'd0;
 	//assign { dvi_blue, dvi_green, dvi_red } = { enc_blue, enc_green, enc_red };
-	
-	tmds_channel #(.CN(0)) _lib_enc_blue_0 ( .clk_pixel( clk ), .video_data( blue ), .data_island_data( idata[0] ), .control_data( cdata[0] ), .mode( tmds_mode[2:0] ), .tmds(  enc_blue  ) );
-	tmds_channel #(.CN(1)) _lib_enc_green_1( .clk_pixel( clk ), .video_data( green), .data_island_data( idata[1] ), .control_data( cdata[1] ), .mode( tmds_mode[2:0] ), .tmds(  enc_green ) );
-	tmds_channel #(.CN(2)) _lib_enc_red_2  ( .clk_pixel( clk ), .video_data( red  ), .data_island_data( idata[2] ), .control_data( cdata[2] ), .mode( tmds_mode[2:0] ), .tmds(  enc_red   ) );
+	//tmds_channel #(.CN(0)) _lib_enc_blue_0 ( .clk_pixel( clk ), .video_data( blue ), .data_island_data( idata[0] ), .control_data( cdata[0] ), .mode( tmds_mode[2:0] ), .tmds(  ) );
+	//tmds_channel #(.CN(1)) _lib_enc_green_1( .clk_pixel( clk ), .video_data( green), .data_island_data( idata[1] ), .control_data( cdata[1] ), .mode( tmds_mode[2:0] ), .tmds(  ) );
+	//tmds_channel #(.CN(2)) _lib_enc_red_2  ( .clk_pixel( clk ), .video_data( red  ), .data_island_data( idata[2] ), .control_data( cdata[2] ), .mode( tmds_mode[2:0] ), .tmds(  ) );
 	
 	// HDMI YUV/RGB Data island generation
 	// yuv_mode controls selection
@@ -252,7 +247,7 @@ module video_encoder
     .BAR_INFO							( 2'b00 		), 
     .SCAN_INFO							( 2'b00 		), // Underscan 2'b10
     .COLORIMETRY						( 2'b00 		), // smpte 170m - 2'b01
-    .PICTURE_ASPECT_RATIO			( 2'b0 		), // No Date - 2'b00, 4:3 - 2'b01, 16:9 - 2'b10
+    .PICTURE_ASPECT_RATIO			( 2'b00 		), // No Date - 2'b00, 4:3 - 2'b01, 16:9 - 2'b10
     .ACTIVE_FORMAT_ASPECT_RATIO	( 4'b0000 	), 
     .IT_CONTENT						( 1'b0 		),
     .EXTENDED_COLORIMETRY			( 3'b000 	), 
