@@ -831,12 +831,13 @@ assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 		.reset	( reset ),
 		// enable input
 		.enable	( bvena[1] & blipvert ), // Rising edge starts
+		.base( base_addr[24:0] ), // starting addr to flag first 1k block
 		// Psram Port
 		.araddr	( bv_araddr ), 
 		.arlen 	( bv_arlen  ), // bv uses 32 always
 		.arvalid	( bv_arvalid ), // read valid	
 		.arready	( bv_arready ),
-		.rdata	( rdata[17:0] ),
+		.rdata	( rdata[17:0] ), 
 		.rvalid	( rvalid ),
 		// Output data 
 		.vdata	( bv_wdata ),
@@ -1363,6 +1364,7 @@ module blipvert (
 	input clk,
 	input reset,
 	input enable,
+	input [24:0] base, // starting block addr
 	// Axi4 read Bus
 	output logic [24:0] araddr,
 	output logic [7:0]  arlen,
@@ -1419,7 +1421,8 @@ module blipvert (
 	// Output
 	always @(posedge clk) begin
 		vvalid <= ( state == S_ADDR || ( enable && rvalid )) ? 1'b1 : 1'b0;
-		vdata  <= ( state == S_ADDR ) ? { 2'b10, next_addr[24:10] } : { 1'b0, rdata[16:9], rdata[7:0] };
+		vdata  <= ( state == S_ADDR ) ? { 2'b1, next_addr[24:10] == base[24:10], next_addr[24:10] } : // addr flag, start flag, addr 1k
+		                                { 1'b0, rdata[16:9], rdata[7:0] }; // mem data
 	end
 	
 endmodule
