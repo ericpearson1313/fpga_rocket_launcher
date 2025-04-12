@@ -41,9 +41,9 @@ Additional uses for FPGA logic and real time ADC data stream can be implemented.
 
 ### Charged LED Hysteresis.
 
-Using the ADC stream include the capacitor voltage, the charge LED could be operated to reflect the capacitor voltage charge with some hysteresis.
-The logic would turn on the charge LED when the a cap voltage sample is received and reached 300V, as we want a full charge for launch, 
-but would only turn off the led when a cap voltage recieved fell below 50V (3%) as we'ed like to know when it is safe to handle.
+Using the ADC stream include the capacitor voltage, the charge-LED could be operated to reflect the capacitor voltage charge with some hysteresis.
+The logic would turn on the charge-LED when the capacitor voltage sample is received and reached 300V, as we want a full charge for launch, 
+but would only turn off the charge-LED when the capacitor voltage falls below 50V (<3% energy) as we'ed like to know when it is safe to handle.
 
 ```
 // Arm is based on vcap with 300v on thresh and 50v off thresh
@@ -139,8 +139,8 @@ correct operation. Usually there are never enough LEDs as state can get quite in
 The next steps usually involve: oscilloscopes, logic analysers, computers and software, however ...
 
 LEDs can be replaced with pixels on an HDMI display. FPGA logic to generate HDMI outputs at XVGA 800x480x60Hz resolution is accomplished
-with a 32Mhz pixel clock, and DDR LVDS outputs clocked at 160Mhz. Digtal counters maintain the current X and Y locations on the screen and generate
-the required synchronization.
+with a 32Mhz pixel clock, and DDR LVDS outputs clocked at 160Mhz giving 320mbit ea for Red, Green and Blue. Digtal counters are used
+to generate the video syncronization and maintain the current X and Y locations on the screen.
 
 Connecting an internal signal to a given pixel can be as simple as the logical AND of test signal and desired pixel location, 
 with all pels being ORed together to make the video signal
@@ -182,10 +182,12 @@ This display scrolling is halted 4 seconds after launch to show complete capacit
 
 ### 32 MBytes Trace Buffer
 
-A PSRAM is high density sram like memory, that can connects using 11 signals. 
+A PSRAM, or pseudo SRAM, is alow cost ($10), high density (32 Mbytres), high speed (400MBs) sram-like memory, that can connects using only 11 signals. 
 It has built in refresh logic, and uses a SPI8 interface for burst access.
 A simple controller with an AXI4 interface was developed to configure and 
 access the device with 16 byte burst writes, and both 8-byte or 64-byte burst reads.
+
+These PSRAM are only available in ball grid array (BGA) footprints. This was my first home assembled PCB with a BGA. YouTube helped alot for that.
 
 The ADC sampels are stored to a 32 Mbyte circular trace buffer. With 3 Mhz sampling and 64 bits per sample we get 1.3 seconds of storage, which is 
 sufficient to capture the full launch operation. 64 bits allows capturing of the 4x 12-bit adc samples, as well as the sampled model (estimated current)
@@ -215,19 +217,36 @@ The bipvert is activated by holding down the fire button for at least 1 second a
 Using an HDMI capture card and capturing a second of the video noise gives the entire memory contents,
 which can be recovered with a script from the captured video.
 
+#### Blipvert Update #1
+
+The 1st issue is that HDMI capture devices for RGB are costly ($300-$400), but are available
+for $20 if a YUV color space is used. That is because the base USB protocol inlcudes support and drivers
+for cameras and the cheap HDMI-USB capturee devices only support YUV2 protocol.
+
+So what I planned and did was to switch over to YUV2 during blipvert operation. 
+This meant inserting HDMI InfoFrame packets during video blanking, so each viedo frame could be identified
+as either RGB24 or YUV2 coded. This swithcing worked.
+
+This raised the 2nd issue was that my awesome and pricy sunlight viewable LCD display only supported the DVI subset of HDMI,
+and the presence of InfoFrame packets caused issues. And the HDMI capture device required that the InfoFrames
+must always be transmitted (or never transmitted).
+
+The solution was to take advantage of the 2 HDMI ports and simultaneously transmit DVI for the LCD display and HDMI to external devices,
+such as the Cheap USB capture device or an LCD display.
+
 ### Text Overlay
 
 In addition to the dynamic logic derived text it is useful to have some fixed text overlay.
 
-ROM equivalents for a 5x7 font table and a 16 color text overlay take advantage of the FPGA resources. 
-Unfortuately with this lowest cost (SC) version of the fpga, ROM initialization is not available, so
-a small amount of logic was used the read the onboard flash and load it into the rom's. 
+ROM equivalents for a 5x7 font table and a 16 color text overlay efficiently utilize the FPGA built in SRAMS. 
+Unfortuately with this lowest cost (SC) version of the fpga, ROM initialization of the SRAMs is not available,
+and the updated device costs 50% more. So logic was added to read the onboard flash and load it into the rom's (SRAMS). 
 
-This text allowed my to display some basic text mostly so I could remember details of beep or hex codes.
+This text allowed my to display some basic static information without worrying about incremental gate cost if I modified the text.
 
 ### Git Commit ID
 
-It is always helpful to be able to trace a given build back to its git commit. 
+It is always helpful to be able to trace a running system back to its git commit. 
 
 Some bash and awk scripting was used extract, format, and insert the 7 hex digit git commmit id into the text overlay 
 (lower right corner) before the FPGA was compiled. Very handy
@@ -285,7 +304,7 @@ Cons:
 - Expensive
 - Estes - does not work well with estes igniters
 - Complex system
-- High Voltage Ar
+- High Voltage and Arcing
 ```
 
 
