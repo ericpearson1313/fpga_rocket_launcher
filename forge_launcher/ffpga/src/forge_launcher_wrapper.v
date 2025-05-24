@@ -11,8 +11,8 @@
 (* iopad_external_pin *)	input  logic fire_button,
 
 	// Output LED/SPK
-(* iopad_external_pin *)	output logic arm_led_n,
-(* iopad_external_pin *)	output logic cont_led_n,
+(* iopad_external_pin *)	output logic arm_led,
+(* iopad_external_pin *)	output logic cont_led,
 (* iopad_external_pin *)	output logic speaker,
 
 	// High Voltage 
@@ -54,7 +54,10 @@
 		{ reset, reset_shift[3:0] } <= { !reset_shift[3], reset_shift[2:0], resetn };
 
 	// create ADC inverted clk for output
-	assign ad_sclk  = !clk;
+	logic ad_sclk_en;
+	always_ff @(posedge clk)
+		ad_sclk_en <= resetn;
+	assign ad_sclk  = (!clk & ad_sclk);
 
 	forge_launcher _chip (
 		// System
@@ -63,8 +66,8 @@
 		// Front Panel
 		.fire_button 	( fire_button ),
 		.arm_button 	( arm_button ),
-		.arm_led_n 		( arm_led_n ),
-		.cont_led_n 	( cont_led_n ),
+		.arm_led 		( arm_led ),
+		.cont_led	 	( cont_led ),
 		.speaker 		( speaker ),
 		// High Voltage
 		.lt3420_charge 	( lt3420_charge ),

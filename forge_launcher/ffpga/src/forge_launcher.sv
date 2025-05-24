@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ForgeFPGA model rocket launcher
 // Digital PWM, current controlled buck converter. capacitive discharge
-// igniter pulse generator
+// igniter pulse generator 
 module forge_launcher
 (
 	// System
@@ -564,10 +564,10 @@ always_ff @( posedge clk ) deltav = vcap_corr[10:4] - vout_corr[10:4]; // coil d
 
 // Use table lookup on &msbs of deltaV to calc deltai
 logic [15:0] deltai_rom[127:0];// rom deltaI units in (4.12)
-initial begin
+always_comb begin
 	for( int ii = 0; ii < 128; ii++ )
 		deltai_rom[ii] = ( ii * 4096 * 16 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
-end // initial
+end
 
 logic [15:0] deltai;
 always_ff @(posedge clk) deltai <= deltai_rom[deltav];
