@@ -1,8 +1,6 @@
-// ForgeFPGA model rocket launcher
-// Digital PWM, current controlled buck converter. capacitive discharge
-// igniter pulse generator
 `timescale 1ns / 1ps
-(* top *) module forge_launcher
+// Top level Chip Wrapper
+(* top *) module forge_launcher_wrapper
 (
 // Forge FPGA built in clk reset
 (* iopad_external_pin, clkbuf_inhibit *) input logic clk,
@@ -26,7 +24,7 @@
 	
 	// External A/D Converters (2.5v)
 (* iopad_external_pin *)	output logic        ad_cs,
-(* iopad_external_pin *)	output logic		  ad_sclk,
+(* iopad_external_pin *)	output logic		ad_sclk,
 (* iopad_external_pin *)	input  logic  [1:0] ad_sdata_a,
 (* iopad_external_pin *)	input  logic  [1:0] ad_sdata_b,
 	
@@ -41,7 +39,6 @@
 
 );
 
-
     // PLL Control, 48 Mhz
     assign pll_en = 1'b1;
     assign pll_refdiv = 6'b00_0001;		// Equivalent value in decimal form 6'd1,
@@ -51,28 +48,91 @@
     assign pll_bypass = 1'b0;
     assign pll_clk_selection = 1'b0;
 
+	// Synchronize reset
+	logic reset;
+	logic [3:0] reset_shift = 4'b0; // initial value upon config is reset
+	always_ff @(posedge clk)
+		{ reset, reset_shift[3:0] } <= { !reset_shift[3], reset_shift[2:0], resetn };
 
+	// create ADC inverted clk for output
+	assign ad_sclk  = !clk;
 
-// Generate reset
+	forge_launcher _chip (
+		// System
+		.clk			( clk ),
+		.reset			( reset ),
+		// Front Panel
+		.fire_button 	( fire_button ),
+		.arm_button 	( arm_button ),
+		.arm_led_n 		( arm_led_n ),
+		.cont_led_n 	( cont_led_n ),
+		.speaker 		( speaker ),
+		// High Voltage
+		.lt3420_charge 	( lt3420_charge ),
+		.lt3420_done   	( lt3420_done   ),
+		.pwm           	( pwm ),
+		.dump			( dump ),
+		// ADC interface
+		.ad_cs			( ad_cs ),
+		.ad_sdata_a 	( ad_sdata_a ),
+		.ad_sdata_b 	( ad_sdata_b ),
+		// Tie off Debug inputs
+		.iset			( 3'b111 ),
+		.key			( 5'b00000 )
+    );
+endmodule // forge_launcher_wrapper 
+		
+		
+		
+// ForgeFPGA model rocket launcher
+// Digital PWM, current controlled buck converter. capacitive discharge
+// igniter pulse generator
+module forge_launcher
+(
+	// System
+	input logic clk,
+	input logic reset,
 
-logic reset;
-logic [3:0] reset_shift = 4'b0; // initial value upon config is reset
-always_ff @(posedge clk)
-	{ reset, reset_shift[3:0] } <= { !reset_shift[3], reset_shift[2:0], resetn };
+	// Front Panel I/O
+	input  logic arm_button,
+	input  logic fire_button,
+	output logic arm_led_n,
+	output logic cont_led_n,
+	output logic speaker,
 
-// ADC inverted clks
+	// High Voltage 
+	output logic lt3420_charge,
+	input  logic lt3420_done,
+	output logic pwm,	
+	output logic dump,
+	
+	// External A/D Converters (2.5v)
+	output logic        ad_cs,
+	//output logic		ad_sclk, handled in wrapper
+	input  logic  [1:0] ad_sdata_a,
+	input  logic  [1:0] ad_sdata_b,
+	
+	// Debug Controls
+	input 	logic [2:0] iset, // dip switch active low
+	input	logic [4:0] key,  // keypad 
+	
+	// monitor outputs for Display
+	output logic [11:0] ad_a0, 
+	output logic [11:0] ad_a1, 
+	output logic [11:0] ad_b0, 
+	output logic [11:0] ad_b1,
+	output logic ad_strobe,
+	output logic [11:0] iest
 
-logic ad_sclk_en;
-always_ff @(posedge clk)
-	ad_sclk_en <= !reset;
-assign ad_sclk  = !( clk & ad_sclk_en );
+);
 
-/////////////////////////////////////////////////////////
+	// ADC Scale parameters
+	parameter ADC_VOLTS_PER_DN = 0.2005;
+	parameter ADC_DN_PER_AMP = 205;
+	// Physical parameters
+	parameter CLOCK_FREQ_MHZ = 48;
+	parameter COIL_IND_UH = 390;
 
-logic [4:0] key;
-assign key = 5'd0;
-logic [2:0] iset;
-assign iset = 3'b111; // active low
 
 // Free running counter
 logic [25:0] count;
@@ -140,8 +200,7 @@ always @( posedge clk ) begin
 		if( lt3420_done && charge ) begin // switch to continuity
 			charge <= 0;
 			continuity <= 1;
-		end else if( continuity && fire_flag 
-		) begin
+		end else if( continuity && fire_flag ) begin
 			charge <= 0;
 			continuity <= 0;
 		end else begin
@@ -153,10 +212,7 @@ end
 
 assign lt3420_charge = charge | key == 5'h1A;
 
-
 //////////////////////////////
-
-
 
 // Speaker is differential out gives 6Vp-p
 logic [15:0] tone_cnt;
@@ -167,13 +223,13 @@ always @(posedge clk) begin
 	if( tone_cnt == 0 ) begin
 		spk_toggle <= !spk_toggle;
 		{spk_en, tone_cnt}<= ( key == 5'h11 || fire_button_debounce ) ? { 1'b1, 16'h2CCA } :
-								   //( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
+								   ( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
 								   ( key == 5'h13 ) ? { 1'b1, 16'h238D } :
-								   //( key == 5'h14 ) ? { 1'b1, 16'h218E } :
+								   ( key == 5'h14 ) ? { 1'b1, 16'h218E } :
 								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
-								   //( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
-								   //( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-								   ( /*key == 5'h18 ||*/ ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
+								   ( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
+								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
+								   ( key == 5'h18 || ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
 	end else begin
 		tone_cnt <= tone_cnt - 1;
 		spk_en <= spk_en;
@@ -217,9 +273,6 @@ end
 ////////////////////////////////////////////
 // PWM Current limited pulse generator
 ////////////////////////////////////////////
-logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
-logic ad_strobe;
-logic [11:0] 	iest;
 logic 			pwm_pulse;
 logic [15:0] 	pulse_time;
 logic [9:0] 	pulse_count;
@@ -317,7 +370,12 @@ assign icap = ( ad_b0[11] || ad_b0[10:4] == 7'h7F ) ? 11'b0 : ( ad_b0[10:0] ^ 11
 
 // Modelling Coil Current
 // estimate is before sample and 16x finer timing
-forge_model_coil _model (
+	parameter ADC_VOLTS_PER_DN = 0.2005;
+	parameter ADC_DN_PER_AMP = 205;
+	// Physical parameters
+	parameter CLOCK_FREQ_MHZ = 48;
+	parameter COIL_IND_UH = 390;
+forge_model_coil #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _model (
 	// Input clock
 	.clk( clk ),
 	.reset( reset ),
@@ -350,7 +408,7 @@ forge_ohm_div _resistance (
 logic res_pwm;
 logic res_flag;
 logic [11:0] igniter_res;
-forge_igniter_resistance _res_measurement (
+forge_igniter_resistance #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP ) _res_measurement (
 	// Input clock
 	.clk( clk ),
 	.reset( reset ),
@@ -547,13 +605,14 @@ assign ad_strobe = adc_valid; // valid pulse aligned with new data.
 
 endmodule
 
-// This is a digital model of the current in the output inductor.
+
+
+// This is a digital model of the current rise in the output inductor.
 // This model runs at 48 Mhz (vs 3 Mhz sample rate) and give
 // 16x timing precision and lower latency.
 // Inputs are the PWM signal and slowely varying capacitor and output voltages. 
-// The measured iout is also provided to intialize the model pon PWM rising edge
-// The model is ideal and optimisitic and will undershoot the current.
-
+// The measured iout is also provided to intialize the model on PWM rising edge
+// The model is ideal and optimisitic and will over-perform actual inductor current.
 module forge_model_coil
 (
 	// Input clock, reset
@@ -570,6 +629,13 @@ module forge_model_coil
 	output [11:0] iest_coil // +-10A = -+2050 + 2048, so 205DN/A 
 );
 
+// ADC Scale parameters
+parameter ADC_VOLTS_PER_DN = 0.2005;
+parameter ADC_DN_PER_AMP = 205;
+// Physical parameters
+parameter CLOCK_FREQ_MHZ = 48;
+parameter COIL_IND_UH = 390;
+
 // Current Model assignments and accumulator
 // Multiply by 1/Lf
 logic [23:0] iest_cur, iest_hold, iest_next, i_acc;
@@ -584,164 +650,21 @@ logic [11:0] vout_corr;
 assign vcap_corr[11:0] = ( vcap > 12'h7F8 ) ? 8 : ( vcap[11:0] ^ 12'h7FF ); // clip to >= 8, else model wanders
 assign vout_corr[11:0] = ( vout[11] ) ? 0 : ( vout[11:0] ^ 12'h7FF ); // clip to zero if -ve
 
-// Calc deltaV across the coil (depends on PWM )
-// deltav = ( pwm ) ? vcap : 0 ) - vout: UNIT: s13 .2005 V/dn
-//logic [12:0] deltav;
-//assign deltav[12:0] = ( ( pwm ) ? ({ vcap_corr[11], vcap_corr[11:0] }) : 13'h0000 ) - { vout_corr[11], vout_corr[11:0] };
-
-
+// Calc deltaV across the coil when PWM On
 logic [6:0] deltav; // always possitive 
 always_ff @( posedge clk ) deltav = vcap_corr[10:4] - vout_corr[10:4]; // coil drive voltage
 
+// Use table lookup on &msbs of deltaV to calc deltai
 logic [15:0] deltai_rom[127:0];// rom deltaI units in (4.12)
 initial begin
-//	for( int ii = 0; ii < 128; ii++ )
-//		deltai_rom[ii] = ( ii*(1<<12)*16*0.2005*205 )/( 48*390 );
-    deltai_rom[0] = 16'h0000;	
-    deltai_rom[1] = 16'h008F;	
-    deltai_rom[2] = 16'h011F;	
-    deltai_rom[3] = 16'h01AF;	
-    deltai_rom[4] = 16'h023F;	
-    deltai_rom[5] = 16'h02CF;	
-    deltai_rom[6] = 16'h035F;	
-    deltai_rom[7] = 16'h03EF;	
-    deltai_rom[8] = 16'h047F;	
-    deltai_rom[9] = 16'h050F;	
-    deltai_rom[10] = 16'h059E;	
-    deltai_rom[11] = 16'h062E;	
-    deltai_rom[12] = 16'h06BE;	
-    deltai_rom[13] = 16'h074E;	
-    deltai_rom[14] = 16'h07DE;	
-    deltai_rom[15] = 16'h086E;	
-    deltai_rom[16] = 16'h08FE;	
-    deltai_rom[17] = 16'h098E;	
-    deltai_rom[18] = 16'h0A1E;	
-    deltai_rom[19] = 16'h0AAD;	
-    deltai_rom[20] = 16'h0B3D;	
-    deltai_rom[21] = 16'h0BCD;	
-    deltai_rom[22] = 16'h0C5D;	
-    deltai_rom[23] = 16'h0CED;	
-    deltai_rom[24] = 16'h0D7D;	
-    deltai_rom[25] = 16'h0E0D;	
-    deltai_rom[26] = 16'h0E9D;	
-    deltai_rom[27] = 16'h0F2D;	
-    deltai_rom[28] = 16'h0FBD;	
-    deltai_rom[29] = 16'h104C;	
-    deltai_rom[30] = 16'h10DC;	
-    deltai_rom[31] = 16'h116C;	
-    deltai_rom[32] = 16'h11FC;	
-    deltai_rom[33] = 16'h128C;	
-    deltai_rom[34] = 16'h131C;	
-    deltai_rom[35] = 16'h13AC;	
-    deltai_rom[36] = 16'h143C;	
-    deltai_rom[37] = 16'h14CC;	
-    deltai_rom[38] = 16'h155B;	
-    deltai_rom[39] = 16'h15EB;	
-    deltai_rom[40] = 16'h167B;	
-    deltai_rom[41] = 16'h170B;	
-    deltai_rom[42] = 16'h179B;	
-    deltai_rom[43] = 16'h182B;	
-    deltai_rom[44] = 16'h18BB;	
-    deltai_rom[45] = 16'h194B;	
-    deltai_rom[46] = 16'h19DB;	
-    deltai_rom[47] = 16'h1A6B;	
-    deltai_rom[48] = 16'h1AFA;	
-    deltai_rom[49] = 16'h1B8A;	
-    deltai_rom[50] = 16'h1C1A;	
-    deltai_rom[51] = 16'h1CAA;	
-    deltai_rom[52] = 16'h1D3A;	
-    deltai_rom[53] = 16'h1DCA;	
-    deltai_rom[54] = 16'h1E5A;	
-    deltai_rom[55] = 16'h1EEA;	
-    deltai_rom[56] = 16'h1F7A;	
-    deltai_rom[57] = 16'h2009;	
-    deltai_rom[58] = 16'h2099;	
-    deltai_rom[59] = 16'h2129;	
-    deltai_rom[60] = 16'h21B9;	
-    deltai_rom[61] = 16'h2249;	
-    deltai_rom[62] = 16'h22D9;	
-    deltai_rom[63] = 16'h2369;	
-    deltai_rom[64] = 16'h23F9;	
-    deltai_rom[65] = 16'h2489;	
-    deltai_rom[66] = 16'h2518;	
-    deltai_rom[67] = 16'h25A8;	
-    deltai_rom[68] = 16'h2638;	
-    deltai_rom[69] = 16'h26C8;	
-    deltai_rom[70] = 16'h2758;	
-    deltai_rom[71] = 16'h27E8;	
-    deltai_rom[72] = 16'h2878;	
-    deltai_rom[73] = 16'h2908;	
-    deltai_rom[74] = 16'h2998;	
-    deltai_rom[75] = 16'h2A28;	
-    deltai_rom[76] = 16'h2AB7;	
-    deltai_rom[77] = 16'h2B47;	
-    deltai_rom[78] = 16'h2BD7;	
-    deltai_rom[79] = 16'h2C67;	
-    deltai_rom[80] = 16'h2CF7;	
-    deltai_rom[81] = 16'h2D87;	
-    deltai_rom[82] = 16'h2E17;	
-    deltai_rom[83] = 16'h2EA7;	
-    deltai_rom[84] = 16'h2F37;	
-    deltai_rom[85] = 16'h2FC6;	
-    deltai_rom[86] = 16'h3056;	
-    deltai_rom[87] = 16'h30E6;	
-    deltai_rom[88] = 16'h3176;	
-    deltai_rom[89] = 16'h3206;	
-    deltai_rom[90] = 16'h3296;	
-    deltai_rom[91] = 16'h3326;	
-    deltai_rom[92] = 16'h33B6;	
-    deltai_rom[93] = 16'h3446;	
-    deltai_rom[94] = 16'h34D6;	
-    deltai_rom[95] = 16'h3565;	
-    deltai_rom[96] = 16'h35F5;	
-    deltai_rom[97] = 16'h3685;	
-    deltai_rom[98] = 16'h3715;	
-    deltai_rom[99] = 16'h37A5;	
-    deltai_rom[100] = 16'h3835;	
-    deltai_rom[101] = 16'h38C5;	
-    deltai_rom[102] = 16'h3955;	
-    deltai_rom[103] = 16'h39E5;	
-    deltai_rom[104] = 16'h3A74;	
-    deltai_rom[105] = 16'h3B04;	
-    deltai_rom[106] = 16'h3B94;	
-    deltai_rom[107] = 16'h3C24;	
-    deltai_rom[108] = 16'h3CB4;	
-    deltai_rom[109] = 16'h3D44;	
-    deltai_rom[110] = 16'h3DD4;	
-    deltai_rom[111] = 16'h3E64;	
-    deltai_rom[112] = 16'h3EF4;	
-    deltai_rom[113] = 16'h3F84;	
-    deltai_rom[114] = 16'h4013;	
-    deltai_rom[115] = 16'h40A3;	
-    deltai_rom[116] = 16'h4133;	
-    deltai_rom[117] = 16'h41C3;	
-    deltai_rom[118] = 16'h4253;	
-    deltai_rom[119] = 16'h42E3;	
-    deltai_rom[120] = 16'h4373;	
-    deltai_rom[121] = 16'h4403;	
-    deltai_rom[122] = 16'h4493;	
-    deltai_rom[123] = 16'h4522;	
-    deltai_rom[124] = 16'h45B2;	
-    deltai_rom[125] = 16'h4642;	
-    deltai_rom[126] = 16'h46D2;	
-    deltai_rom[127] = 16'h4762;	
+	for( int ii = 0; ii < 128; ii++ )
+		deltai_rom[ii] = ( ii * (1<<12) * 16 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
 end // initial
 
 logic [15:0] deltai;
 always_ff @(posedge clk) deltai <= deltai_rom[deltav];
 
-// Scale the ADC voltage difference to an ADC current difference
-// - deltav scaled to volts * 0.2005 V/DN
-// - Delta I calculated = 1/(L*F) = 1/(390uH*48Mhz) in Amps
-// - Delta I scaled to ADC units * 205DN/A
-// - 16'd36837 = .2005 V/dn / ( 48 Mhz * 390 uH ) * 205 dn/A << 24
-// signed multipley s13 * s17 = s30 (16+1) >> 24
-
-//logic [29:0] deltai;
-//assign deltai[29:0] = $signed( deltav[12:0] ) * (* multstyle = "dsp" *) $signed( { 1'b0, 16'd36837 } ); // Use a DSP 18x18 block
-//assign deltai[29:0] = { {2{deltav[12]}}, deltav[12:0], 15'h0000 }; // Fixed multiplicastion by 'h8000
-
-// Iest current is signed 12.24 in ADC current DN scale
+// Iest current is signed 12.12 in ADC current DN scale
 always_ff @(posedge clk)
 	iest_next[23:0] <= i_acc[23:0] + { 8'h00, deltai };
 	
@@ -770,7 +693,7 @@ endmodule // model_coil
 // Enable input assertion, creates a PWM pulse (2us), and 64K hold-off on retrigger
 // waits for a valid resistance calc (64 cycles), and then accumulates for total 128 cycles
 // At each power of two an output resistance is provided. Output is latched.
-
+// Beep codes and continuity are generated as outputs
 module forge_igniter_resistance
 (
 	// System
@@ -797,6 +720,10 @@ module forge_igniter_resistance
 	output logic valid_out,
 	output logic [11:0] r_out // adc format, +ve only
 );
+	
+	// ADC Scale parameters
+	parameter ADC_VOLTS_PER_DN = 0.2005;
+	parameter ADC_DN_PER_AMP = 205;
 	
 	// Triggering with 0.6 Sec holdoff
 	logic [24:0] holdoff;
@@ -898,9 +825,7 @@ endmodule
 
 
 // Output is calculated igniter resistance
-// R = E / I
-// R = E * 205 dn/A * .2005 V/Dn / I 
-// R = ( |E[11:0]| * 16'd42089 ) / max( 1, I ) >> 10
+// R = E / I ( done in native ADC units, convert thresholds)
 // Inputs need conversion from ADC format
 // Hardcoded for launch controller adc scale
 // divider runs at 2 bits/cycle
@@ -937,8 +862,6 @@ logic [38:0] numer;
 	end
 
 // I (current Input)
-
-
 assign current[10:0] = ( i_in[11] | i_in[10:0] == 11'h7FF ) ? 11'h001 : ( i_in[10:0] ^ 11'h7FF );
 always @(posedge clk) begin
 	if( reset ) begin
@@ -966,13 +889,9 @@ end
 logic [10:0] voltage; // in adc units
 assign voltage = ( v_in[11] ) ? 11'h000 : ( v_in[10:0] ^ 11'h7ff );
 logic [26:0] vscale; // scaled to normalize units << 10 precision
-//assign vscale[26:0] = voltage * (* multstyle = "dsp" *) 16'd42089; // use a DSP element
 assign vscale[26:0] = { 1'b0, voltage[10:0], 15'h0000 };  // approx with 'h8000
 
-// Numerator is 38 bits = 27 num + 11 denom + 1 
-
 // Divide steps and remainder
-
 assign remd0[13:0] = numer[38-:14] - denom0[13:0]; // dummy
 assign remd1[13:0] = numer[38-:14] - denom1[13:0];
 assign remd2[13:0] = numer[38-:14] - denom2[13:0];
@@ -1008,6 +927,7 @@ end
 // quotient is 17.13 format in ohms
 // Clip to zero (7FF) until >150mA amp before measurement is meaningful
 // Output is clipped to 6.5 and put into adc format
+// TODO: Make sure R = 1..64 ohms fits in the output range
 
 always @(posedge clk) begin
 	valid_out   <= ( del_valid[15] && denom1 > 32 ) ? 1'b1 : 1'b0;

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="24 May 2025 08:36:55" projectChecksumState="1" projectChecksum="11e60c64">
+<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="24 May 2025 10:07:17" projectChecksumState="1" projectChecksum="3239cddf">
     <generalProjectSettings/>
     <chip family="04" type="06" friendlyName="FFPGA" partNumber="67" package="26">
         <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 0 0 22 22 22 22 22 22 22 22 22 22 0 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
@@ -691,23 +691,19 @@
             </synthesize>
         </settings>
         <openedTabs>
-            <openedTab>I/O Planner</openedTab>
-            <openedTab>Synthesis Report</openedTab>
-            <openedTab>Netlist</openedTab>
-            <openedTab>Post-Synth RTL</openedTab>
-            <openedTab>Timing Analysis</openedTab>
-            <openedTab>Floorplan</openedTab>
-            <openedTab>Resources Report</openedTab>
             <openedTab>forge_launcher.v</openedTab>
+            <openedTab>I/O Planner</openedTab>
+            <openedTab>Post-Synth RTL</openedTab>
+            <openedTab>Netlist</openedTab>
         </openedTabs>
         <pipelineStagesStates>
             <pipelineStageState>
                 <pipelineStage>0</pipelineStage>
-                <pipelineState>3</pipelineState>
+                <pipelineState>1</pipelineState>
             </pipelineStageState>
             <pipelineStageState>
                 <pipelineStage>1</pipelineStage>
-                <pipelineState>3</pipelineState>
+                <pipelineState>1</pipelineState>
             </pipelineStageState>
         </pipelineStagesStates>
         <modules>
@@ -720,7 +716,7 @@
             <timing-constraints/>
         </modules>
         <io-spec-tool>
-            <records filter="58" filter1="16">
+            <records filter="26" filter1="16">
                 <record id="CLK_t[0:0]_W_in1">
                     <port-name>clk</port-name>
                 </record>
