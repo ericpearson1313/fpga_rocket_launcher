@@ -131,6 +131,7 @@ logic arm_led;
 logic cont_led;
 assign arm_led_n = arm_led;	// not complemented bc external NPN
 assign cont_led_n = cont_led; //  we added a NPN  to drive 12v led
+assign speaker_n = !speaker;
 
 // AIN
 assign anain[3:1] = iset[2:0]; // active low switch inputs
@@ -141,6 +142,87 @@ always @(posedge clk) begin
 end
 assign anain[8:5] = count[24:21];
 assign anain[8]=count[24];
+
+
+`define FORGE_EMULATOR
+`ifdef FORGE_EMULATOR
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+//
+//                 FORGE EMULATOR <start>
+//
+
+// Signals Tied Off during emulation
+logic [43:0] eout = 0;
+logic [43:0] ecap = 0;
+
+// Emulation data for display
+logic 			burn;				
+logic [11:0] 	ad_a0, ad_a1, ad_b0, ad_b1;
+logic 			ad_strobe;
+logic	[11:0]	iest;	
+logic	[11:0]	igniter_res;
+// Emulation display control signals
+logic 			scroll_halt;	// scroll is halted after discharge
+logic 			charge;			// HDMI is held in reset during chargin
+logic				fire_done;		// Changes fire button function
+logic				fire_button_debounce; // Debounced fire button for zoom
+logic 			cap_halt;		// disables 4M buffer capture
+logic				long_fire;		// turns on blipvert
+
+	forge_launcher _uut (
+		// System
+		.clk				( clk ),
+		.reset			( reset ),
+		// Front Panel
+		.fire_button 	( fire_button ),
+		.arm_button 	( arm_button ),
+		.arm_led 		( arm_led ),
+		.cont_led 		( cont_led ),
+		.speaker 		( speaker ),
+		// High Voltage
+		.lt3420_charge ( lt3420_charge ),
+		.lt3420_done   ( lt3420_done   ),
+		.pwm           ( pwm ),
+		.dump				( dump ),
+		// ADC interface
+		.ad_cs			( ad_cs ),
+		.ad_sdata_a 	( ad_sdata_a ),
+		.ad_sdata_b 	( ad_sdata_b ),
+		
+		// Emulation interconnectes
+		// Tied off Debug inputs
+		.iset				( iset ),
+		.key				( key ),
+		// Internal Logging outputs
+		.ad_a0			( ad_a0 ) , 
+		.ad_a1         ( ad_a1 ), 
+		.ad_b0         ( ad_b0 ), 
+		.ad_b1         ( ad_b1 ),
+		.ad_strobe     ( ad_strobe ),
+		.iest          ( iest ),
+		.burn          ( burn ),
+		.igniter_res	( igniter_res ),
+		// intenal logging control signals
+		.scroll_halt	( scroll_halt ),
+		.charge			( charge ),
+		.fire_done		( fire_done ),
+		.fire_button_debounce ( fire_button_debounce ),
+		.cap_halt		( cap_halt ),
+		.long_fire		( long_fire )
+
+   );
+
+
+
+
+//
+//                 FORGE EMULATOR <end>
+//
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+`else // FORGE EMULATOR
+
 
 //////////////////////////////////////////////
 // fire button 10ms debounce 
@@ -239,7 +321,7 @@ always @(posedge clk) begin
 end
 
 assign speaker = spk_toggle & spk_en ; 
-assign speaker_n = !speaker;
+
 
 
 ////////////////////////////////////////////
@@ -426,25 +508,19 @@ igniter_resistance _res_measurement (
 
 assign pwm = pwm_pulse | res_pwm;
 
-// Digio pads.
-	logic [6:0] digio_in, digio_out;
-	ioe_pads7 _digio_pads (
-		.dout( digio_in ), 
-		.din( digio_out ),  
-		.pad_io( digio ),
-		.oe ( 7'b1101010 ) // Row drive 1653, col sense 204
-	);
-		
-		
-// Keyboard Scanner
-	key_scan _keypad ( 
-		.clk( clk ),
-		.reset( reset ),
-		.keypad_in( digio_in ),
-		.keypad_out( digio_out ),
-		.key( key )
-	);
-	
+// Arm is based on vcap with 300v on thresh and 50v off thresh
+logic cap_charged;
+always @( posedge clk ) begin
+	if( reset ) begin
+		cap_charged <= 0;
+	end else begin
+		cap_charged <= ( strobe_d && vcap > (( 300 * 10000 ) / 2005 ) ) ? 1'b1 :
+		               ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
+	end
+end
+
+assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
+
 // Energy Accumulators
 // Accululated during fire_flag | res_flag.
 logic [43:0] eout, ecap; // accumulated cap energy and output energy as 44 bits
@@ -478,19 +554,27 @@ always @(posedge clk) begin
 		ecap[43:0] <= ecap[43:0];
 	end
 end
-	
-// Arm is based on vcap with 300v on thresh and 50v off thresh
-logic cap_charged;
-always @( posedge clk ) begin
-	if( reset ) begin
-		cap_charged <= 0;
-	end else begin
-		cap_charged <= ( strobe_d && vcap > (( 300 * 10000 ) / 2005 ) ) ? 1'b1 :
-		               ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
-	end
-end
 
-assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
+`endif // FORGE_EMULATOR
+
+// Digio pads.
+	logic [6:0] digio_in, digio_out;
+	ioe_pads7 _digio_pads (
+		.dout( digio_in ), 
+		.din( digio_out ),  
+		.pad_io( digio ),
+		.oe ( 7'b1101010 ) // Row drive 1653, col sense 204
+	);
+		
+		
+// Keyboard Scanner
+	key_scan _keypad ( 
+		.clk( clk ),
+		.reset( reset ),
+		.keypad_in( digio_in ),
+		.keypad_out( digio_out ),
+		.key( key )
+	);	
 
 // SPI 8 Memory interface
 

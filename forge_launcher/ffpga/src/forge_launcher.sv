@@ -11,8 +11,8 @@ module forge_launcher
 	// Front Panel I/O
 	input  logic arm_button,
 	input  logic fire_button,
-	output logic arm_led_n,
-	output logic cont_led_n,
+	output logic arm_led,
+	output logic cont_led,
 	output logic speaker,
 
 	// High Voltage 
@@ -27,18 +27,31 @@ module forge_launcher
 	input  logic  [1:0] ad_sdata_a,
 	input  logic  [1:0] ad_sdata_b,
 	
+	///////////////////
+	// Emulation I/o //
+	///////////////////
+	
 	// Debug Controls
 	input 	logic [2:0] iset, // dip switch active low
 	input	logic [4:0] key,  // keypad 
 	
 	// monitor outputs for Display
-	output logic [11:0] ad_a0, 
-	output logic [11:0] ad_a1, 
-	output logic [11:0] ad_b0, 
-	output logic [11:0] ad_b1,
-	output logic ad_strobe,
-	output logic [11:0] iest
-
+	output logic [11:0] 	ad_a0, 
+	output logic [11:0] 	ad_a1, 
+	output logic [11:0] 	ad_b0, 
+	output logic [11:0] 	ad_b1,
+	output logic 			ad_strobe,
+	output logic [11:0] 	iest,
+	output logic 			burn,
+	output logic [11:0]	igniter_res,	
+	
+	// Display and Logging control outputs
+	output logic scroll_halt,
+	output logic charge,
+	output logic fire_done,
+	output logic fire_button_debounce,
+	output logic cap_halt,
+	output logic long_fire
 );
 
 	// ADC Scale parameters
@@ -54,12 +67,6 @@ logic [25:0] count;
 always_ff @(posedge clk) 
 	count <= count + 1;
 
-// LEDs active low
-logic arm_led;
-logic cont_led;
-assign arm_led_n = arm_led;	// not complemented bc external NPN
-assign cont_led_n = cont_led; //  we added a NPN  to drive 12v led
-
 //////////////////////////////////////////////
 // fire button 10ms debounce 
 // signal to get 1.3 sec of pwm current control
@@ -70,11 +77,6 @@ assign cont_led_n = cont_led; //  we added a NPN  to drive 12v led
 
 logic [27:0] fire_count; 
 logic fire_flag;
-logic fire_done ; // self discharge 
-logic scroll_halt;
-logic cap_halt; // full rate capture
-logic fire_button_debounce;
-logic long_fire; // fire button held down >1 wsec
 
 forge_debounce _firedb ( .clk( clk ), .reset( reset ), .in( fire_button ), .out( fire_button_debounce ), .long( long_fire ));
 
@@ -105,7 +107,6 @@ assign dump = fire_done  | key == 5'h1B; // always dump after firing
 // Power On auto charge and continuity until fire button
 ////////////////////////////////
 
-logic charge;  // charge cap flag
 logic continuity; // test cont flag
 always @( posedge clk ) begin
 	if( reset ) begin
@@ -160,7 +161,6 @@ assign speaker = spk_toggle & spk_en ;
 // Output voltage is expected to rise to cap voltage. This will happen after current rise.
 // After observation the real indication is output voltage rise rate at burnthrough, or open circuit.
  
-logic burn;
 logic current_seen;
 logic [11:0] ad_b1_del;
 logic signed [12:0] dv; // delta voltage
@@ -276,12 +276,7 @@ forge_adc_module_4ch  _adc (
 	.ad_strobe( ad_strobe )
 );
 
-// clip inputs to +ve
-logic [10:0] vout, vcap, iout, icap;
-assign vout = ( ad_b1[11] || ad_b1[10:4] == 7'h7F ) ? 11'b0 : ( ad_b1[10:0] ^ 11'h7FF );
-assign vcap = ( ad_a1[11] || ad_a1[10:4] == 7'h7F ) ? 11'b0 : ( ad_a1[10:0] ^ 11'h7ff );
-assign iout = ( ad_a0[11] || ad_a0[10:4] == 7'h7F ) ? 11'b0 : ( ad_a0[10:0] ^ 11'h7ff );
-assign icap = ( ad_b0[11] || ad_b0[10:4] == 7'h7F ) ? 11'b0 : ( ad_b0[10:0] ^ 11'h7ff );
+
 
 // Modelling Coil Current
 // estimate is before sample and 16x finer timing
@@ -317,7 +312,6 @@ forge_ohm_div _resistance (
 
 logic res_pwm;
 logic res_flag;
-logic [11:0] igniter_res;
 forge_igniter_resistance #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP ) _res_measurement (
 	// Input clock
 	.clk( clk ),
@@ -341,6 +335,10 @@ forge_igniter_resistance #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP ) _res_measurement 
 assign pwm = pwm_pulse | res_pwm;
 
 // Arm is based on vcap with 300v on thresh and 50v off thresh
+// clip inputs to +ve
+logic [10:0] vcap;
+assign vcap = ( ad_a1[11] || ad_a1[10:4] == 7'h7F ) ? 11'b0 : ( ad_a1[10:0] ^ 11'h7ff );
+
 logic cap_charged;
 always @( posedge clk ) begin
 	if( reset ) begin
@@ -568,7 +566,7 @@ always_ff @( posedge clk ) deltav = vcap_corr[10:4] - vout_corr[10:4]; // coil d
 logic [15:0] deltai_rom[127:0];// rom deltaI units in (4.12)
 initial begin
 	for( int ii = 0; ii < 128; ii++ )
-		deltai_rom[ii] = ( ii * (1<<12) * 16 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
+		deltai_rom[ii] = ( ii * 4096 * 16 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
 end // initial
 
 logic [15:0] deltai;
@@ -589,7 +587,7 @@ always @(posedge clk) begin
 	end else if ( pwm ) begin // Accumulate during PWM for rise
 		i_acc[23:0] <= iest_next; // 12 fractional bits
 	end else begin
-		i_acc[23:0] <= 0;
+		i_acc[23:0] <= i_acc[23:0];
 	end
 end
 
