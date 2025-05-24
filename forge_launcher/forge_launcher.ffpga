@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="24 May 2025 10:07:17" projectChecksumState="1" projectChecksum="3239cddf">
+<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="24 May 2025 10:16:37" projectChecksumState="1" projectChecksum="8ada5a9a">
     <generalProjectSettings/>
     <chip family="04" type="06" friendlyName="FFPGA" partNumber="67" package="26">
         <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 0 0 22 22 22 22 22 22 22 22 22 22 0 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
@@ -691,24 +691,26 @@
             </synthesize>
         </settings>
         <openedTabs>
-            <openedTab>forge_launcher.v</openedTab>
+            <openedTab>forge_launcher.sv</openedTab>
             <openedTab>I/O Planner</openedTab>
             <openedTab>Post-Synth RTL</openedTab>
             <openedTab>Netlist</openedTab>
+            <openedTab>forge_launcher_wrapper.v</openedTab>
         </openedTabs>
         <pipelineStagesStates>
             <pipelineStageState>
                 <pipelineStage>0</pipelineStage>
-                <pipelineState>1</pipelineState>
+                <pipelineState>3</pipelineState>
             </pipelineStageState>
             <pipelineStageState>
                 <pipelineStage>1</pipelineStage>
-                <pipelineState>1</pipelineState>
+                <pipelineState>3</pipelineState>
             </pipelineStageState>
         </pipelineStagesStates>
         <modules>
             <scr>
-                <module filename="forge_launcher.v"/>
+                <module filename="forge_launcher.sv"/>
+                <module filename="forge_launcher_wrapper.v"/>
             </scr>
             <lib/>
             <sim/>

@@ -220,6 +220,10 @@ set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to iset[2]
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to iset[1]
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to iset[0]
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to iset
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name SYSTEMVERILOG_FILE forge_launcher/ffpga/src/forge_launcher.sv
 set_global_assignment -name VERILOG_FILE reg_ioe.v
 set_global_assignment -name SYSTEMVERILOG_FILE psram_ctrl.sv
 set_global_assignment -name SYSTEMVERILOG_FILE adc_mem_fifo.sv
@@ -240,9 +244,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE digital_system_model.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ohm_div.sv
 set_global_assignment -name TEXT_FILE font_rom_init.txt
 set_global_assignment -name TEXT_FILE text_overlay_rom_init.txt
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
-set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name QIP_FILE ufm_flash/synthesis/ufm_flash.qip
 set_global_assignment -name QIP_FILE trial_pll.qip
 set_global_assignment -name MIF_FILE flash_rom.mif
@@ -250,6 +251,6 @@ set_global_assignment -name QIP_FILE bvfifo.qip
 set_global_assignment -name QIP_FILE adc_fifo.qip
 set_global_assignment -name SDC_FILE blaster.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE packet_test.sv
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 set_global_assignment -name SYSTEMVERILOG_FILE packet_assembler.sv
 set_global_assignment -name SYSTEMVERILOG_FILE auxiliary_video_information_info_frame.sv
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
