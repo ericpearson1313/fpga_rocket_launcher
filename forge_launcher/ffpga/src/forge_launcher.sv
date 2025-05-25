@@ -275,8 +275,6 @@ forge_adc_module_4ch  _adc (
 	.ad_strobe( ad_strobe )
 );
 
-
-
 // Modelling Coil Current
 // estimate is before sample and 16x finer timing
 forge_model_coil #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _model (
@@ -294,41 +292,21 @@ forge_model_coil #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_U
 	.iest_coil( iest )
 );
 
-logic res_val;
-logic [11:0] res_calc;
-forge_ohm_div _resistance (
-	// Input clock
+logic res_pwm;
+forge_igniter_continuity #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP ) _res_cont (
 	.clk( clk ),
 	.reset( reset ),
 	// Votlage and Current Inputs
 	.valid_in( ad_strobe ),
 	.v_in( ad_b1 ), // ADC Vout
 	.i_in( ad_a0 ), // ADC Iout
-	// Resistance Output
-	.valid_out( res_val ),
-	.r_out( res_calc )
-);
-
-logic res_pwm;
-logic res_flag;
-forge_igniter_resistance #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP ) _res_measurement (
-	// Input clock
-	.clk( clk ),
-	.reset( reset ),
-	// Resistance input
-	.valid_in( res_val ),
-	.r_in( res_calc ),
 	// PWM output and enable input
 	.pwm( res_pwm ),
 	.enable( key == 5'h19 || continuity ),
-	// Avg Resistance output
-	.valid_out( ),
-	.r_out( igniter_res ),
 	// Tone and LED output
 	.tone( cont_tone ),
 	.first_tone( first_tone ),
-	.led( cont_led ),
-	.energy( res_flag )
+	.led( cont_led )
 );
 
 assign pwm = pwm_pulse | res_pwm;
@@ -844,3 +822,116 @@ end
 
 endmodule
 	
+	
+// Continuity Module
+// Save gates over full resistance calculation, loose the 'short' detect capability.
+// Enable input assertion, creates a PWM pulse (2us), and 64K hold-off on retrigger
+// records max output current and voltage
+// if Imax < 0.5amps --> Open, else
+// else if Vmax > 30 volts resistance is high else good 
+// Beep codes and continuity led are generated as outputs
+module forge_igniter_continuity
+(
+	// System
+	input logic clk,
+	input logic reset,
+	
+	// ADC Inputs (output I,V)
+	input logic valid_in,
+	input logic [11:0] v_in, 
+	input logic [11:0] i_in,	
+	
+	// PWM Output
+	output pwm,
+
+	// input Enable
+	input enable,
+	
+	// Outputs
+	output tone,
+	output first_tone,
+	output logic led = 0
+);
+	
+	// ADC Scale parameters
+	parameter ADC_VOLTS_PER_DN = 0.2005;
+	parameter ADC_DN_PER_AMP = 205;
+	
+	// Triggering with 0.6 Sec holdoff
+	logic [24:0] holdoff = 0;
+	always @(posedge clk) begin
+		if( reset ) begin
+			holdoff <= 0;
+		end else begin
+			if( !enable ) begin
+				holdoff <= 0;
+			end else if( enable && ( holdoff == 0 ) ) begin // start
+				holdoff <= 1;
+			end else if( holdoff != 0 ) begin // holdoff delay until wrap
+				holdoff <= holdoff + 1;
+			end else begin
+				holdoff <= 0;
+			end
+		end
+	end
+	
+	// PWM output, 2usec
+	assign pwm = ( ( holdoff != 0 ) && ( holdoff < ( 48 * 2 ))) ? 1'b1 : 1'b0;
+	
+	// foramt and Clip inputs
+	logic [10:0] current;
+	logic [10:0] voltage;
+	assign current = ( i_in[11] | i_in[10:0] == 11'h7FF ) ? 11'h001 : ( i_in[10:0] ^ 11'h7FF );
+	assign voltage = ( v_in[11] ) ? 11'h000 : ( v_in[10:0] ^ 11'h7ff );	
+	
+	// Max IV accumulate
+	logic [10:0] imax = 0, vmax = 0;
+	always @(posedge clk) begin
+		if( reset ) begin
+			imax <= 0;
+			vmax <= 0;
+		end else begin 
+			if( holdoff == 0 ) begin // Idle, just hold values, zero acc
+				imax <= 0;
+				vmax <= 0;
+			end else if( holdoff > 256 && holdoff < 4096 && valid_in ) begin 
+			   // accumulate valid samples
+			    imax <= ( current > imax ) ? current : imax;
+			    vmax <= ( voltage > vmax ) ? voltage : vmax;
+			end else begin
+				imax <= imax;
+				vmax <= vmax;
+			end
+		end
+	end
+	
+	// Set LED if between 1 and 16 ohms
+	always @(posedge clk) begin
+		if( reset ) begin
+			led <= 0;
+		end else begin // if we see 300mA there *IS* a connection
+			led <= (enable == 0 ) ? 1'b0 : ( holdoff == 4097 ) ? (( imax > 64 ) ? 1'b1 : 1'b0 ) : led;
+		end
+	end
+	
+	// Tones 
+	// Open, imax 1 < 64(300ma) - 3 beep
+	// vmax > 128 (25v) high resistance - 2 beeps
+	// else 1 beeps 
+	
+	assign tone = 	( holdoff[24-:4] == 1 ) ? 1'b1 : // always a single beep
+				  	( holdoff[24-:4] == 3 && ( imax < 12'h040 || vmax > 12'h080 ) ) ? 1'b1 : // two beeps if open or high
+					( holdoff[24-:4] == 5 && ( imax < 12'h040 )) ? 1'b1 : 1'b0; // three beeps if open
+
+	logic first = 1;				  
+	always @(posedge clk) begin
+		if( reset ) begin
+			first <= 1;
+		end else begin
+			first <= ( holdoff[24-:4] == 8 ) ? 1'b0 : first;
+		end
+	end
+			
+	assign first_tone = first & tone;
+	
+endmodule // forge_igniter_continuity
