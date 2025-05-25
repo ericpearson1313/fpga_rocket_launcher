@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="25 May 2025 13:56:56" projectChecksumState="1" projectChecksum="ca4eb29d">
+<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="25 May 2025 15:10:04" projectChecksumState="1" projectChecksum="3c12d399">
     <generalProjectSettings/>
     <chip family="04" type="06" friendlyName="FFPGA" partNumber="67" package="26">
         <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 0 0 22 22 22 22 22 22 22 22 22 22 0 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
@@ -161,25 +161,25 @@
         <wire output="80" input="39" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="20" wireText="NET20" wireState="0">
             <points>(129.00,289.00); (116.00,289.00); (116.00,240.00); (308.00,240.00); (308.00,251.00); (320.00,251.00)</points>
         </wire>
-        <wire output="34" input="67" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="21" wireText="NET21" wireState="0">
+        <wire output="34" input="67" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="21" wireText="NET21" wireState="0">
             <points>(320.00,333.00); (220.00,333.00)</points>
         </wire>
-        <wire output="38" input="68" autoRouting="1" pen="#ff8000ff;3.00;1;32;128" lineType="4" protected="1" CWLid="22" wireText="NET22" wireState="0">
+        <wire output="38" input="68" autoRouting="1" pen="#0293fdff;3.00;1;32;128" lineType="8" protected="1" CWLid="22" wireText="NET22" wireState="0">
             <points>(320.00,267.00); (220.00,267.00)</points>
         </wire>
-        <wire output="37" input="69" autoRouting="1" pen="#ff8000ff;3.00;1;32;128" lineType="4" protected="1" CWLid="23" wireText="NET23" wireState="0">
+        <wire output="37" input="69" autoRouting="1" pen="#0293fdff;3.00;1;32;128" lineType="8" protected="1" CWLid="23" wireText="NET23" wireState="0">
             <points>(320.00,284.00); (220.00,284.00)</points>
         </wire>
-        <wire output="36" input="70" autoRouting="1" pen="#ff8000ff;3.00;1;32;128" lineType="4" protected="1" CWLid="24" wireText="NET24" wireState="0">
+        <wire output="36" input="70" autoRouting="1" pen="#0293fdff;3.00;1;32;128" lineType="8" protected="1" CWLid="24" wireText="NET24" wireState="0">
             <points>(320.00,300.00); (220.00,300.00)</points>
         </wire>
-        <wire output="35" input="71" autoRouting="1" pen="#ff8000ff;3.00;1;32;128" lineType="4" protected="1" CWLid="25" wireText="NET25" wireState="0">
+        <wire output="35" input="71" autoRouting="1" pen="#0293fdff;3.00;1;32;128" lineType="8" protected="1" CWLid="25" wireText="NET25" wireState="0">
             <points>(320.00,317.00); (220.00,317.00)</points>
         </wire>
-        <wire output="33" input="72" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="26" wireText="NET26" wireState="0">
+        <wire output="33" input="72" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="26" wireText="NET26" wireState="0">
             <points>(320.00,350.00); (220.00,350.00)</points>
         </wire>
-        <wire output="32" input="73" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="27" wireText="NET27" wireState="0">
+        <wire output="32" input="73" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="27" wireText="NET27" wireState="0">
             <points>(320.00,366.00); (220.00,366.00)</points>
         </wire>
         <wire output="41" input="0" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="28" wireText="NET28" wireState="0">
@@ -203,31 +203,31 @@
         <wire output="47" input="6" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="34" wireText="NET34" wireState="0">
             <points>(320.00,153.00); (212.00,153.00)</points>
         </wire>
-        <wire output="48" input="7" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="35" wireText="NET35" wireState="0">
+        <wire output="48" input="7" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="35" wireText="NET35" wireState="0">
             <points>(320.00,103.00); (97.00,103.00)</points>
         </wire>
-        <wire output="49" input="8" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="36" wireText="NET36" wireState="0">
+        <wire output="49" input="8" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="36" wireText="NET36" wireState="0">
             <points>(961.00,55.00); (1071.00,55.00)</points>
         </wire>
-        <wire output="50" input="9" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="37" wireText="NET37" wireState="0">
+        <wire output="50" input="9" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="37" wireText="NET37" wireState="0">
             <points>(961.00,107.00); (1177.00,107.00)</points>
         </wire>
-        <wire output="51" input="10" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="38" wireText="NET38" wireState="0">
+        <wire output="51" input="10" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="38" wireText="NET38" wireState="0">
             <points>(961.00,159.00); (1071.00,159.00)</points>
         </wire>
         <wire output="52" input="11" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="39" wireText="NET39" wireState="0">
             <points>(961.00,211.00); (1177.00,211.00)</points>
         </wire>
-        <wire output="53" input="12" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="40" wireText="NET40" wireState="0">
+        <wire output="53" input="12" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="40" wireText="NET40" wireState="0">
             <points>(961.00,263.00); (1071.00,263.00)</points>
         </wire>
-        <wire output="54" input="13" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="41" wireText="NET41" wireState="0">
+        <wire output="54" input="13" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="41" wireText="NET41" wireState="0">
             <points>(961.00,315.00); (1177.00,315.00)</points>
         </wire>
-        <wire output="55" input="14" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="42" wireText="NET42" wireState="0">
+        <wire output="55" input="14" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="42" wireText="NET42" wireState="0">
             <points>(961.00,402.00); (1071.00,402.00)</points>
         </wire>
-        <wire output="56" input="15" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="43" wireText="NET43" wireState="0">
+        <wire output="56" input="15" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="43" wireText="NET43" wireState="0">
             <points>(961.00,454.00); (1177.00,454.00)</points>
         </wire>
         <wire output="57" input="16" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="44" wireText="NET44" wireState="0">
@@ -296,10 +296,10 @@
         <wire output="78" input="37" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="65" wireText="NET65" wireState="0">
             <points>(961.00,541.00); (1060.00,541.00); (1060.00,547.00); (1113.00,547.00); (1113.00,541.00)</points>
         </wire>
-        <wire output="0" input="42" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="66" wireText="NET66" wireState="0">
+        <wire output="0" input="42" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="66" wireText="NET66" wireState="0">
             <points>(97.00,609.00); (314.00,609.00); (314.00,613.00); (320.00,613.00)</points>
         </wire>
-        <wire output="1" input="43" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="67" wireText="NET67" wireState="0">
+        <wire output="1" input="43" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="67" wireText="NET67" wireState="0">
             <points>(212.00,558.00); (314.00,558.00); (314.00,564.00); (320.00,564.00)</points>
         </wire>
         <wire output="2" input="44" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="19" wireText="NET19" wireState="0">
@@ -329,7 +329,7 @@
         <wire output="10" input="52" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="75" wireText="NET75" wireState="0">
             <points>(1071.00,170.00); (967.00,170.00); (967.00,176.00); (961.00,176.00)</points>
         </wire>
-        <wire output="11" input="53" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="76" wireText="NET76" wireState="0">
+        <wire output="11" input="53" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="76" wireText="NET76" wireState="0">
             <points>(1177.00,222.00); (967.00,222.00); (967.00,228.00); (961.00,228.00)</points>
         </wire>
         <wire output="12" input="54" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="77" wireText="NET77" wireState="0">
@@ -347,10 +347,10 @@
         <wire output="16" input="58" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="81" wireText="NET81" wireState="0">
             <points>(1071.00,621.00); (967.00,621.00); (967.00,628.00); (961.00,628.00)</points>
         </wire>
-        <wire output="17" input="59" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="82" wireText="NET82" wireState="0">
+        <wire output="17" input="59" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="82" wireText="NET82" wireState="0">
             <points>(1177.00,570.00); (967.00,570.00); (967.00,576.00); (961.00,576.00)</points>
         </wire>
-        <wire output="18" input="60" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="83" wireText="NET83" wireState="0">
+        <wire output="18" input="60" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="83" wireText="NET83" wireState="0">
             <points>(1071.00,518.00); (967.00,518.00); (967.00,524.00); (961.00,524.00)</points>
         </wire>
     </chip>
@@ -692,18 +692,11 @@
         </settings>
         <openedTabs>
             <openedTab>I/O Planner</openedTab>
-            <openedTab>forge_launcher_wrapper.v</openedTab>
-            <openedTab>PLL Configurator</openedTab>
-            <openedTab>Synthesis Report</openedTab>
-            <openedTab>Resources Report</openedTab>
-            <openedTab>forge_launcher.sv</openedTab>
-            <openedTab>Netlist</openedTab>
-            <openedTab>Post-Synth RTL</openedTab>
         </openedTabs>
         <pipelineStagesStates>
             <pipelineStageState>
                 <pipelineStage>0</pipelineStage>
-                <pipelineState>3</pipelineState>
+                <pipelineState>1</pipelineState>
             </pipelineStageState>
             <pipelineStageState>
                 <pipelineStage>1</pipelineStage>
@@ -802,6 +795,9 @@
                 </record>
                 <record id="IOB_t[0:0]_xy[31:10]_in0">
                     <port-name>resetn</port-name>
+                </record>
+                <record id="IOB_t[0:0]_xy[31:11]_out0">
+                    <port-name>clk_toggle</port-name>
                 </record>
                 <record id="IOB_t[0:0]_xy[31:12]_out0">
                     <port-name>logic_as_clk0_en</port-name>
