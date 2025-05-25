@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="25 May 2025 13:26:20" projectChecksumState="1" projectChecksum="d64a8804">
+<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="25 May 2025 13:30:02" projectChecksumState="1" projectChecksum="e1005105">
     <generalProjectSettings/>
     <chip family="04" type="06" friendlyName="FFPGA" partNumber="67" package="26">
         <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 0 0 22 22 22 22 22 22 22 22 22 22 0 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>

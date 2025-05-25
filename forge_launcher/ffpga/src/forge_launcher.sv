@@ -42,15 +42,15 @@ module forge_launcher
 	output logic [11:0] 	ad_b1,
 	output logic 			ad_strobe,
 	output logic [11:0] 	iest,
-	output logic 			burn,
+	output logic 			burn = 0,
 	output logic [11:0]	igniter_res,	
 	
 	// Display and Logging control outputs
-	output logic scroll_halt,
-	output logic charge,
-	output logic fire_done,
+	output logic scroll_halt = 0,
+	output logic charge = 1,	// 1=AUTORUN
+	output logic fire_done = 0,
 	output logic fire_button_debounce,
-	output logic cap_halt,
+	output logic cap_halt = 0,
 	output logic long_fire
 );
 
@@ -75,8 +75,8 @@ always_ff @(posedge clk)
 // signal to stop tiny scroll window at 4.3 sec
 //////////////////////////////////////////////
 
-logic [27:0] fire_count; 
-logic fire_flag;
+logic [27:0] fire_count = 0; 
+logic fire_flag = 0;
 
 forge_debounce _firedb ( .clk( clk ), .reset( reset ), .in( fire_button ), .out( fire_button_debounce ), .long( long_fire ));
 
@@ -107,7 +107,7 @@ assign dump = fire_done  | key == 5'h1B; // always dump after firing
 // Power On auto charge and continuity until fire button
 ////////////////////////////////
 
-logic continuity; // test cont flag
+logic continuity = 0; // test cont flag
 always @( posedge clk ) begin
 	if( reset ) begin
 		charge <= !iset[2]; //Latch on reset
@@ -139,13 +139,13 @@ always @(posedge clk) begin
 	if( tone_cnt == 0 ) begin
 		spk_toggle <= !spk_toggle;
 		{spk_en, tone_cnt}<= ( key == 5'h11 || fire_button_debounce ) ? { 1'b1, 16'h2CCA } :
-								   ( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
+								   //( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
 								   ( key == 5'h13 ) ? { 1'b1, 16'h238D } :
-								   ( key == 5'h14 ) ? { 1'b1, 16'h218E } :
+								   //( key == 5'h14 ) ? { 1'b1, 16'h218E } :
 								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
-								   ( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
-								   ( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-								   ( key == 5'h18 || ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
+								   //( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
+								   //( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
+								   ( /*key == 5'h18 ||*/ ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
 	end else begin
 		tone_cnt <= tone_cnt - 1;
 		spk_en <= spk_en;
@@ -161,8 +161,8 @@ assign speaker = spk_toggle & spk_en ;
 // Output voltage is expected to rise to cap voltage. This will happen after current rise.
 // After observation the real indication is output voltage rise rate at burnthrough, or open circuit.
  
-logic current_seen;
-logic [11:0] ad_b1_del;
+logic current_seen = 0;
+logic [11:0] ad_b1_del = 12'h7ff;
 logic signed [12:0] dv; // delta voltage
 
 assign dv[12:0] = { ad_b1[11], ad_b1[11:0] ^ 12'h7ff } - { ad_b1_del[11], ad_b1_del[11:0] ^ 12'h7ff };
@@ -188,10 +188,10 @@ end
 ////////////////////////////////////////////
 // PWM Current limited pulse generator
 ////////////////////////////////////////////
-logic 			pwm_pulse;
-logic [15:0] 	pulse_time;
-logic [9:0] 	pulse_count;
-logic				ramp_flag;
+logic 			pwm_pulse = 0;
+logic [15:0] 	pulse_time = 0;
+logic [9:0] 	pulse_count = 0;
+logic				ramp_flag = 0;
 
 logic [11:0] 	thresh_hi, thresh_lo;
 
@@ -339,7 +339,7 @@ assign pwm = pwm_pulse | res_pwm;
 logic [10:0] vcap;
 assign vcap = ( ad_a1[11] || ad_a1[10:4] == 7'h7F ) ? 11'b0 : ( ad_a1[10:0] ^ 11'h7ff );
 
-logic cap_charged;
+logic cap_charged = 0;
 always @( posedge clk ) begin
 	if( reset ) begin
 		cap_charged <= 0;
@@ -362,9 +362,8 @@ module forge_debounce(
 	output long // after fire held for > 2/3 sec, until release
 	);
 	
-	logic [25:0] count1; // total 1.3 sec
-	logic [22:0] count0;
-	logic [2:0] state;
+	logic [25:0] count1 = 0; // total 1.3 sec
+	logic [22:0] count0 = 0;
 	logic [2:0] meta;
 	logic       inm;
 
@@ -376,10 +375,11 @@ module forge_debounce(
 	localparam S_WAIT_PRESS	= 1;
 	localparam S_WAIT_PULSE	= 2;
 	localparam S_WAIT_LONG	= 3;
-	localparam S_LONG			= 4;
+	localparam S_LONG		= 4;
 	localparam S_WAIT_OFF	= 5;
 	localparam S_WAIT_LOFF	= 6;
 	
+	logic [2:0] state = S_IDLE;
 	always @(posedge clk) begin
 		if( reset ) begin
 			state <= S_IDLE;
@@ -439,7 +439,7 @@ module forge_adc_module_4ch
 // The fall of the CS signal is actually the moment of sampling, and MSB becomes valid
 parameter ADC_CYCLES = 5'd16; // 16 for 48Mhz, 15 for 45Mhz to give a 3Mhz sample rate. 
 										// CS is active low for 14 cycles to give a 12 bit output
-reg [4:0] sample_div;
+reg [4:0] sample_div = ADC_CYCLES - 5'd1;
 always @(posedge clk) begin
 	if( reset ) begin
 		sample_div <= ADC_CYCLES - 5'd1;
@@ -451,7 +451,7 @@ assign ad_cs = ( /*state_q == S_FIRE &&*/ sample_div == 5'd0 ) ? 1'b1 : 1'b0;
 
 
 // CS pipeline to trigger everything
-logic [20:0] cs_delay;
+logic [20:0] cs_delay = 0;
 always @(posedge clk) begin
 	if( reset ) begin
 		cs_delay[20:0]     <= 21'd0;
@@ -463,8 +463,8 @@ end
 
 // DATA Input Receiver
 
-logic [11:0] ad_load_a0, ad_load_a1, ad_load_b0, ad_load_b1;
-logic [11:0] ad_hold_a0, ad_hold_a1, ad_hold_b0, ad_hold_b1;
+logic [11:0] ad_load_a0 = 0, ad_load_a1 = 0, ad_load_b0 = 0, ad_load_b1 = 0;
+logic [11:0] ad_hold_a0 = 0, ad_hold_a1 = 0, ad_hold_b0 = 0, ad_hold_b1 = 0;
 logic [11:0] load;
 
 parameter LOAD_SEL = 1;   // select first load delay, load reg input (ie 1 cycle early).
@@ -546,7 +546,7 @@ parameter COIL_IND_UH = 390;
 
 // Current Model assignments and accumulator
 // Multiply by 1/Lf
-logic [23:0] iest_cur, iest_hold, iest_next, i_acc;
+logic [23:0] iest_cur, iest_hold, iest_next, i_acc = 0;
 
 /////////////////////////
 // Coil Current Model
@@ -560,17 +560,17 @@ assign vout_corr[11:0] = ( vout[11] ) ? 0 : ( vout[11:0] ^ 12'h7FF ); // clip to
 
 // Calc deltaV across the coil when PWM On
 logic [6:0] deltav; // always possitive 
-always_ff @( posedge clk ) deltav = vcap_corr[10:4] - vout_corr[10:4]; // coil drive voltage
+always_ff @( posedge clk ) deltav <= vcap_corr[10:4] - vout_corr[10:4]; // coil drive voltage
 
 // Use table lookup on &msbs of deltaV to calc deltai
-logic [15:0] deltai_rom[127:0];// rom deltaI units in (4.12)
+logic [15:0] deltai_rom[63:0];// rom deltaI units in (4.12)
 always_comb begin
-	for( int ii = 0; ii < 128; ii++ )
-		deltai_rom[ii] = ( ii * 4096 * 16 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
+	for( int ii = 0; ii < 64; ii++ )
+		deltai_rom[ii] = ( ii * 4096 * 32 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
 end
 
 logic [15:0] deltai;
-always_ff @(posedge clk) deltai <= deltai_rom[deltav];
+always_ff @(posedge clk) deltai <= deltai_rom[deltav[10-:5]];
 
 // Iest current is signed 12.12 in ADC current DN scale
 always_ff @(posedge clk)
@@ -621,12 +621,12 @@ module forge_igniter_resistance
 	// Outputs
 	output tone,
 	output first_tone,
-	output logic led,
+	output logic led = 0,
 	output energy, // high when power accumulation should occur
 	
 	// Resistance Output
-	output logic valid_out,
-	output logic [11:0] r_out // adc format, +ve only
+	output logic valid_out = 0,
+	output logic [11:0] r_out = 0 // adc format, +ve only
 );
 	
 	// ADC Scale parameters
@@ -634,7 +634,7 @@ module forge_igniter_resistance
 	parameter ADC_DN_PER_AMP = 205;
 	
 	// Triggering with 0.6 Sec holdoff
-	logic [24:0] holdoff;
+	logic [24:0] holdoff = 0;
 	always @(posedge clk) begin
 		if( reset ) begin
 			holdoff <= 0;
@@ -655,8 +655,8 @@ module forge_igniter_resistance
 	assign pwm = ( ( holdoff != 0 ) && ( holdoff < ( 48 * 2 ))) ? 1'b1 : 1'b0;
 	
 	// Accumulate and average
-	logic [17:0] acc; // max 128 samples of 11 bits
-	logic [7:0] cnt;
+	logic [17:0] acc = 0; // max 128 samples of 11 bits
+	logic [7:0] cnt = 0;
 	always @(posedge clk) begin
 		if( reset ) begin
 			acc <= 0;
@@ -714,7 +714,7 @@ module forge_igniter_resistance
 					  ( holdoff[24-:4] == 3 && !(( r_out ^ 12'h7ff ) > 12'h020 &&  ( r_out ^ 12'h7ff ) < 12'h100 )) ? 1'b1 : // two beeps if not in 1 to 8 ohm range
 					  ( holdoff[24-:4] == 5 && ( ( r_out ^ 12'h7ff ) == 12'h7DC || ( r_out ^ 12'h7ff ) < 12'h020 )) ? 1'b1 : // three beeps if open or shorted
 					  ( holdoff[24-:4] == 7 && ( ( r_out ^ 12'h7ff ) < 12'h020 )) ? 1'b1 :  1'b0; // four beeps if shorted
-	logic first;				  
+	logic first = 1;				  
 	always @(posedge clk) begin
 		if( reset ) begin
 			first <= 1;
@@ -752,15 +752,15 @@ module forge_ohm_div
 	output logic [11:0] r_out
 );
 
-logic [13:0] denom0, denom1, denom2, denom3;
+logic [13:0] denom0 = 0, denom1 = 0, denom2 = 0, denom3 = 0;
 logic [10:0] current; // in ADC units
 logic [13:0] remd0, remd1, remd2, remd3 ; // remainder per q
 logic [13:0] rem;
-logic [38:0] numer;
+logic [38:0] numer = 0;
 
 // fixed delay pipeline 16
 // 1 cycle to load, 15 cycles of processing
-	logic [15:0] del_valid;
+	logic [15:0] del_valid = 0;
 	always @(posedge clk) begin
 		if( reset ) begin
 			del_valid <= 0;
@@ -809,7 +809,7 @@ assign rem[13:0] = ( !remd3[13] ) ? remd3 :
 				   ( !remd1[13] ) ? remd1 : remd0 ;
 
 // Numerator shift, and accumulate
-logic [29:0] quotient;
+logic [29:0] quotient = 0;
 always @( posedge clk ) begin
 	if( reset ) begin
 		numer <= 0;

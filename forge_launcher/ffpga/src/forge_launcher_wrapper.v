@@ -90,7 +90,7 @@
 		.ad_sdata_a 	( ad_sdata_a ),
 		.ad_sdata_b 	( ad_sdata_b ),
 		// Tie off Debug inputs
-		.iset			( 3'b111 ), // { !autorun, use_est , mute }
+		.iset			( 3'b011 ), // { !autorun, use_est , mute }
 		.key			( 5'b00000 )
     );
 endmodule // forge_launcher_wrapper 
