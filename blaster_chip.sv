@@ -176,7 +176,6 @@ logic				long_fire;		// turns on blipvert
 		.reset			( reset ),
 		// Front Panel
 		.fire_button 	( fire_button ),
-		.arm_button 	( arm_button ),
 		.arm_led 		( arm_led ),
 		.cont_led 		( cont_led ),
 		.speaker 		( speaker ),
