@@ -558,7 +558,7 @@ assign vcap_corr[11:0] = ( vcap > 12'h7F8 ) ? 8 : ( vcap[11:0] ^ 12'h7FF ); // c
 assign vout_corr[11:0] = ( vout[11] ) ? 0 : ( vout[11:0] ^ 12'h7FF ); // clip to zero if -ve
 
 // Calc deltaV across the coil when PWM On
-logic [6:0] deltav; // always possitive 
+logic [10:0] deltav; // always possitive 
 always_ff @( posedge clk ) deltav <= vcap_corr[10:4] - vout_corr[10:4]; // coil drive voltage
 
 // Use table lookup on &msbs of deltaV to calc deltai

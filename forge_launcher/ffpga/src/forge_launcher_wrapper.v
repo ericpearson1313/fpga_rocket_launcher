@@ -69,21 +69,39 @@
 	logic [3:0] reset_shift = 4'b0; // initial value upon config is reset
 	always_ff @(posedge clk)
 		{ reset, reset_shift[3:0] } <= { !reset_shift[3], reset_shift[2:0], resetn };
-
+		
+	// Explicit Insert some slow IOB output flops (reduce warnings)
+	logic speaker_d;
+	logic arm_led_d;
+	logic cont_led_d;
+	logic lt3420_charge_d;
+	logic dump_d;
+	always_ff @(posedge clk) speaker <= speaker_d;
+	always_ff @(posedge clk) arm_led <= arm_led_d;
+	always_ff @(posedge clk) cont_led <= cont_led_d;
+	always_ff @(posedge clk) lt3420_charge <= lt3420_charge_d;
+	always_ff @(posedge clk) dump <= dump_d;
+	
+	// Explicity Insert some slow IOB input flops
+	logic fire_button_q;
+	logic lt3420_done_q;
+	always_ff @(posedge clk) fire_button_q <= fire_button;
+	always_ff @(posedge clk) lt3420_done_q <= lt3420_done;
+	
 	forge_launcher _chip (
 		// System
 		.clk			( clk ),
 		.reset			( 1'b0 ), // fpga starts as configured?!!?
 		// Front Panel
-		.fire_button 	( fire_button ),
-		.arm_led 		( arm_led ),
-		.cont_led	 	( cont_led ),
-		.speaker 		( speaker ),
+		.fire_button 	( fire_button_q ),
+		.arm_led 		( arm_led_d ),
+		.cont_led	 	( cont_led_d ),
+		.speaker 		( speaker_d ),
 		// High Voltage
-		.lt3420_charge 	( lt3420_charge ),
-		.lt3420_done   	( lt3420_done   ),
+		.lt3420_charge 	( lt3420_charge_d ),
+		.lt3420_done   	( lt3420_done_q   ),
 		.pwm           	( pwm ),
-		.dump			( dump ),
+		.dump			( dump_d ),
 		// ADC interface
 		.ad_cs			( ad_cs ),
 		.ad_sdata_a 	( ad_sdata_a ),
