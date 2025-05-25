@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="25 May 2025 13:30:02" projectChecksumState="1" projectChecksum="e1005105">
+<GPDProject version="37" oldestCompatibleVersion="32" GPDVersion="6.48.001" lastChange="25 May 2025 13:39:55" projectChecksumState="1" projectChecksum="b4550b4c">
     <generalProjectSettings/>
     <chip family="04" type="06" friendlyName="FFPGA" partNumber="67" package="26">
         <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 0 0 22 22 22 22 22 22 22 22 22 22 0 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
@@ -800,9 +800,6 @@
                 <record id="IOB_t[0:0]_xy[0:7]_in0">
                     <port-name>ad_sdata_a[1]</port-name>
                 </record>
-                <record id="IOB_t[0:0]_xy[0:8]_in0">
-                    <port-name>ad_sdata_b[0]</port-name>
-                </record>
                 <record id="IOB_t[0:0]_xy[31:10]_in0">
                     <port-name>resetn</port-name>
                 </record>
@@ -846,7 +843,7 @@
                     <port-name>arm_led</port-name>
                 </record>
                 <record id="IOB_t[0:0]_xy[31:4]_in0">
-                    <port-name>arm_button</port-name>
+                    <port-name>ad_sdata_b[0]</port-name>
                 </record>
                 <record id="IOB_t[0:0]_xy[31:5]_in0">
                     <port-name>fire_button</port-name>

@@ -9,7 +9,6 @@ module forge_launcher
 	input logic reset,
 
 	// Front Panel I/O
-	input  logic arm_button,
 	input  logic fire_button,
 	output logic arm_led,
 	output logic cont_led,

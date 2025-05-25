@@ -9,7 +9,7 @@
 (* iopad_external_pin *) 	input  logic resetn,
 
 	// Input Buttons
-(* iopad_external_pin *)	input  logic arm_button,
+//(* iopad_external_pin *)	input  logic arm_button,
 (* iopad_external_pin *)	input  logic fire_button,
 
 	// Output LED/SPK
@@ -76,7 +76,6 @@
 		.reset			( 1'b0 ), // fpga starts as configured?!!?
 		// Front Panel
 		.fire_button 	( fire_button ),
-		.arm_button 	( arm_button ),
 		.arm_led 		( arm_led ),
 		.cont_led	 	( cont_led ),
 		.speaker 		( speaker ),
