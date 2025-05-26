@@ -246,7 +246,7 @@ always @(posedge clk) begin
 			ramp_flag <= 1; // short back to back pulses
 			pwm_pulse <= 1; // Set pwm output
 			pulse_time <= 1; // start max width counter
-			pulse_count <= 30; // two pulses
+			pulse_count <= 3; // two pulses
 		end else begin // await trigger
 			ramp_flag <= 1;
 			pwm_pulse <= 0;
