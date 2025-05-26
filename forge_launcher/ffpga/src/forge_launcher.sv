@@ -105,7 +105,7 @@ assign dump = fire_done  | key == 5'h1B; // always dump after firing
 ////////////////////////////////
 // Power On auto charge and continuity until fire button
 ////////////////////////////////
-
+initial charge = 1;
 logic continuity = 0; // test cont flag
 always @( posedge clk ) begin
 	if( reset ) begin
@@ -165,7 +165,7 @@ logic [11:0] ad_b1_del = 12'h7ff;
 logic signed [12:0] dv; // delta voltage
 
 assign dv[12:0] = { ad_b1[11], ad_b1[11:0] ^ 12'h7ff } - { ad_b1_del[11], ad_b1_del[11:0] ^ 12'h7ff };
-
+initial ad_b1_del <= 12'h7ff;
 always @(posedge clk) begin
 	if( reset ) begin
 		burn <= 0;
@@ -417,6 +417,7 @@ module forge_adc_module_4ch
 parameter ADC_CYCLES = 5'd16; // 16 for 48Mhz, 15 for 45Mhz to give a 3Mhz sample rate. 
 										// CS is active low for 14 cycles to give a 12 bit output
 reg [4:0] sample_div = ADC_CYCLES - 5'd1;
+initial sample_div = ADC_CYCLES - 5'd1;
 always @(posedge clk) begin
 	if( reset ) begin
 		sample_div <= ADC_CYCLES - 5'd1;
@@ -672,7 +673,8 @@ module forge_igniter_continuity
 				  	( holdoff[24-:4] == 3 && ( imax < 12'h040 || vmax > 12'h080 ) ) ? 1'b1 : // two beeps if open or high
 					( holdoff[24-:4] == 5 && ( imax < 12'h040 )) ? 1'b1 : 1'b0; // three beeps if open
 
-	logic first = 1;				  
+	logic first = 1;	
+	initial first = 1;
 	always @(posedge clk) begin
 		if( reset ) begin
 			first <= 1;

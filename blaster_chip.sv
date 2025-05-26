@@ -173,7 +173,7 @@ logic				long_fire;		// turns on blipvert
 	forge_launcher _uut (
 		// System
 		.clk				( clk ),
-		.reset			( reset ),
+		.reset			( 1'b0 ),//reset ),
 		// Front Panel
 		.fire_button 	( fire_button ),
 		.arm_led 		( arm_led ),
@@ -191,8 +191,8 @@ logic				long_fire;		// turns on blipvert
 		
 		// Emulation interconnectes
 		// Tied off Debug inputs
-		.iset				( iset ),
-		.key				( key ),
+		.iset				( 3'b011 ),//iset ),
+		.key				( 5'b00000 ),//key ),
 		// Internal Logging outputs
 		.ad_a0			( ad_a0 ) , 
 		.ad_a1         ( ad_a1 ), 
