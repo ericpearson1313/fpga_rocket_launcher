@@ -532,22 +532,23 @@ logic [23:0] iest_cur, iest_hold, iest_next, i_acc = 0;
 // Pre-process adc cap and output voltages (format, clip to zero with deadzone
 logic [11:0] vcap_corr;
 logic [11:0] vout_corr;
-assign vcap_corr[11:0] = ( vcap > 12'h7F8 ) ? 8 : ( vcap[11:0] ^ 12'h7FF ); // clip to >= 8, else model wanders
-assign vout_corr[11:0] = ( vout[11] ) ? 0 : ( vout[11:0] ^ 12'h7FF ); // clip to zero if -ve
+assign vcap_corr[11:0] = ( vcap[11:0] ^ 12'h7FF ); // signed 
+assign vout_corr[11:0] = ( vout[11:0] ^ 12'h7FF ); // signed
 
 // Calc deltaV across the coil when PWM On
-logic [10:0] deltav; // always possitive 
-always_ff @( posedge clk ) deltav <= vcap_corr[10:4] - vout_corr[10:4]; // coil drive voltage
+
+logic [12:0] deltav;
+always_ff @(posedge clk) deltav[12:0] <= { vcap_corr[11], vcap_corr[11:0] } - { vout_corr[11], vout_corr[11:0] };
 
 // Use table lookup on &msbs of deltaV to calc deltai
 logic [15:0] deltai_rom[63:0];// rom deltaI units in (4.12)
 always_comb begin
 	for( int ii = 0; ii < 64; ii++ )
-		deltai_rom[ii] = ( ii * 4096 * 32 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
+		deltai_rom[ii] = ( (ii * 32 + 16) * 4096 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
 end
 
 logic [15:0] deltai;
-always_ff @(posedge clk) deltai <= deltai_rom[deltav[10-:5]];
+always_ff @(posedge clk) deltai <= deltai_rom[(deltav[12])?0:deltav[10-:6]]; // 6 msb bits 
 
 // Iest current is signed 12.12 in ADC current DN scale
 always_ff @(posedge clk)
@@ -559,12 +560,10 @@ always @(posedge clk) pwm_del <= pwm;
 always @(posedge clk) begin
 	if( reset ) begin
 		i_acc[23:0] <= 36'b0;
-	end else if( pwm & ~pwm_del ) begin // load read value on pwm rise.
-		i_acc[23:0] <= { ( iout[11] ) ? 12'h0 : ( iout[11:0] ^ 12'h7ff ), 24'h00_0000 };
-	end else if ( pwm ) begin // Accumulate during PWM for rise
+	end else if( !pwm ) begin // load rea value when pwm is low.
+		i_acc[23:0] <= { ( iout[11] ) ? 12'h0 : ( iout[11:0] ^ 12'h7ff ), 12'h000 };
+	end else begin // Accumulate during PWM for rise
 		i_acc[23:0] <= iest_next; // 12 fractional bits
-	end else begin
-		i_acc[23:0] <= i_acc[23:0];
 	end
 end
 
