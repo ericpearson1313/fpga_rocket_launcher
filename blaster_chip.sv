@@ -170,7 +170,14 @@ logic				fire_button_debounce; // Debounced fire button for zoom
 logic 			cap_halt;		// disables 4M buffer capture
 logic				long_fire;		// turns on blipvert
 
-	forge_launcher _uut (
+	// ADC Scale parameters
+	parameter ADC_VOLTS_PER_DN = 0.2005;
+	parameter ADC_DN_PER_AMP = 205;
+	// Physical parameters
+	parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
+	parameter COIL_IND_UH = 390;
+	
+	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _uut (
 		// System
 		.clk				( clk ),
 		.reset			( 1'b0 ),//reset ),

@@ -41,19 +41,19 @@
 
 );
 
-    // PLL Control, 2 x 48 Mhz = 96 Mhz
-    assign pll_en = 1'b1;
-    assign pll_refdiv = 6'b00_0101;		// Equivalent value in decimal form 6'd5,
-    assign pll_fbdiv = 12'b0000_1001_0000;	// Equivalent value in decimal form 12'd144,
+    // PLL Control, 2 x 24 Mhz = 48 Mhz
+  assign pll_en = 1'b1;
+    assign pll_refdiv = 6'b00_0001;		// Equivalent value in decimal form 6'd1,
+    assign pll_fbdiv = 12'b0000_0001_1000;	// Equivalent value in decimal form 12'd24,
     assign pll_postdiv1 = 3'b101;		// Equivalent value in decimal form 3'd5,
-    assign pll_postdiv2 = 3'b011;		// Equivalent value in decimal form 3'd3,
+    assign pll_postdiv2 = 3'b101;		// Equivalent value in decimal form 3'd5,
     assign pll_bypass = 1'b0;
     assign pll_clk_selection = 1'b0;
     
     // Enable LAC 0
     assign logic_as_clk0_en = 1'b1;
 
-	// 96 Mhz flops create 48mhz clk and ad_sclk = !clk;
+	//  flops create half rate clk and ad_sclk = !clk;
 	logic toggle;
 	logic clk_toggle;
 	logic sclk_toggle;
@@ -88,7 +88,14 @@
 	always_ff @(posedge clk) fire_button_q <= fire_button;
 	always_ff @(posedge clk) lt3420_done_q <= lt3420_done;
 	
-	forge_launcher _chip (
+	// ADC Scale parameters
+	parameter ADC_VOLTS_PER_DN = 0.2005;
+	parameter ADC_DN_PER_AMP = 205;
+	// Physical parameters
+	parameter CLOCK_FREQ_MHZ = 24;  // 48 or 24 Mhz
+	parameter COIL_IND_UH = 390;
+	
+	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _chip (
 		// System
 		.clk			( clk ),
 		.reset			( 1'b0 ), // fpga starts as configured?!!?
