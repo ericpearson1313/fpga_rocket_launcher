@@ -1,5 +1,11 @@
 ### fpga_rocket_launcher
 
+### A ForgeFPGA-1K implementaiton
+Update: A ForgeFPGA implemention. These new little $0.50 ForgeFPGAs are feild programmable gate arrays packing 1K 5-input luts with flipflops, 
+all in a 3mm x 3mm package with no external parts required. With some functional simplification I was able to use the fit my core verilog design into 
+the ForgeFPGA using their free tools. The number of IO and logic fit the launch controllers core requirements nicely. I was able to verify the new design logic using the max10 launch controller as a platform to emulate and instrument the core ForgeFPGA logic. I plan to use this launch control fpga
+for an minimalist handheld digital controller PCB. It would have connectors for mounting the ForgeFPGA Eval board for development.
+
 # Digital Model Rocket Launch Controller
 
 A FPGA based model rocket digital launch controller.
