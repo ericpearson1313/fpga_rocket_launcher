@@ -11,6 +11,9 @@ I then verified the forgefpga verilog by embedding it into my altera max10 fpga 
  between the co-synthesized core ForgeFPGA and the real hardware (very nice!).
 I plan to use this launch control fpga for an minimalist handheld digital launch controller PCB. It would have connectors for mounting the ForgeFPGA Eval board for development, and would otherwise re-use the ADC and power circuitry interface as needed from the previous controller.
 
+With the size of the FPGA now reduced to basically nothing, a compact size could be looked at. I stopped and considered the shapes limited by the large components: 4xAA, 2x Caps, 1x Coil, and along with output jacks. 3D printing each allowed some ergonomic testing and locating the 2 pairs of buttons and Leds.
+![handheld model trials](handheld%206%20models.jpg "trial configurations")
+
 # Digital Model Rocket Launch Controller
 
 A FPGA based model rocket digital launch controller.
