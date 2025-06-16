@@ -1,4 +1,17 @@
- ### fpga_rocket_launcher
+### fpga_rocket_launcher
+
+A long-time hobby of mine is model rocketry where I build and fly models rockets in a club setting.
+A launch controller has a push button to electrically launch the models safely from a distance.
+The controller feeds current from a battery, through a push button and lead wires to a resistive heater to initiate the launch.
+For something so simple it causes consternation when the launch countdown reaches zero, button is pressed, and nothing, due to a fault of the controller!
+Years of itteratively building launch controllers has not yet acheived personal perfection in launch controller design, but I'm having fun trying.
+
+This repo contains my design files for a digital, capacitive discharch, launch controller. It was designed as a one-of fully instrumented 
+launch controller based on a FPGA which enables built in oscilloscope-like capture and HDMI display. This provides aid in bring-up, observation of algorithm improvements 
+and field analysis during fail-to-launch scenarios to understand if/how it is a launch controller failure. 
+
+I have been using this launcher at regular club launches and it has been working fine, but is could be simplified and made smaller.
+So I'm now working on next season's minimalist version incorporating the algorithms and cicuitry learnings from development of the full fledged version.
 
 ### A ForgeFPGA-1K implementation
 Update: A ForgeFPGA implementation. 
