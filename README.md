@@ -338,6 +338,7 @@ Cons:
 - Estes - does not work well with estes igniters
 - Complex system
 - High Voltage and Arcing
+- Majority of limited capacitor energy can be dissipated in launch leads and connections.
 ```
 
 
