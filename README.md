@@ -27,6 +27,12 @@ I plan to use this launch control fpga for an minimalist handheld digital launch
 With the size of the FPGA now reduced to basically nothing, a compact size could be looked at. I stopped and considered the shapes limited by the large components: 4xAA, 2x Caps, 1x Coil, and along with output jacks. 3D printing each allowed some ergonomic testing and locating the 2 pairs of buttons and Leds.
 ![handheld model trials](handheld%206%20models.jpg "trial configurations")
 
+A starting layout of the PCB using the landscape packing was chosen from among the models.
+The landscape form factor nicely extends to put a connector for the ForgeFPGA evaluation board to be plugged into. That part of the PCB is intended to be cut away (but could be integrated into a taller handheld unit). Mouting land for a spare FPGA is nice. The isolation of high voltage areas is considered from the beginning.  The isolation barrier and components crossing it are clear and visible.
+The layout packed the high power connections to the top center of the PCB.
+
+![landscape PCB starting point](forge_launcher/landscape_pcb_draft.PNG "Initial PCB layout")
+
 # Digital Model Rocket Launch Controller
 
 A FPGA based model rocket digital launch controller.
