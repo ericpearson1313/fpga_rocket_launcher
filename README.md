@@ -33,6 +33,20 @@ The layout packed the high power connections to the top center of the PCB.
 
 ![landscape PCB starting point](forge_launcher/landscape_pcb_draft.PNG "Initial PCB layout")
 
+Prior to fully detailing the PCB outline and button/led positions and clearnaces are needed.
+I wanted to integrate the leds and buttons into the enclosure. Light pipes for the leds, and frogs
+for the buttons. (frog aka pushbutton-with-integrated-spring-for-tactile-switch).
+A basic 3d printed model of the enclosure was printed to see how it feels and test the frogs.
+I definitely want it thinner and rounded/bevelled. The influence of this model will be far reaching in
+the final design. 
+
+![landscape prototype](forge_launcher/landscape_proto.png "Handheld Prototype")
+
+Next steps for the minimalist fpga launch controller will be parts ordering, pcb tapeout, and initial 3d enclosure and development stands ...
+
+
+See the current maximum headroon controller below.
+
 # Digital Model Rocket Launch Controller
 
 A FPGA based model rocket digital launch controller.
