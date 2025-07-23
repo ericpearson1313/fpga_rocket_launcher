@@ -143,8 +143,14 @@ end
 assign anain[8:5] = count[24:21];
 assign anain[8]=count[24];
 
-
-`define FORGE_EMULATOR
+// ADC Scale parameters
+parameter ADC_VOLTS_PER_DN = 0.2005;
+parameter ADC_DN_PER_AMP = 205;
+// Physical parameters
+parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
+parameter COIL_IND_UH = 390;
+	
+//`define FORGE_EMULATOR
 `ifdef FORGE_EMULATOR
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
@@ -170,12 +176,7 @@ logic				fire_button_debounce; // Debounced fire button for zoom
 logic 			cap_halt;		// disables 4M buffer capture
 logic				long_fire;		// turns on blipvert
 
-	// ADC Scale parameters
-	parameter ADC_VOLTS_PER_DN = 0.2005;
-	parameter ADC_DN_PER_AMP = 205;
-	// Physical parameters
-	parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
-	parameter COIL_IND_UH = 390;
+
 	
 	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _uut (
 		// System
@@ -374,8 +375,15 @@ logic				ramp_flag;
 
 logic [11:0] 	thresh_hi, thresh_lo;
 
-always @(posedge clk) thresh_hi <= (fire_flag && fire_count >= 28'h00_80000 ) ? ( 205 * 4 + 20 ) : ( 205 * 2 + 20 ); // setpoint 2Amp start, +1/6 sec in 4Amp
-always @(posedge clk) thresh_lo <= (fire_flag && fire_count >= 28'h00_80000 ) ? ( 205 * 4 - 20 ) : ( 205 * 2 - 20 );
+parameter COUNT_10MS = 28'h00_80000; // 10ms / CLOCK_FREQ_MHZ
+parameter COUNT_20MS = 28'h01_00000; // 20ms / CLOCK_FREQ_MHZ
+
+always @(posedge clk) thresh_hi <= (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
+											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
+											                           /* remainder */  ( ADC_DN_PER_AMP * 6 + 20 ) ; // remainder  setpoint 6Amp
+always @(posedge clk) thresh_lo <= (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
+											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) : 
+											                           /* remainder */  ( ADC_DN_PER_AMP * 6 - 20 ) ;
 
 always @(posedge clk) begin
 	if( reset ) begin
