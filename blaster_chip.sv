@@ -377,13 +377,17 @@ logic [11:0] 	thresh_hi, thresh_lo;
 
 parameter COUNT_10MS = 28'h00_80000; // 10ms / CLOCK_FREQ_MHZ
 parameter COUNT_20MS = 28'h01_00000; // 20ms / CLOCK_FREQ_MHZ
+parameter COUNT_30MS = 28'h01_80000; // 30ms / CLOCK_FREQ_MHZ
+
 
 always @(posedge clk) thresh_hi <= (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
 											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
-											                           /* remainder */  ( ADC_DN_PER_AMP * 6 + 20 ) ; // remainder  setpoint 6Amp
+											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 + 20 ) : // until 20ms setpoint 4amp
+											                           /* remainder */  ( ADC_DN_PER_AMP * 8 + 20 ) ; // remainder  setpoint 6Amp
 always @(posedge clk) thresh_lo <= (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
 											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) : 
-											                           /* remainder */  ( ADC_DN_PER_AMP * 6 - 20 ) ;
+											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 - 20 ) : 
+											                           /* remainder */  ( ADC_DN_PER_AMP * 8 - 20 ) ;
 
 always @(posedge clk) begin
 	if( reset ) begin
