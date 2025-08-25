@@ -6,46 +6,8 @@ The controller feeds current from a battery, through a push button and lead wire
 For something so simple it causes consternation when the launch countdown reaches zero, button is pressed, and nothing, due to a fault of the controller!
 Years of itteratively building launch controllers has not yet acheived personal perfection in launch controller design, but I'm having fun trying.
 
-This repo contains my design files for a digital, capacitive discharch, launch controller. It was designed as a one-of fully instrumented 
-launch controller based on a FPGA which enables built in oscilloscope-like capture and HDMI display. This provides aid in bring-up, observation of algorithm improvements 
-and field analysis during fail-to-launch scenarios to understand if/how it is a launch controller failure. 
-
-I have been using this launcher at regular club launches and it has been working fine, but is could be simplified and made smaller.
-So I'm now working on next season's minimalist version incorporating the algorithms and cicuitry learnings from development of the full fledged version.
-
-### A ForgeFPGA-1K implementation
-Update: A ForgeFPGA implementation. 
-I came across ForgeFPGAs which are 3x3mmm low power low cost ($0.50) FPGA chips containing a respectable 1120 logic cells. 
-The 24 pins package had the IO needed and the logic cells seemed appropriate for a the launch controllers core functions.
-The free tools for synthesis and place-route worked with my verilog code with minor tweaking.
-With functional simplification (eg: no hdmi video, no dividers) the tools fit the core launch controller logic gates into 
-the ForgeFPGA-1K and generated power and timing reports. 
-I then verified the forgefpga verilog by embedding it into my altera max10 fpga launch controller allowing me to view the instrumented interface 
- between the co-synthesized core ForgeFPGA and the real hardware (very nice!).
-I plan to use this launch control fpga for an minimalist handheld digital launch controller PCB. It would have connectors for mounting the ForgeFPGA Eval board for development, and would otherwise re-use the ADC and power circuitry interface as needed from the previous controller.
-
-With the size of the FPGA now reduced to basically nothing, a compact size could be looked at. I stopped and considered the shapes limited by the large components: 4xAA, 2x Caps, 1x Coil, and along with output jacks. 3D printing each allowed some ergonomic testing and locating the 2 pairs of buttons and Leds.
-![handheld model trials](handheld%206%20models.jpg "trial configurations")
-
-A starting layout of the PCB using the landscape packing was chosen from among the models.
-The landscape form factor nicely extends to put a connector for the ForgeFPGA evaluation board to be plugged into. That part of the PCB is intended to be cut away (but could be integrated into a taller handheld unit). Mouting land for a spare FPGA is nice. The isolation of high voltage areas is considered from the beginning.  The isolation barrier and components crossing it are clear and visible.
-The layout packed the high power connections to the top center of the PCB.
-
-![landscape PCB starting point](forge_launcher/landscape_pcb_draft.PNG "Initial PCB layout")
-
-Prior to fully detailing the PCB outline and button/led positions and clearnaces are needed.
-I wanted to integrate the leds and buttons into the enclosure. Light pipes for the leds, and frogs
-for the buttons. (frog aka pushbutton-with-integrated-spring-for-tactile-switch).
-A basic 3d printed model of the enclosure was printed to see how it feels and test the frogs.
-I definitely want it thinner and rounded/bevelled. The influence of this model will be far reaching in
-the final design. 
-
-![landscape prototype](forge_launcher/landscape_proto.png "Handheld Prototype")
-
-Next steps for the minimalist fpga launch controller will be parts ordering, pcb tapeout, and initial 3d enclosure and development stands ...
-
-
-See the current maximum headroon controller below.
+This repo contains my design files for a digital, capacitive discharch, launch controller. It was designed as a one-off fully instrumented 
+launch controller based on a FPGA which enables built in oscilloscope-like capture and HDMI display. This provides aid in bring-up, observation of algorithm improvements and field analysis during fail-to-launch scenarios to understand how a launch fails (and adjust the design algorithms accordingly, and repeat). 
 
 # Digital Model Rocket Launch Controller
 
@@ -355,6 +317,38 @@ Cons:
 - Majority of limited capacitor energy can be dissipated in launch leads and connections.
 ```
 
+### A ForgeFPGA-1K implementation
+
+Update: A ForgeFPGA implementation. 
+
+I came across ForgeFPGAs which are 3x3mmm low power low cost ($0.50) FPGA chips containing a respectable 1120 logic cells. 
+The 24 pins package had the IO needed and the logic cells seemed appropriate for a the launch controllers core functions.
+The free tools for synthesis and place-route worked with my verilog code with minor tweaking.
+With functional simplification (eg: no hdmi video, no dividers) the tools fit the core launch controller logic gates into 
+the ForgeFPGA-1K and generated power and timing reports. 
+I then verified the forgefpga verilog by embedding it into my altera max10 fpga launch controller allowing me to view the instrumented interface 
+ between the co-synthesized core ForgeFPGA and the real hardware (very nice!).
+I plan to use this launch control fpga for an minimalist handheld digital launch controller PCB. It would have connectors for mounting the ForgeFPGA Eval board for development, and would otherwise re-use the ADC and power circuitry interface as needed from the previous controller.
+
+With the size of the FPGA now reduced to basically nothing, a compact size could be looked at. I stopped and considered the shapes limited by the large components: 4xAA, 2x Caps, 1x Coil, and along with output jacks. 3D printing each allowed some ergonomic testing and locating the 2 pairs of buttons and Leds.
+![handheld model trials](handheld%206%20models.jpg "trial configurations")
+
+A starting layout of the PCB using the landscape packing was chosen from among the models.
+The landscape form factor nicely extends to put a connector for the ForgeFPGA evaluation board to be plugged into. That part of the PCB is intended to be cut away (but could be integrated into a taller handheld unit). Mouting land for a spare FPGA is nice. The isolation of high voltage areas is considered from the beginning.  The isolation barrier and components crossing it are clear and visible.
+The layout packed the high power connections to the top center of the PCB.
+
+![landscape PCB starting point](forge_launcher/landscape_pcb_draft.PNG "Initial PCB layout")
+
+Prior to fully detailing the PCB outline and button/led positions and clearnaces are needed.
+I wanted to integrate the leds and buttons into the enclosure. Light pipes for the leds, and frogs
+for the buttons. (frog aka pushbutton-with-integrated-spring-for-tactile-switch).
+A basic 3d printed model of the enclosure was printed to see how it feels and test the frogs.
+I definitely want it thinner and rounded/bevelled. The influence of this model will be far reaching in
+the final design. 
+
+![landscape prototype](forge_launcher/landscape_proto.png "Handheld Prototype")
+
+Next steps for the minimalist fpga launch controller will be parts ordering, pcb tapeout, and initial 3d enclosure and development stands ...
 
 
 
