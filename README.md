@@ -350,6 +350,8 @@ the final design.
 
 Next steps for the minimalist fpga launch controller will be parts ordering, pcb tapeout, and initial 3d enclosure and development stands ...
 
+Its a good point to pause and consider things. So I'm going to loop back and re-examine everything before committing to the next design...
+
 
 
 
