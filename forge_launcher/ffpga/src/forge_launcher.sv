@@ -46,7 +46,7 @@ module forge_launcher
 	
 	// Display and Logging control outputs
 	output logic scroll_halt = 0,
-	output logic charge = 1,	// 1=AUTORUN
+	output logic charge,
 	output logic fire_done = 0,
 	output logic fire_button_debounce,
 	output logic cap_halt = 0,
@@ -105,33 +105,36 @@ assign dump = fire_done  | key == 5'h1B; // always dump after firing
 ////////////////////////////////
 // Power On auto charge and continuity until fire button
 ////////////////////////////////
-initial charge = 1;
+logic charge_reg = 0;
 logic continuity = 0; // test cont flag
 logic one_time = 0; // self start
 always @( posedge clk ) begin
 	if( reset ) begin
-			charge <= 0;
+			charge_reg <= 0;
 			continuity <= 0;
 			one_time <= 0;
 		end
 	else begin
 		if( !one_time ) begin
 			one_time <= 1;
-			charge <= !iset[2]; // latch on first cycle
+			charge_reg <= 1;//!iset[2]; // latch on first cycle
 			continuity <= 0;
-		end if( ( lt3420_done || cap_charged ) && charge ) begin // switch to continuity
-			charge <= 0;
+		end if( ( lt3420_done || cap_charged ) && charge_reg ) begin // switch to continuity
+			one_time <= 1;
+			charge_reg <= 0;
 			continuity <= 1;
 		end else if( continuity && fire_flag ) begin // and end the launch sequence
-			charge <= 0;
+			one_time <= 1;
+			charge_reg <= 0;
 			continuity <= 0;
 		end else begin
-			charge <= charge;
+			one_time <= 1;
+			charge_reg <= charge_reg;
 			continuity <= continuity;	
 		end
 	end
 end
-
+assign charge = charge_reg;
 assign lt3420_charge = charge | key == 5'h1A;
 
 //////////////////////////////
@@ -346,7 +349,7 @@ always @( posedge clk ) begin
 	end
 end
 
-assign arm_led = cap_charged | ( charge && ((CLOCK_FREQ_MHZ==24)?(count[23:20]==0):(count[24:21]==0)) );
+assign arm_led = cap_charged | ( charge_reg && ((CLOCK_FREQ_MHZ==24)?(count[23:20]==0):(count[24:21]==0)) );
 
 endmodule
 

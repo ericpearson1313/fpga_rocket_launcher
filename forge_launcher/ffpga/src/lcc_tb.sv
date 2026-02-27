@@ -15,12 +15,17 @@ module lcc_tb( );
                 end
         end
 
+        // Simulation Setup
+        initial begin
+        	$timeformat(-9, 0, "ns", 12); // 1: scale (ns=-9), 2: decimals, 3: suffix, 4: print-field width
+        // configure FST (waveform) dump
+        	$dumpfile("lcc.fst");
+        	$dumpvars(1,i_dut);
+		end
+
+
         // create reset
         initial begin
-        $timeformat(-9, 0, "ns", 12); // 1: scale (ns=-9), 2: decimals, 3: suffix, 4: print-field width
-        // configure FST (waveform) dump
-        $dumpfile("lcc.fst");
-        $dumpvars(1,i_dut);
                 reset = 1;
                 for( int ii = 0; ii < 10; ii++ ) begin
                         @(negedge clk);
@@ -55,7 +60,7 @@ module lcc_tb( );
     parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
     parameter COIL_IND_UH = 390;
 
-    forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) dut (
+    forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) i_dut (
                 // System
                 .clk                    ( clk ),
                 .reset                  ( reset ), // fpga starts in reset state
@@ -66,7 +71,7 @@ module lcc_tb( );
                 .speaker                ( speaker ),
                 // High Voltage
                 .lt3420_charge          ( charge ),
-                .lt3420_done            ( 1'b1 ),
+                .lt3420_done            ( 1'b0 ), // will use ADC measurement
                 .pwm            	    ( pwm ),
                 .dump                   ( dump ),
                 // ADC interface
@@ -97,15 +102,53 @@ module lcc_tb( );
 	
 	
 	// Operating Mode 
-		
+	localparam MSEC = CLOCK_FREQ_MHZ * 1000;
 	initial begin
-		// hardware will wait for fire;
+		// hardware will wait till charged before firing;
 		fire = 0;
 		mute = 0;
-      // startup delay (for future reset)
-      for( int ii = 0; ii < 10; ii++ ) @(posedge clk); // 10 cycles
-		// Fire
-		fire = 1'b1;
+		// charge shoudl start low
+		$display("initial Charge state %d", charge);
+
+		// charge automatically starts
+		while( !charge ) @(negedge clk); // wait for charge to start
+		$display("Charge started");
+
+		while( charge ) @(negedge clk); // wait for charge to end 
+		$display("Charge done, arm_led %b", arm_led );
+
+		// Wait for continuity speaker tone
+		while( !speaker ) @(negedge clk); // wait for charge to end 
+		$display("Continuity tone, cont_led %b", cont_led );
+
+		// wait a bit then lanuch
+		for( int ii = 0; ii < 1*MSEC; ii++ ) @(negedge clk); 
+		$display("Launch button press");
+		fire = 1;
+
+		// press for 5ms to debounce
+		for( int ii = 0; ii < 5*MSEC; ii++ ) @(negedge clk); 
+		$display("Release button ");
+		fire = 0;
+
+		// should see pwm on/off
+		while( !pwm ) @(negedge clk); // wait for a pwm signal
+		$display("PWM posedge seen");
+		while( pwm ) @(negedge clk); // wait for a pwm signal
+		$display("PWM negedge seen");
+		
+		// Should arm drop
+		while( !dump ) @(negedge clk); // wait for dump to rise
+		$display("Dump Begun");
+
+		// Should seen arm low
+		while( !dump ) @(negedge clk); // wait for dump to rise
+		$display("ARM off");
+
+		// final wait
+		for( int ii = 0; ii < 1*MSEC; ii++ ) @(negedge clk); 
+		$display("Full lanch cycle simulation complate");
+		$finish();
 	end // fire		
 		
 
@@ -121,11 +164,13 @@ module lcc_tb( );
 	// 
 
 	parameter R = 10.0; // Load resistance
+	parameter R_DUMP = 3300.0; // dump resistanceb
 	parameter CAP_VOLTAGE = 320.0;
 	parameter COIL_UH = 399.0;
 	parameter FREQ_MHZ = 48;
 	parameter PERIOD_NS = 20.8;
 	parameter CAP_UF = 1.0;  // typicall 100uF, but this is faster
+	parameter CH_RATE = 3.0; // Charge rate, Joule/sec
 
 	real ecap, ecap_n; 		
 	real icap, icap_n; 
@@ -134,18 +179,34 @@ module lcc_tb( );
 	real vout, vout_n; 
 	
 	initial begin
-		vcap = CAP_VOLTAGE;
-		ecap = (0.5 * CAP_UF * CAP_VOLTAGE * CAP_VOLTAGE)/1000000.0; 
-		icap = 0;
-		vout = 0;
-		iout = 0;
+		// HV Cap model
+		vcap = 0.0;
+		ecap = 0.0;
+		icap = 0.0;
+		// HV Coil model
+		vout = 0.0; 
+		iout = 0.0;
 
-		// on a cycle loop, now responde to PWM 
-		// TODO add dump modelling
-		
+		// on a cycle loop, now responde to power Controls
 		forever begin
 			@(posedge clk ) ;
-			if( pwm == 0 ) begin
+			if( dump == 1 ) begin // Dump
+				// not output
+				iout_n = 0.0;
+				vout_n = 0.0;
+				// Dump cap into resistor
+				icap_n = vcap / R_DUMP;
+				ecap_n = ecap - ((((((icap+icap_n)/2)*vcap) / (FREQ_MHZ*1000000.0)))) ;
+				vcap_n = ($sqrt( (2.0 * ecap_n) / CAP_UF ) * 1000.0);
+			end else if( charge == 1 ) begin // Charge 
+				// not output
+				iout_n = 0.0;
+				vout_n = 0.0;
+				// Dump cap into resistor
+				ecap_n = ecap + ( CH_RATE / (FREQ_MHZ*1000000.0) ) ;
+				vcap_n = ($sqrt( (2.0 * ecap_n) / CAP_UF ) * 1000.0);
+				icap_n = CH_RATE / vcap_n;
+			end else if( pwm == 0 ) begin // PWM OFF
 				// output off, I falls at rate Vout/L*t
 				iout_n = iout - ((vout / (COIL_UH * FREQ_MHZ))); 
 				// The updated Vout is IR
@@ -154,7 +215,7 @@ module lcc_tb( );
 				icap_n = 0;
 				vcap_n = vcap;
 				ecap_n = ecap;
-			end else begin 
+			end else begin // PWM ON
 				// output is on, I rises by (Vin-Vout)/L
 				iout_n = iout + (((vcap - vout) / (COIL_UH * FREQ_MHZ)));
 				// The updated Vout is IR
@@ -164,11 +225,10 @@ module lcc_tb( );
 				// cap drops by energy used this cycle IVT
 				ecap_n = ecap - ((((((iout+iout_n)/2)*vcap) / (FREQ_MHZ*1000000.0)))) ;
 				// votlage is calc from energy
-
 				vcap_n = ($sqrt( (2.0 * ecap_n) / CAP_UF ) * 1000.0);
-
 			end
 			
+			// Update to next state
 			iout = iout_n;
 			vout = vout_n;
 			ecap = ecap_n;
