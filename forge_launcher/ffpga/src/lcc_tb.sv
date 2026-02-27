@@ -32,7 +32,7 @@ module lcc_tb( );
                 end
                 reset = 0;
                 $display("Reset done");
-                for( int ii = 0; ii < 50*48000; ii++ ) begin // Max 2000 msec
+                for( int ii = 0; ii < 2000*48000; ii++ ) begin // Max 2000 msec
                         @(negedge clk);
                 end
                 $display("Test terminated, exceeded MY time line");
@@ -78,9 +78,11 @@ module lcc_tb( );
 				.ad_cs					( n_cs ),
 				.ad_sdata_a				( data[1:0] ),
 				.ad_sdata_b				( data[3:2] ),
-                // Tie off Debug inputs
-                .iset                   ( { 1'b0, 1'b1, mute } ), // { !autorun, use_est , mute }
-                .key                    ( 5'b00000 ),
+                // Set Static Control Inputs
+				.auto_mode      ( 1'b1 ),
+				.use_est		( 1'b1 ),
+				.mute           ( mute ),
+                .key            ( 5'b00000 ),
        			// debug outputs for Display monitoring
        			.ad_a0			( ),
         		.ad_a1			( ),
@@ -90,7 +92,6 @@ module lcc_tb( );
         		.iest			( ),
         		.burn			( ),
         		.igniter_res	( ),
-
         		// Display and Logging control outputs
         		.scroll_halt	( ),
         		.charge			( ),      
@@ -126,8 +127,8 @@ module lcc_tb( );
 		$display("Launch button press");
 		fire = 1;
 
-		// press for 5ms to debounce
-		for( int ii = 0; ii < 5*MSEC; ii++ ) @(negedge clk); 
+		// press for >5ms to debounce
+		for( int ii = 0; ii < 6*MSEC; ii++ ) @(negedge clk); 
 		$display("Release button ");
 		fire = 0;
 
@@ -169,8 +170,8 @@ module lcc_tb( );
 	parameter COIL_UH = 399.0;
 	parameter FREQ_MHZ = 48;
 	parameter PERIOD_NS = 20.8;
-	parameter CAP_UF = 1.0;  // typicall 100uF, but this is faster
-	parameter CH_RATE = 3.0; // Charge rate, Joule/sec
+	parameter CAP_UF = 200.0;  // typicall 200uF, but this is faster
+	parameter CH_RATE = 30.0; // Charge rate, Joule/sec
 
 	real ecap, ecap_n; 		
 	real icap, icap_n; 
@@ -246,10 +247,10 @@ module lcc_tb( );
 	// and transmission
 	
 	// ADC sampling and transmission.
-	logic [11:0] sh_vcap;	// 0 to 350 volts  350/4096
-	logic [11:0] sh_icap;	// 0 to 12 amp     12/4096
-	logic [11:0] sh_vout;	// 0 to 350 volts
-	logic [11:0] sh_iout;	// 0 to 12 amp
+	logic [11:0] sh_vcap;
+	logic [11:0] sh_icap;
+	logic [11:0] sh_vout;
+	logic [11:0] sh_iout;
 
 	logic n_sclk;
 	assign n_sclk = clk; // same clock, adc just uses negedge.
@@ -271,14 +272,18 @@ module lcc_tb( );
 			// first falling edge with n_cs active low, output 2nd zero
 			data_n = 4'b0;
 			// sample 
-			sh_vcap[11:0] = int'(vcap * 8  );
-			sh_icap[11:0] = int'(icap * 256);
-			sh_vout[11:0] = int'(vout * 8  );
-			sh_iout[11:0] = int'(iout * 256);
-
+			sh_vcap[10:0] = ~int'(vcap / ADC_VOLTS_PER_DN );
+			sh_icap[10:0] = ~int'(icap * ADC_DN_PER_AMP   );
+			sh_vout[10:0] = ~int'(vout / ADC_VOLTS_PER_DN );
+			sh_iout[10:0] = ~int'(iout * ADC_DN_PER_AMP   );
+			sh_vcap[11] = 0;
+			sh_icap[11] = 0;
+			sh_vout[11] = 0;
+			sh_iout[11] = 0;
+			@(negedge n_sclk ); 
 			@(negedge n_sclk ); 
 			for( int bitpos = 11; bitpos >= 0; bitpos-- ) begin
-				data_n[3:0] = { sh_vcap[bitpos], sh_icap[bitpos], sh_vout[bitpos], sh_iout[bitpos] };
+				data_n[3:0] = { sh_vout[bitpos], sh_icap[bitpos], sh_vcap[bitpos], sh_iout[bitpos] }; // { b[1:0], a[1:0] }
 				@(negedge n_sclk ); 
 			end
 			data_n[3:0] = 4'b0;

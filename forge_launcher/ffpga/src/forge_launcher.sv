@@ -1,3 +1,4 @@
+// vim: ts=4:
 `timescale 1ns / 1ps
 // ForgeFPGA model rocket launcher
 // Digital PWM, current controlled buck converter. capacitive discharge
@@ -31,9 +32,13 @@ module forge_launcher
 	///////////////////
 	
 	// Debug Controls
-	input 	logic [2:0] iset, // dip switch active low
-	input	logic [4:0] key,  // keypad 
+	input logic auto_mode,  // Run launch sequence
+	input logic use_est,	// trust current estimations
+	input logic mute,	// Only beep on 1st cont measurement
 	
+	// Backdoor keypad controls
+	input	logic [4:0] key,  // keypad 
+
 	// monitor outputs for Display
 	output logic [11:0] 	ad_a0, 
 	output logic [11:0] 	ad_a1, 
@@ -42,7 +47,7 @@ module forge_launcher
 	output logic 			ad_strobe,
 	output logic [11:0] 	iest,
 	output logic 			burn = 0,
-	output logic [11:0]	igniter_res,	
+	output logic [11:0]		igniter_res,	
 	
 	// Display and Logging control outputs
 	output logic scroll_halt = 0,
@@ -105,30 +110,29 @@ assign dump = fire_done  | key == 5'h1B; // always dump after firing
 ////////////////////////////////
 // Power On auto charge and continuity until fire button
 ////////////////////////////////
-logic charge_reg = 0;
-logic continuity = 0; // test cont flag
-logic one_time = 0; // self start
+logic charge_reg;
+logic continuity;
+logic [1:0] one_time;
+initial charge_reg = 0;
+initial continuity = 0;
+initial one_time = 0;
 always @( posedge clk ) begin
 	if( reset ) begin
-			charge_reg <= 0;
+		charge_reg <= 0;
+		continuity <= 0;
+		one_time <= 0;
+	end else begin
+		one_time <= ( one_time == 3 ) ? 3 : one_time + 1;
+		if( one_time == 2 ) begin
+			charge_reg <= auto_mode;
 			continuity <= 0;
-			one_time <= 0;
-		end
-	else begin
-		if( !one_time ) begin
-			one_time <= 1;
-			charge_reg <= 1;//!iset[2]; // latch on first cycle
-			continuity <= 0;
-		end if( ( lt3420_done || cap_charged ) && charge_reg ) begin // switch to continuity
-			one_time <= 1;
+		end else if( ( lt3420_done || cap_charged ) && charge_reg ) begin // switch to continuity
 			charge_reg <= 0;
 			continuity <= 1;
 		end else if( continuity && fire_flag ) begin // and end the launch sequence
-			one_time <= 1;
 			charge_reg <= 0;
 			continuity <= 0;
 		end else begin
-			one_time <= 1;
 			charge_reg <= charge_reg;
 			continuity <= continuity;	
 		end
@@ -155,7 +159,7 @@ always @(posedge clk) begin
 										( key == 5'h15 ) ? { 1'b1, 16'h0EF2} :
 										//( key == 5'h16 ) ? { 1'b1, 16'h0d51 } :
 										//( key == 5'h17 ) ? { 1'b1, 16'h0bdd } :
-										( /*key == 5'h18 ||*/ ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h0b32 } : 0; // sw0 mutes tone
+										( /*key == 5'h18 ||*/ ( (cont_tone && !mute) || first_tone ) ) ? { 1'b1, 16'h0b32 } : 0; // sw0 mutes tone
 		end else begin // CLK_FREQ_MHZ == 48
 			{spk_en, tone_cnt}<= ( key == 5'h11 || fire_button_debounce ) ? { 1'b1, 16'h2CCA } :
 										//( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
@@ -164,7 +168,7 @@ always @(posedge clk) begin
 										( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
 										//( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
 										//( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-										( /*key == 5'h18 ||*/ ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
+										( /*key == 5'h18 ||*/ ( (cont_tone && !mute) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
 		end
 	end else begin
 		tone_cnt <= tone_cnt - 1;
@@ -236,7 +240,7 @@ always @(posedge clk) begin
 			end else if(( burn )																	// burnthrough
 			         || ( pulse_time >= (CLOCK_FREQ_MHZ  * 16))    					// 16 usec max on time
 						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (thresh_hi)))		// measure iout > 2.2 amps (panic only?)
-						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (thresh_hi)) && iset[1] )	// est iout > 2.2 amps, disable est use, fb only
+						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (thresh_hi)) && use_est )	// est iout > 2.2 amps, disable est use, fb only
 						) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
 				pulse_time <= 0;
