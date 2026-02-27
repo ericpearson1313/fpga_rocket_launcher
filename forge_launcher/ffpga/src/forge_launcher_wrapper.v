@@ -6,7 +6,6 @@
 (* clkbuf_inhibit *) 	input logic clk,   // from LAC 0
 						output clk_toggle, 					// toggle reg = clk output to LAC
 						output logic_as_clk0_en,			// enable Logic as clock
-						input  logic resetn,
 						output logic osc_en,
 
 
@@ -85,14 +84,9 @@
 		sclk_toggle <= toggle; // before inversion/phase delay 
 		ad_sclk 	<= sclk_toggle; // inverted to embed in the IOB FF for ad_sclk
 	end
-	
-	// Synchronize reset
-	logic reset;
-	logic [3:0] reset_shift = 4'b0; // initial value upon config is reset
-	always_ff @(posedge clk)
-		{ reset, reset_shift[3:0] } <= { !reset_shift[3], reset_shift[2:0], resetn };
-		
+
 	// Explicit Insert some slow IOB output flops (specifically not flopping PWM singal)
+	/*
 	logic speaker_d;
 	logic arm_led_d;
 	logic cont_led_d;
@@ -103,6 +97,7 @@
 	always_ff @(posedge clk) cont_led <= cont_led_d;
 	always_ff @(posedge clk) charge <= charge_d;
 	always_ff @(posedge clk) dump <= dump_d;
+	*/
 	
 	// Explicity Insert some slow IOB input flops
 	logic launch_nq;
@@ -120,17 +115,17 @@
 	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) i_chip (
 		// System
 		.clk				( clk ),
-		.reset			( reset ), // fpga starts reset
+		.reset			( 1'b0 ), // fpga starts in reset state
 		// Front Panel
 		.fire_button 	( !launch_nq ),
-		.arm_led 		( arm_led_d ),
-		.cont_led	 	( cont_led_d ),
-		.speaker 		( speaker_d ),
+		.arm_led 		( arm_led ),
+		.cont_led	 	( cont_led ),
+		.speaker 		( speaker ),
 		// High Voltage
-		.lt3420_charge 	( charge_d ),
+		.lt3420_charge 	( charge ),
 		.lt3420_done   	( 1'b0  ),
 		.pwm           	( pwm ),
-		.dump			( dump_d ),
+		.dump			( dump ),
 		// ADC interface
 		.ad_cs			( ad_cs ),
 		.ad_sdata_a 		( ad_sdata_a ),

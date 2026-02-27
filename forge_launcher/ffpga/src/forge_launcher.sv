@@ -107,15 +107,22 @@ assign dump = fire_done  | key == 5'h1B; // always dump after firing
 ////////////////////////////////
 initial charge = 1;
 logic continuity = 0; // test cont flag
+logic one_time = 0; // self start
 always @( posedge clk ) begin
 	if( reset ) begin
-		charge <= !iset[2]; //Latch on reset
-		continuity <= 0;
-	end else begin
-		if( lt3420_done && charge ) begin // switch to continuity
+			charge <= 0;
+			continuity <= 0;
+			one_time <= 0;
+		end
+	else begin
+		if( !one_time ) begin
+			one_time <= 1;
+			charge <= !iset[2]; // latch on first cycle
+			continuity <= 0;
+		end if( ( lt3420_done || cap_charged ) && charge ) begin // switch to continuity
 			charge <= 0;
 			continuity <= 1;
-		end else if( continuity && fire_flag ) begin
+		end else if( continuity && fire_flag ) begin // and end the launch sequence
 			charge <= 0;
 			continuity <= 0;
 		end else begin

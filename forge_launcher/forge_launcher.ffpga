@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.52.002" lastChange="26 Feb 2026 16:01:17" projectChecksumState="1" projectChecksum="bd098b16">
+<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.52.002" lastChange="26 Feb 2026 19:32:54" projectChecksumState="1" projectChecksum="a06e6118">
     <Metadata>
         <LegalNotice>This Design was generated using Renesas' proprietary Go Configure Software Hub and is provided for use solely in connection with Renesas GreenPAK integrated circuits. Any unauthorized use, reproduction, distribution, or manufacture of this Design is prohibited. This Design is provided 'AS IS' without warranties of any kind.</LegalNotice>
     </Metadata>
     <generalProjectSettings/>
     <chip family="04" type="06" friendlyName="FFPGA" partNumber="67" package="26">
-        <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 0 0 22 22 22 22 22 22 22 22 22 22 1 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
-        <checksum crc32="0xA845AB79" version="2"/>
+        <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 14 0 22 22 22 22 22 22 22 22 22 22 1 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
+        <checksum crc32="0x7AC9F6F" version="2"/>
         <virtualProperties/>
         <VDDItem id="0">
             <item id="0" caption="VDDC (PIN 22)">
@@ -126,7 +126,7 @@
         <wire output="20" input="62" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="6" wireText="NET6" wireState="0">
             <points>(1177.00,384.00); (967.00,384.00); (967.00,385.00); (961.00,385.00)</points>
         </wire>
-        <wire output="19" input="61" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="7" wireText="NET7" wireState="0">
+        <wire output="19" input="61" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="7" wireText="NET7" wireState="0">
             <points>(1071.00,366.00); (967.00,366.00); (967.00,367.00); (961.00,367.00)</points>
         </wire>
         <wire output="82" input="41" autoRouting="1" pen="#ff8000ff;3.00;1;32;128" lineType="4" protected="1" CWLid="8" wireText="NET8" wireState="0">
@@ -303,7 +303,7 @@
         <wire output="0" input="42" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="66" wireText="NET66" wireState="0">
             <points>(97.00,609.00); (314.00,609.00); (314.00,613.00); (320.00,613.00)</points>
         </wire>
-        <wire output="1" input="43" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="67" wireText="NET67" wireState="0">
+        <wire output="1" input="43" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="67" wireText="NET67" wireState="0">
             <points>(212.00,558.00); (314.00,558.00); (314.00,564.00); (320.00,564.00)</points>
         </wire>
         <wire output="2" input="44" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="19" wireText="NET19" wireState="0">
@@ -745,8 +745,8 @@
             <openedTab>PLL Configurator</openedTab>
             <openedTab>Floorplan</openedTab>
             <openedTab>forge_launcher.sdc</openedTab>
-            <openedTab>Macrocell Editor</openedTab>
             <openedTab>Timing Analysis</openedTab>
+            <openedTab>Synthesis Report</openedTab>
         </openedTabs>
         <pipelineStagesStates>
             <pipelineStageState>
@@ -755,7 +755,7 @@
             </pipelineStageState>
             <pipelineStageState>
                 <pipelineStage>1</pipelineStage>
-                <pipelineState>3</pipelineState>
+                <pipelineState>1</pipelineState>
             </pipelineStageState>
         </pipelineStagesStates>
         <modules>
@@ -773,7 +773,7 @@
             <placement-constraints/>
         </modules>
         <io-spec-tool>
-            <records filter="126" filter1="16">
+            <records filter="16" filter1="16">
                 <record id="CLK_t[0:0]_E_in0">
                     <port-name>clk</port-name>
                 </record>
@@ -860,9 +860,6 @@
                 </record>
                 <record id="IOB_t[0:0]_xy[0:7]_in0">
                     <port-name>mute_n</port-name>
-                </record>
-                <record id="IOB_t[0:0]_xy[31:10]_in0">
-                    <port-name>resetn</port-name>
                 </record>
                 <record id="IOB_t[0:0]_xy[31:11]_out0">
                     <port-name>clk_toggle</port-name>
