@@ -184,7 +184,7 @@ logic signed [12:0] dv; // delta voltage
 
 assign dv[12:0] = { ad_b1[11], ad_b1[11:0] ^ 12'h7ff } - { ad_b1_del[11], ad_b1_del[11:0] ^ 12'h7ff };
 initial ad_b1_del = 12'h7ff;
-logic signed [12:0] max_dvdt = int'( 24 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ) ); // (24 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
+logic signed [12:0] max_dvdt = 24 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ); // (24 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
 always @(posedge clk) begin
 	if( reset ) begin
 		burn <= 0;
@@ -569,7 +569,7 @@ always_ff @(posedge clk) deltav[12:0] <= { vcap_corr[11], vcap_corr[11:0] } - { 
 logic [15:0] deltai_rom[63:0];// rom deltaI units in (4.12)
 always_comb begin
 	for( int ii = 0; ii < 64; ii++ )
-		deltai_rom[ii] = int'( ( (ii * 32 + 16) * 4096 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH ) );
+		deltai_rom[ii] = ( (ii * 32 + 16) * 4096 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
 end
 
 logic [15:0] deltai;
