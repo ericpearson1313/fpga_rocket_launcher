@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.52.002" lastChange="28 Feb 2026 11:57:54" projectChecksumState="1" projectChecksum="d1f48fcd">
+<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.52.002" lastChange="28 Feb 2026 14:41:58" projectChecksumState="1" projectChecksum="33a73e86">
     <Metadata>
         <LegalNotice>This Design was generated using Renesas' proprietary Go Configure Software Hub and is provided for use solely in connection with Renesas GreenPAK integrated circuits. Any unauthorized use, reproduction, distribution, or manufacture of this Design is prohibited. This Design is provided 'AS IS' without warranties of any kind.</LegalNotice>
     </Metadata>
     <generalProjectSettings/>
     <chip family="04" type="06" friendlyName="FFPGA" partNumber="67" package="26">
-        <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 14 0 22 22 22 22 22 22 22 22 22 22 1 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
-        <checksum crc32="0x7AC9F6F" version="2"/>
+        <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 14 0 30 22 22 2 30 23 22 22 0 20 3 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
+        <checksum crc32="0x899F111B" version="2"/>
         <virtualProperties/>
         <VDDItem id="0">
             <item id="0" caption="VDDC (PIN 22)">
@@ -741,22 +741,20 @@
         <openedTabs>
             <openedTab>I/O Planner</openedTab>
             <openedTab>forge_launcher_wrapper.v</openedTab>
-            <openedTab>PLL Configurator</openedTab>
             <openedTab>Floorplan</openedTab>
             <openedTab>forge_launcher.sdc</openedTab>
             <openedTab>Timing Analysis</openedTab>
-            <openedTab>Synthesis Report</openedTab>
             <openedTab>forge_launcher.sv</openedTab>
             <openedTab>Resources Report</openedTab>
         </openedTabs>
         <pipelineStagesStates>
             <pipelineStageState>
                 <pipelineStage>0</pipelineStage>
-                <pipelineState>3</pipelineState>
+                <pipelineState>1</pipelineState>
             </pipelineStageState>
             <pipelineStageState>
                 <pipelineStage>1</pipelineStage>
-                <pipelineState>3</pipelineState>
+                <pipelineState>1</pipelineState>
             </pipelineStageState>
         </pipelineStagesStates>
         <modules>
