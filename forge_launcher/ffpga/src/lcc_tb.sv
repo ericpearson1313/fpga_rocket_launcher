@@ -144,8 +144,8 @@ module lcc_tb( );
 		while( pwm ) @(negedge clk); // wait for a pwm signal
 		$display("PWM negedge seen");
 		
-		// Burnthrough igniter 
-		for( int ii = 0; ii < 100*MSEC; ii++ ) @(negedge clk); 
+		// Burnthrough igniter (leave some cap energy for dump)
+		for( int ii = 0; ii < 60*MSEC; ii++ ) @(negedge clk); 
 		$display("Igniter Burn Through");
 		burn = 1;
 
