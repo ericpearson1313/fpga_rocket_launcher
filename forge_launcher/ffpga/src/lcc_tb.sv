@@ -76,8 +76,12 @@ module lcc_tb( );
                 .dump                   ( dump ),
                 // ADC interface
 				.ad_cs					( n_cs ),
-				.ad_sdata_a				( data[1:0] ),
-				.ad_sdata_b				( data[3:2] ),
+				.ad_s_vcap				( data[1] ),
+				.ad_s_iout				( data[0] ),
+				.ad_s_vout				( data[3] ),
+				.neg_vcap			    ( 1'b1 ),
+				.neg_vout			    ( 1'b1 ),
+				.neg_iout			    ( 1'b1 ),
                 // Set Static Control Inputs
 				.auto_mode      ( 1'b1 ),
 				.use_est		( 1'b1 ),
@@ -104,10 +108,12 @@ module lcc_tb( );
 	
 	// Operating Mode 
 	localparam MSEC = CLOCK_FREQ_MHZ * 1000;
+	logic burn;
 	initial begin
 		// hardware will wait till charged before firing;
 		fire = 0;
 		mute = 0;
+		burn = 0;
 		// charge shoudl start low
 		$display("initial Charge state %d", charge);
 
@@ -123,7 +129,7 @@ module lcc_tb( );
 		$display("Continuity tone, cont_led %b", cont_led );
 
 		// wait a bit then lanuch
-		for( int ii = 0; ii < 1*MSEC; ii++ ) @(negedge clk); 
+		for( int ii = 0; ii < 50*MSEC; ii++ ) @(negedge clk); 
 		$display("Launch button press");
 		fire = 1;
 
@@ -138,16 +144,21 @@ module lcc_tb( );
 		while( pwm ) @(negedge clk); // wait for a pwm signal
 		$display("PWM negedge seen");
 		
+		// Burnthrough igniter 
+		for( int ii = 0; ii < 100*MSEC; ii++ ) @(negedge clk); 
+		$display("Igniter Burn Through");
+		burn = 1;
+
 		// Should arm drop
 		while( !dump ) @(negedge clk); // wait for dump to rise
 		$display("Dump Begun");
 
 		// Should seen arm low
-		while( !dump ) @(negedge clk); // wait for dump to rise
+		while( arm_led ) @(negedge clk); // wait for arm to drop
 		$display("ARM off");
 
 		// final wait
-		for( int ii = 0; ii < 1*MSEC; ii++ ) @(negedge clk); 
+		for( int ii = 0; ii < 10*MSEC; ii++ ) @(negedge clk); 
 		$display("Full lanch cycle simulation complate");
 		$finish();
 	end // fire		
@@ -164,14 +175,14 @@ module lcc_tb( );
 	// The output voltage is a function of igniter resistance and coil (output) current.
 	// 
 
-	parameter R = 10.0; // Load resistance
-	parameter R_DUMP = 3300.0; // dump resistanceb
+	parameter R = 2.0; // Load resistance
+	parameter R_DUMP = 300.0; // dump resistance (real is 3k3)
 	parameter CAP_VOLTAGE = 320.0;
 	parameter COIL_UH = 399.0;
 	parameter FREQ_MHZ = 48;
 	parameter PERIOD_NS = 20.8;
-	parameter CAP_UF = 200.0;  // typicall 200uF, but this is faster
-	parameter CH_RATE = 30.0; // Charge rate, Joule/sec
+	parameter CAP_UF = 200.0;  // 200uF
+	parameter CH_RATE = 30.0; //  Joule/sec (real 3.0)
 
 	real ecap, ecap_n; 		
 	real icap, icap_n; 
@@ -197,6 +208,7 @@ module lcc_tb( );
 				vout_n = 0.0;
 				// Dump cap into resistor
 				icap_n = vcap / R_DUMP;
+				ecap_n = ( ecap_n < 0.0 ) ? 0.0 : ecap_n;
 				ecap_n = ecap - ((((((icap+icap_n)/2)*vcap) / (FREQ_MHZ*1000000.0)))) ;
 				vcap_n = ($sqrt( (2.0 * ecap_n) / CAP_UF ) * 1000.0);
 			end else if( charge == 1 ) begin // Charge 
@@ -205,8 +217,15 @@ module lcc_tb( );
 				vout_n = 0.0;
 				// Dump cap into resistor
 				ecap_n = ecap + ( CH_RATE / (FREQ_MHZ*1000000.0) ) ;
+				ecap_n = ( ecap_n < 0.0 ) ? 0.0 : ecap_n;
 				vcap_n = ($sqrt( (2.0 * ecap_n) / CAP_UF ) * 1000.0);
 				icap_n = CH_RATE / vcap_n;
+			end else if( burn ) begin // Burn through
+				iout_n = 0.0;
+				vout_n = vcap;
+				icap_n = 0.0;
+				vcap_n = vcap;
+				ecap_n = ecap;
 			end else if( pwm == 0 ) begin // PWM OFF
 				// output off, I falls at rate Vout/L*t
 				iout_n = iout - ((vout / (COIL_UH * FREQ_MHZ))); 
@@ -226,6 +245,7 @@ module lcc_tb( );
 				// cap drops by energy used this cycle IVT
 				ecap_n = ecap - ((((((iout+iout_n)/2)*vcap) / (FREQ_MHZ*1000000.0)))) ;
 				// votlage is calc from energy
+				ecap_n = ( ecap_n < 0.0 ) ? 0.0 : ecap_n;
 				vcap_n = ($sqrt( (2.0 * ecap_n) / CAP_UF ) * 1000.0);
 			end
 			

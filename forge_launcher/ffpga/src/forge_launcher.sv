@@ -22,10 +22,13 @@ module forge_launcher
 	output logic dump,
 	
 	// External A/D Converters (2.5v)
-	output logic        ad_cs,
-	//output logic		ad_sclk, handled in wrapper
-	input  logic  [1:0] ad_sdata_a,
-	input  logic  [1:0] ad_sdata_b,
+	output logic  ad_cs,
+	input  logic  ad_s_vcap, 
+	input  logic  ad_s_vout,
+	input  logic  ad_s_iout,
+	input  logic  neg_vcap,
+	input  logic  neg_vout,
+	input  logic  neg_iout,
 	
 	///////////////////
 	// Emulation I/o //
@@ -291,15 +294,15 @@ forge_adc_module_4ch  _adc (
 	.clk( clk ),
 	.reset( reset ),
 	// External A/D interface
-	.ad_cs( ad_cs ),
-	.ad_sdata_a( ad_sdata_a[1:0] ),
-	.ad_sdata_b( ad_sdata_b[1:0] ),	
+	.ad_cs		( ad_cs ),
+	.ad_sdata 	( { ad_s_vout, 1'b0, ad_s_vcap, ad_s_iout } ),
+	.ad_neg		( { neg_vout, 1'b1, neg_vcap, neg_iout } ),
 	// ADC held data and strobe
-	.ad_a0( ad_a0 ),
-	.ad_a1( ad_a1 ),
-	.ad_b0( ad_b0 ),
-	.ad_b1( ad_b1 ),
-	.ad_strobe( ad_strobe )
+	.ad_out0    ( ad_a0 ),
+	.ad_out1    ( ad_a1 ),
+	.ad_out2    ( ad_b0 ),
+	.ad_out3    ( ad_b1 ),
+	.ad_strobe	( ad_strobe )
 );
 
 // Modelling Coil Current
@@ -431,14 +434,14 @@ module forge_adc_module_4ch
 	
 	// External A/D Converters (2.5v)
 	output logic        ad_cs,
-	input  logic  [1:0] ad_sdata_a,
-	input  logic  [1:0] ad_sdata_b,
+	input  logic  [3:0] ad_sdata,
+	input  logic  [3:0] ad_neg,
 	
 	// ADC monitor outputs
-	output [11:0] ad_a0,
-	output [11:0] ad_a1,
-	output [11:0] ad_b0,
-	output [11:0] ad_b1,
+	output [11:0] ad_out0,
+	output [11:0] ad_out1,
+	output [11:0] ad_out2,
+	output [11:0] ad_out3,
 	output ad_strobe
 );
 
@@ -472,8 +475,8 @@ end
 
 // DATA Input Receiver
 
-logic [11:0] ad_load_a0 = 0, ad_load_a1 = 0, ad_load_b0 = 0, ad_load_b1 = 0;
-logic [11:0] ad_hold_a0 = 0, ad_hold_a1 = 0, ad_hold_b0 = 0, ad_hold_b1 = 0;
+logic [11:0] ad_load_0 = 0, ad_load_1 = 0, ad_load_2 = 0, ad_load_3 = 0;
+logic [11:0] ad_hold_0 = 0, ad_hold_1 = 0, ad_hold_2 = 0, ad_hold_3 = 0;
 logic [11:0] load;
 
 parameter LOAD_SEL = 1;   // select first load delay, load reg input (ie 1 cycle early).
@@ -482,30 +485,30 @@ parameter VALID_SEL = 15;   // the cycle the adc hold registers are updatead
 
 always @(posedge clk) begin
 	if( reset ) begin
-		ad_load_a0[11:0] <= 12'd0;
-		ad_load_a1[11:0] <= 12'd0;
-		ad_load_b0[11:0] <= 12'd0;
-		ad_load_b1[11:0] <= 12'd0;
-		ad_hold_a0[11:0] <= 12'd0;
-		ad_hold_a1[11:0] <= 12'd0;
-		ad_hold_b0[11:0] <= 12'd0;
-		ad_hold_b1[11:0] <= 12'd0;
+		ad_load_0[11:0] <= 12'd0;
+		ad_load_1[11:0] <= 12'd0;
+		ad_load_2[11:0] <= 12'd0;
+		ad_load_3[11:0] <= 12'd0;
+		ad_hold_0[11:0] <= 12'd0;
+		ad_hold_1[11:0] <= 12'd0;
+		ad_hold_2[11:0] <= 12'd0;
+		ad_hold_3[11:0] <= 12'd0;
    end else begin
 		// Load Pulse Chain
 		load[11:0] <= { cs_delay[LOAD_SEL], load[11:1] };
 		// low power reg load with bit 
 		for( int ii = 0; ii < 12; ii++ ) begin
-			ad_load_a0[ii] <= ( load[ii] ) ? ad_sdata_a[0] : ad_load_a0[ii];
-			ad_load_a1[ii] <= ( load[ii] ) ? ad_sdata_a[1] : ad_load_a1[ii];
-			ad_load_b0[ii] <= ( load[ii] ) ? ad_sdata_b[0] : ad_load_b0[ii];
-			ad_load_b1[ii] <= ( load[ii] ) ? ad_sdata_b[1] : ad_load_b1[ii];
+			ad_load_0[ii] <= ( load[ii] ) ? ad_sdata[0] : ad_load_0[ii];
+			ad_load_1[ii] <= ( load[ii] ) ? ad_sdata[1] : ad_load_1[ii];
+			ad_load_2[ii] <= ( load[ii] ) ? ad_sdata[2] : ad_load_2[ii];
+			ad_load_3[ii] <= ( load[ii] ) ? ad_sdata[3] : ad_load_3[ii];
 		end
 		// Load hold reg 
 		begin
-			ad_hold_a0 <= (cs_delay[HOLD_SEL]) ? ad_load_a0 : ad_hold_a0;
-			ad_hold_a1 <= (cs_delay[HOLD_SEL]) ? ad_load_a1 : ad_hold_a1;
-			ad_hold_b0 <= (cs_delay[HOLD_SEL]) ? ad_load_b0 : ad_hold_b0;
-			ad_hold_b1 <= (cs_delay[HOLD_SEL]) ? ad_load_b1 : ad_hold_b1;
+			ad_hold_0 <= (cs_delay[HOLD_SEL]) ? ad_load_0 : ad_hold_0;
+			ad_hold_1 <= (cs_delay[HOLD_SEL]) ? ad_load_1 : ad_hold_1;
+			ad_hold_2 <= (cs_delay[HOLD_SEL]) ? ad_load_2 : ad_hold_2;
+			ad_hold_3 <= (cs_delay[HOLD_SEL]) ? ad_load_3 : ad_hold_3;
 		end
 	end
 end
@@ -513,11 +516,11 @@ end
 logic adc_valid;
 assign adc_valid = cs_delay[VALID_SEL];
 
-// Monitor outputs with bias offsets
-assign ad_a0 = ad_hold_a0 + 12'h5;
-assign ad_a1 = ad_hold_a1 + 12'h5;
-assign ad_b0 = ad_hold_b0 + 12'h5;
-assign ad_b1 = ad_hold_b1 + 12'h6;
+// data outputs with negation
+assign ad_out0 = ad_hold_0 ^ ((ad_neg[0])?0:12'h7FF);
+assign ad_out1 = ad_hold_1 ^ ((ad_neg[1])?0:12'h7FF);
+assign ad_out2 = ad_hold_2 ^ ((ad_neg[2])?0:12'h7FF);
+assign ad_out3 = ad_hold_3 ^ ((ad_neg[3])?0:12'h7FF);
 assign ad_strobe = adc_valid; // valid pulse aligned with new data.
 
 endmodule
