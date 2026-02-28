@@ -352,7 +352,7 @@ assign pwm = pwm_pulse | res_pwm;
 // Arm is based on vcap with 300v on thresh and 50v off thresh
 // clip inputs to +ve
 logic [10:0] vcap;
-assign vcap = ( ad_a1[11] || ad_a1[10:4] == 7'h7F ) ? 11'b0 : ( ad_a1[10:0] );
+assign vcap = ( ad_a1[11] || ad_a1[10:4] == 0 ) ? 11'b0 : ( ad_a1[10:0] );
 
 logic cap_charged = 0;
 always @( posedge clk ) begin
