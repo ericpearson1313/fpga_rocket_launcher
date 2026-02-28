@@ -63,7 +63,7 @@ module lcc_tb( );
     forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) i_dut (
                 // System
                 .clk                    ( clk ),
-                .reset                  ( reset ), // fpga starts in reset state
+                .reset                  ( 1'b0 ), // fpga starts in reset state
                 // Front Panel
                 .fire_button    		( fire),
                 .arm_led                ( arm_led ),
@@ -79,9 +79,9 @@ module lcc_tb( );
 				.ad_s_vcap				( data[1] ),
 				.ad_s_iout				( data[0] ),
 				.ad_s_vout				( data[3] ),
-				.neg_vcap			    ( 1'b1 ),
-				.neg_vout			    ( 1'b1 ),
-				.neg_iout			    ( 1'b1 ),
+				.neg_vcap			    ( 1'b0 ),
+				.neg_vout			    ( 1'b0 ),
+				.neg_iout			    ( 1'b0 ),
                 // Set Static Control Inputs
 				.auto_mode      ( 1'b1 ),
 				.use_est		( 1'b1 ),
@@ -176,7 +176,7 @@ module lcc_tb( );
 	// 
 
 	parameter R = 2.0; // Load resistance
-	parameter R_DUMP = 300.0; // dump resistance (real is 3k3)
+	parameter R_DUMP = 300.0; // dump resistance f(real is 3k3)
 	parameter CAP_VOLTAGE = 320.0;
 	parameter COIL_UH = 399.0;
 	parameter FREQ_MHZ = 48;
@@ -292,10 +292,10 @@ module lcc_tb( );
 			// first falling edge with n_cs active low, output 2nd zero
 			data_n = 4'b0;
 			// sample 
-			sh_vcap[10:0] = ~int'(vcap / ADC_VOLTS_PER_DN );
-			sh_icap[10:0] = ~int'(icap * ADC_DN_PER_AMP   );
-			sh_vout[10:0] = ~int'(vout / ADC_VOLTS_PER_DN );
-			sh_iout[10:0] = ~int'(iout * ADC_DN_PER_AMP   );
+			sh_vcap[10:0] = int'(vcap / ADC_VOLTS_PER_DN );
+			sh_icap[10:0] = int'(icap * ADC_DN_PER_AMP   );
+			sh_vout[10:0] = int'(vout / ADC_VOLTS_PER_DN );
+			sh_iout[10:0] = int'(iout * ADC_DN_PER_AMP   );
 			sh_vcap[11] = 0;
 			sh_icap[11] = 0;
 			sh_vout[11] = 0;
