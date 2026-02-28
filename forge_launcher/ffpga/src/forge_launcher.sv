@@ -189,23 +189,23 @@ assign speaker = spk_toggle & spk_en ;
 // After observation the real indication is output voltage rise rate at burnthrough, or open circuit.
  
 logic current_seen = 0;
-logic [11:0] ad_b1_del = 12'h7ff;
+logic [11:0] ad_b1_del = 0;
 logic signed [12:0] dv; // delta voltage
 
-assign dv[12:0] = { ad_b1[11], ad_b1[11:0] ^ 12'h7ff } - { ad_b1_del[11], ad_b1_del[11:0] ^ 12'h7ff };
-initial ad_b1_del = 12'h7ff;
+assign dv[12:0] = { ad_b1[11], ad_b1[11:0] } - { ad_b1_del[11], ad_b1_del[11:0] };
+initial ad_b1_del = 0;
 logic signed [12:0] max_dvdt = 24 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ); // (24 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
 always @(posedge clk) begin
 	if( reset ) begin
 		burn <= 0;
 		current_seen <= 0;
-		ad_b1_del <= 12'h7ff;
+		ad_b1_del <= 0;
 	end else begin
-		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (100)))) ? 1'b1 : current_seen; // current > 1/2 Amp seen
-		burn <=((( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)) || (((ad_b1 ^ 12'h7ff) > (ad_a1 ^ 12'h7ff))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
-					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (256))) && // cap voltage > 50 Volts 
+		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0) > (100)))) ? 1'b1 : current_seen; // current > 1/2 Amp seen
+		burn <=((( ad_a0[11] || ((ad_a0) < (32)) || (((ad_b1) > (ad_a1))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
+					(!ad_a1[11] && ((ad_a1) > (256))) && // cap voltage > 50 Volts 
 					current_seen && fire_flag ) || 
-					//( fire_flag && (!ad_a0[11]&&((ad_a0 ^ 12'h7ff) > ( 205 * 6 )))) || // temp trigger for 6A
+					//( fire_flag && (!ad_a0[11]&&((ad_a0) > ( 205 * 6 )))) || // temp trigger for 6A
 				   ( fire_flag && ( dv > max_dvdt ))	// dv > +24 V/us
 					) ? 1'b1 : burn; 
 		ad_b1_del <= ad_b1; // ad_b1 only changes on sample x16, but is fine for our detection use
@@ -250,8 +250,8 @@ always @(posedge clk) begin
 				ramp_flag <= ramp_flag;
 			end else if(( burn )																	// burnthrough
 			         || ( pulse_time >= (CLOCK_FREQ_MHZ  * 16))    					// 16 usec max on time
-						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (thresh_hi)))		// measure iout > 2.2 amps (panic only?)
-						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (thresh_hi)) && use_est )	// est iout > 2.2 amps, disable est use, fb only
+						||	( !ad_a0[11] && ((ad_a0) > (thresh_hi)))		// measure iout > 2.2 amps (panic only?)
+						||	( !iest[11]  && ((iest ) > (thresh_hi)) && use_est )	// est iout > 2.2 amps, disable est use, fb only
 						) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
 				pulse_time <= 0;
@@ -269,7 +269,7 @@ always @(posedge clk) begin
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count					
-			end else if ( ( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (thresh_lo))) ) begin //  <2 amp * 205 DN/A measured - 10%
+			end else if ( ( ad_a0[11] || ((ad_a0) < (thresh_lo))) ) begin //  <2 amp * 205 DN/A measured - 10%
 				ramp_flag <= ramp_flag;
 				pwm_pulse <= 1;
 				pulse_time <= 1;
@@ -352,7 +352,7 @@ assign pwm = pwm_pulse | res_pwm;
 // Arm is based on vcap with 300v on thresh and 50v off thresh
 // clip inputs to +ve
 logic [10:0] vcap;
-assign vcap = ( ad_a1[11] || ad_a1[10:4] == 7'h7F ) ? 11'b0 : ( ad_a1[10:0] ^ 11'h7ff );
+assign vcap = ( ad_a1[11] || ad_a1[10:4] == 7'h7F ) ? 11'b0 : ( ad_a1[10:0] );
 
 logic cap_charged = 0;
 always @( posedge clk ) begin
@@ -525,10 +525,10 @@ logic adc_valid;
 assign adc_valid = cs_delay[VALID_SEL];
 
 // data outputs with negation
-assign ad_out0 = ad_hold_0 ^ ((ad_neg[0])?0:12'h7FF);
-assign ad_out1 = ad_hold_1 ^ ((ad_neg[1])?0:12'h7FF);
-assign ad_out2 = ad_hold_2 ^ ((ad_neg[2])?0:12'h7FF);
-assign ad_out3 = ad_hold_3 ^ ((ad_neg[3])?0:12'h7FF);
+assign ad_out0 = ad_hold_0 ^ ((ad_neg[0])?12'h7FF:0);
+assign ad_out1 = ad_hold_1 ^ ((ad_neg[1])?12'h7FF:0);
+assign ad_out2 = ad_hold_2 ^ ((ad_neg[2])?12'h7FF:0);
+assign ad_out3 = ad_hold_3 ^ ((ad_neg[3])?12'h7FF:0);
 assign ad_strobe = adc_valid; // valid pulse aligned with new data.
 
 endmodule
@@ -575,8 +575,8 @@ logic [23:0] iest_cur, iest_hold, iest_next, i_acc = 0;
 // Pre-process adc cap and output voltages (format, clip to zero with deadzone
 logic [11:0] vcap_corr;
 logic [11:0] vout_corr;
-assign vcap_corr[11:0] = ( vcap[11:0] ^ 12'h7FF ); // signed 
-assign vout_corr[11:0] = ( vout[11:0] ^ 12'h7FF ); // signed
+assign vcap_corr[11:0] = ( vcap[11:0] ); // signed 
+assign vout_corr[11:0] = ( vout[11:0] ); // signed
 
 // Calc deltaV across the coil when PWM On
 
@@ -604,14 +604,14 @@ always @(posedge clk) begin
 	if( reset ) begin
 		i_acc[23:0] <= 36'b0;
 	end else if( !pwm ) begin // load rea value when pwm is low.
-		i_acc[23:0] <= { ( iout[11] ) ? 12'h0 : ( iout[11:0] ^ 12'h7ff ), 12'h000 };
+		i_acc[23:0] <= { ( iout[11] ) ? 12'h0 : ( iout[11:0] ), 12'h000 };
 	end else begin // Accumulate during PWM for rise
 		i_acc[23:0] <= iest_next; // 12 fractional bits
 	end
 end
 
 // Ouput estimate is in adc units 
-assign iest_coil[11:0] = i_acc[23-:12] ^ 12'h7ff;
+assign iest_coil[11:0] = i_acc[23-:12];
 
 endmodule // model_coil
 	
@@ -676,8 +676,8 @@ module forge_igniter_continuity
 	// foramt and Clip inputs
 	logic [10:0] current;
 	logic [10:0] voltage;
-	assign current = ( i_in[11] | i_in[10:0] == 11'h7FF ) ? 11'h001 : ( i_in[10:0] ^ 11'h7FF );
-	assign voltage = ( v_in[11] ) ? 11'h000 : ( v_in[10:0] ^ 11'h7ff );	
+	assign current = ( i_in[11] | i_in[10:0] == 0 ) ? 11'h001 : ( i_in[10:0] );
+	assign voltage = ( v_in[11] ) ? 11'h000 : ( v_in[10:0] );	
 	
 	localparam START_TIME = ( CLOCK_FREQ_MHZ == 24 ) ? 128 : 256;
 	localparam END_TIME = ( CLOCK_FREQ_MHZ == 24 ) ? 2048 : 4096;
