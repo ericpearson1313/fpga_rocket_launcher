@@ -43,14 +43,14 @@ module forge_launcher
 	input	logic [4:0] key,  // keypad 
 
 	// monitor outputs for Display
-	output logic [11:0] 	ad_a0, 
-	output logic [11:0] 	ad_a1, 
-	output logic [11:0] 	ad_b0, 
-	output logic [11:0] 	ad_b1,
-	output logic 			ad_strobe,
+	output logic [11:0] 	ad_iout, 
+	output logic [11:0] 	ad_vcap, 
+	output logic [11:0] 	ad_vbat, // future 
+	output logic [11:0] 	ad_vout,
+	output logic 		ad_strobe,
 	output logic [11:0] 	iest,
-	output logic 			burn = 0,
-	output logic [11:0]		igniter_res,	
+	output logic 		burn = 0,
+	output logic [11:0]	igniter_res,	
 	
 	// Display and Logging control outputs
 	output logic scroll_halt = 0,
@@ -187,18 +187,18 @@ assign speaker = spk_toggle & spk_en ;
 // If burn through occurs we will see high dvdt on the output.
 // In this case we'll stop operation to minimize voltage spikes.
  
-logic [11:0] ad_b1_del = 0;
+logic [11:0] ad_vout_del = 0;
 logic signed [12:0] dv; // delta voltage
-assign dv[12:0] = { ad_b1[11], ad_b1[11:0] } - { ad_b1_del[11], ad_b1_del[11:0] };
-initial ad_b1_del = 0;
+assign dv[12:0] = { ad_vout[11], ad_vout[11:0] } - { ad_vout_del[11], ad_vout_del[11:0] };
+initial ad_vout_del = 0;
 logic signed [12:0] max_dvdt = 24 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ); // (24 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
 always @(posedge clk) begin
 	if( reset ) begin
 		burn <= 0;
-		ad_b1_del <= 0;
+		ad_vout_del <= 0;
 	end else begin
 		burn <=( fire_flag && ( dv > max_dvdt ) ) ? 1'b1 : burn;	// dv > +24 V/us
-		ad_b1_del <= ad_b1; // ad_b1 only changes on sample x16, but is fine for our detection use
+		ad_vout_del <= ad_vout; // ad_vout only changes on sample x16, but is fine for our detection use
 	end
 end
 
@@ -239,7 +239,7 @@ always @(posedge clk) begin
 				ramp_flag <= ramp_flag;
 			end else if(( burn )																	// burnthrough
 			         || ( pulse_time >= (CLOCK_FREQ_MHZ  * 16))    					// 16 usec max on time
-						||	( !ad_a0[11] && ((ad_a0) > (thresh_hi)))		// measure iout > 2.2 amps (panic only?)
+						||	( !ad_iout[11] && ((ad_iout) > (thresh_hi)))		// measure iout > 2.2 amps (panic only?)
 						||	( !iest[11]  && ((iest ) > (thresh_hi)) && use_est )	// est iout > 2.2 amps, disable est use, fb only
 						) begin //  >2 amp * 205 DN/A measured + 10%
 				pwm_pulse <= 0;
@@ -252,13 +252,13 @@ always @(posedge clk) begin
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count
 			end
-		end else if( !burn && !pwm_pulse && ( fire_flag || pulse_count > 0 ) ) begin // wait for ad_a0 to fall
+		end else if( !burn && !pwm_pulse && ( fire_flag || pulse_count > 0 ) ) begin // wait for ad_iout to fall
 			if( pulse_time < (CLOCK_FREQ_MHZ * 4) ) begin // min pulse off time is 4 Usec
 				ramp_flag <= ramp_flag;
 				pwm_pulse <= pwm_pulse;
 				pulse_count <= pulse_count;
 				pulse_time <= pulse_time + 1; // inc count					
-			end else if ( ( ad_a0[11] || ((ad_a0) < (thresh_lo))) ) begin //  <2 amp * 205 DN/A measured - 10%
+			end else if ( ( ad_iout[11] || ((ad_iout) < (thresh_lo))) ) begin //  <2 amp * 205 DN/A measured - 10%
 				ramp_flag <= ramp_flag;
 				pwm_pulse <= 1;
 				pulse_time <= 1;
@@ -295,10 +295,10 @@ forge_adc_module_4ch  _adc (
 	.ad_sdata 	( { ad_s_vout, 1'b0, ad_s_vcap, ad_s_iout } ),
 	.ad_neg		( { neg_vout, 1'b1, neg_vcap, neg_iout } ),
 	// ADC held data and strobe
-	.ad_out0    ( ad_a0 ),
-	.ad_out1    ( ad_a1 ),
-	.ad_out2    ( ad_b0 ),
-	.ad_out3    ( ad_b1 ),
+	.ad_out0    ( ad_iout ),
+	.ad_out1    ( ad_vcap ),
+	.ad_out2    ( ad_vbat ),
+	.ad_out3    ( ad_vout ),
 	.ad_strobe	( ad_strobe )
 );
 
@@ -311,10 +311,10 @@ forge_model_coil #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_U
 	// PWM input
 	.pwm( pwm ),
 	// Votlage Inputs
-	.vcap( ad_a1 ), // ADC voltage across cap
-	.vout( ad_b1 ), // ADC voltage across output
+	.vcap( ad_vcap ), // ADC voltage across cap
+	.vout( ad_vout ), // ADC voltage across output
 	// Current input to rebase estimate
-	.iout( ad_a0 ), // Output current
+	.iout( ad_iout ), // Output current
 	// Coil Current estimate
 	.iest_coil( iest )
 );
@@ -325,8 +325,8 @@ forge_igniter_continuity #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ ) _
 	.reset( reset ),
 	// Votlage and Current Inputs
 	.valid_in( ad_strobe ),
-	.v_in( ad_b1 ), // ADC Vout
-	.i_in( ad_a0 ), // ADC Iout
+	.v_in( ad_vout ), // ADC Vout
+	.i_in( ad_iout ), // ADC Iout
 	// PWM output and enable input
 	.pwm( res_pwm ),
 	.enable( key == 5'h19 || continuity ),
@@ -341,7 +341,7 @@ assign pwm = pwm_pulse | res_pwm;
 // Arm is based on vcap with 300v on thresh and 50v off thresh
 // clip inputs to +ve
 logic [10:0] vcap;
-assign vcap = ( ad_a1[11] || ad_a1[10:4] == 0 ) ? 11'b0 : ( ad_a1[10:0] );
+assign vcap = ( ad_vcap[11] || ad_vcap[10:4] == 0 ) ? 11'b0 : ( ad_vcap[10:0] );
 
 logic cap_charged = 0;
 always @( posedge clk ) begin
