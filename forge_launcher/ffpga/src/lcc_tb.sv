@@ -88,9 +88,10 @@ module lcc_tb( );
 				.mute           ( mute ),
                 .key            ( 5'b00000 ),
        			// debug outputs for Display monitoring
-       			.ad_iout		( ),
-        		.ad_vcap		( ),
-        		.ad_vout		( ),
+       			.ad_a0			( ),
+        		.ad_a1			( ),
+        		.ad_b0			( ),
+        		.ad_b1			( ),
         		.ad_strobe		( ),
         		.iest			( ),
         		.burn			( ),
