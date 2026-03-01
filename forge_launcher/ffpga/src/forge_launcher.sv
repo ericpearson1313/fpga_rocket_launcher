@@ -184,32 +184,21 @@ assign speaker = spk_toggle & spk_en ;
 
 ////////////////////////////////////////////
 // Burn-through detect 
-// to detect when the current falls to zero during the fire_flag while still have remaining cap voltage.
-// Output voltage is expected to rise to cap voltage. This will happen after current rise.
-// After observation the real indication is output voltage rise rate at burnthrough, or open circuit.
+// If burn through occurs we will see high dvdt on the output.
+// In this case we'll stop operation to minimize voltage spikes.
  
-logic current_seen = 0;
 logic [11:0] ad_b1_del = 0;
 logic signed [12:0] dv; // delta voltage
-
 assign dv[12:0] = { ad_b1[11], ad_b1[11:0] } - { ad_b1_del[11], ad_b1_del[11:0] };
 initial ad_b1_del = 0;
 logic signed [12:0] max_dvdt = 24 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ); // (24 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
 always @(posedge clk) begin
 	if( reset ) begin
 		burn <= 0;
-		current_seen <= 0;
 		ad_b1_del <= 0;
 	end else begin
-		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0) > (100)))) ? 1'b1 : current_seen; // current > 1/2 Amp seen
-		burn <=((( ad_a0[11] || ((ad_a0) < (32)) || (((ad_b1) > (ad_a1))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
-					(!ad_a1[11] && ((ad_a1) > (256))) && // cap voltage > 50 Volts 
-					current_seen && fire_flag ) || 
-					//( fire_flag && (!ad_a0[11]&&((ad_a0) > ( 205 * 6 )))) || // temp trigger for 6A
-				   ( fire_flag && ( dv > max_dvdt ))	// dv > +24 V/us
-					) ? 1'b1 : burn; 
+		burn <=( fire_flag && ( dv > max_dvdt ) ) ? 1'b1 : burn;	// dv > +24 V/us
 		ad_b1_del <= ad_b1; // ad_b1 only changes on sample x16, but is fine for our detection use
-		//burn <= ( fire_flag && ( dv > 13'sd50 ) ) ? 1'b1 : burn; // rise rate > 10V/sample == 30 V/usec
 	end
 end
 
@@ -676,7 +665,7 @@ module forge_igniter_continuity
 	// foramt and Clip inputs
 	logic [10:0] current;
 	logic [10:0] voltage;
-	assign current = ( i_in[11] | i_in[10:0] == 0 ) ? 11'h001 : ( i_in[10:0] );
+	assign current = ( i_in[11] ) ? 11'h000 : ( i_in[10:0] );
 	assign voltage = ( v_in[11] ) ? 11'h000 : ( v_in[10:0] );	
 	
 	localparam START_TIME = ( CLOCK_FREQ_MHZ == 24 ) ? 128 : 256;

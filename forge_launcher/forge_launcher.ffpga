@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.52.002" lastChange="28 Feb 2026 14:41:58" projectChecksumState="1" projectChecksum="33a73e86">
+<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.52.002" lastChange="1 Mar 2026 10:01:42" projectChecksumState="1" projectChecksum="c81539d7">
     <Metadata>
         <LegalNotice>This Design was generated using Renesas' proprietary Go Configure Software Hub and is provided for use solely in connection with Renesas GreenPAK integrated circuits. Any unauthorized use, reproduction, distribution, or manufacture of this Design is prohibited. This Design is provided 'AS IS' without warranties of any kind.</LegalNotice>
     </Metadata>
@@ -746,15 +746,16 @@
             <openedTab>Timing Analysis</openedTab>
             <openedTab>forge_launcher.sv</openedTab>
             <openedTab>Resources Report</openedTab>
+            <openedTab>Synthesis Report</openedTab>
         </openedTabs>
         <pipelineStagesStates>
             <pipelineStageState>
                 <pipelineStage>0</pipelineStage>
-                <pipelineState>1</pipelineState>
+                <pipelineState>3</pipelineState>
             </pipelineStageState>
             <pipelineStageState>
                 <pipelineStage>1</pipelineStage>
-                <pipelineState>1</pipelineState>
+                <pipelineState>3</pipelineState>
             </pipelineStageState>
         </pipelineStagesStates>
         <modules>
