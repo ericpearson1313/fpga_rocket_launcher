@@ -150,7 +150,7 @@ parameter ADC_DN_PER_AMP = 205;
 parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
 parameter COIL_IND_UH = 390;
 	
-//`define FORGE_EMULATOR
+`define FORGE_EMULATOR
 `ifdef FORGE_EMULATOR
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
@@ -194,18 +194,24 @@ logic				long_fire;		// turns on blipvert
 		.dump				( dump ),
 		// ADC interface
 		.ad_cs			( ad_cs ),
-		.ad_sdata_a 	( ad_sdata_a ),
-		.ad_sdata_b 	( ad_sdata_b ),
+		.ad_s_iout     ( ad_sdata_a[0] ),
+		.ad_s_vcap     ( ad_sdata_a[1] ),
+		.ad_s_vout     ( ad_sdata_b[1] ),
+		.neg_iout	( 1'b1 ),
+		.neg_vcap	( 1'b1 ),
+		.neg_vout	( 1'b1 ),
 		
 		// Emulation interconnectes
 		// Tied off Debug inputs
-		.iset				( 3'b011 ),//iset ),
-		.key				( 5'b00000 ),//key ),
+		.auto_mode	( !iset[2] ),
+		.use_est	( !iset[1] ),
+		.mute		( !iset[0] ),
+		.key		( key ),
 		// Internal Logging outputs
-		.ad_a0			( ad_a0 ) , 
-		.ad_a1         ( ad_a1 ), 
-		.ad_b0         ( ad_b0 ), 
-		.ad_b1         ( ad_b1 ),
+		.ad_iout	( ad_a0 ) , 
+		.ad_vcap         ( ad_a1 ), 
+		.ad_vbat         ( ad_b0 ), 
+		.ad_vout         ( ad_b1 ),
 		.ad_strobe     ( ad_strobe ),
 		.iest          ( iest ),
 		.burn          ( burn ),
