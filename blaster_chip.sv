@@ -194,12 +194,12 @@ logic				long_fire;		// turns on blipvert
 		.dump				( dump ),
 		// ADC interface
 		.ad_cs			( ad_cs ),
-		.ad_s_iout     ( ad_sdata_a[0] ),
-		.ad_s_vcap     ( ad_sdata_a[1] ),
-		.ad_s_vout     ( ad_sdata_b[1] ),
-		.neg_iout	( 1'b1 ),
-		.neg_vcap	( 1'b1 ),
-		.neg_vout	( 1'b1 ),
+		.ad_s_iout     ( ad_sdata_a[1] ),
+		.ad_s_vcap     ( ad_sdata_b[1] ),
+		.ad_s_vout     ( ad_sdata_a[0] ),
+		.neg_iout	( 1'b0 ),
+		.neg_vcap	( 1'b0 ),
+		.neg_vout	( 1'b0 ),
 		
 		// Emulation interconnectes
 		// Tied off Debug inputs
@@ -463,8 +463,10 @@ adc_module_4ch  _adc (
 	.reset( reset ),
 	// External A/D interface
 	.ad_cs( ad_cs ),
-	.ad_sdata_a( ad_sdata_a[1:0] ),
-	.ad_sdata_b( ad_sdata_b[1:0] ),	
+	.ad_sdata_a( { ad_sdata_b[1], ad_sdata_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
+	.ad_sdata_b( { ad_sdata_a[0], ad_sdata_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
+	// Differential Negate
+	.neg( 1'b0 ),
 	// ADC held data and strobe
 	.ad_a0( ad_a0 ),
 	.ad_a1( ad_a1 ),
