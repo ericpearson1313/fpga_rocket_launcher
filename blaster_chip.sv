@@ -150,7 +150,7 @@ parameter ADC_DN_PER_AMP = 205;
 parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
 parameter COIL_IND_UH = 390;
 	
-`define FORGE_EMULATOR
+//`define FORGE_EMULATOR
 `ifdef FORGE_EMULATOR
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
@@ -189,7 +189,7 @@ logic				long_fire;		// turns on blipvert
 		.speaker 		( speaker ),
 		// High Voltage
 		.lt3420_charge ( lt3420_charge ),
-		.lt3420_done   ( lt3420_done   ),
+		.lt3420_done   ( 1'b0 ),
 		.pwm           ( pwm ),
 		.dump				( dump ),
 		// ADC interface
@@ -204,7 +204,7 @@ logic				long_fire;		// turns on blipvert
 		// Emulation interconnectes
 		// Tied off Debug inputs
 		.auto_mode	( !iset[2] ),
-		.use_est	( !iset[1] ),
+		.use_est	( iset[1] ),
 		.mute		( !iset[0] ),
 		.key		( key ),
 		// Internal Logging outputs
@@ -253,7 +253,7 @@ logic cap_halt; // full rate capture
 logic fire_button_debounce;
 logic long_fire; // fire button held down >1 wsec
 
-debounce _firedb ( .clk( clk ), .reset( reset ), .in( fire_button ), .out( fire_button_debounce ), .long( long_fire ));
+debounce _firedb ( .clk( clk ), .reset( reset ), .in( !fire_button ), .out( fire_button_debounce ), .long( long_fire ));
 
 parameter PWM_START     = 1; // Enable PWM current control 
 parameter PWM_END			= (48+16) * 1000 * 1000; // Total time 1.333 sec
@@ -289,7 +289,7 @@ always @( posedge clk ) begin
 		charge <= !iset[2]; //Latch on reset
 		continuity <= 0;
 	end else begin
-		if( lt3420_done && charge ) begin // switch to continuity
+		if( cap_charged && charge ) begin // switch to continuity
 			charge <= 0;
 			continuity <= 1;
 		end else if( continuity && fire_flag 
@@ -325,7 +325,7 @@ always @(posedge clk) begin
 								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
 								   //( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
 								   //( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-								   ( /*key == 5'h18 ||*/ ( (cont_tone && !iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
+								   ( /*key == 5'h18 ||*/ ( (cont_tone && iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
 	end else begin
 		tone_cnt <= tone_cnt - 1;
 		spk_en <= spk_en;
@@ -763,7 +763,7 @@ end
 		ad_data <= { { iest[11:8], ad_a0[11:0] },
 						 { iest[7:4], ad_a1[11:0] },
 						 { iest[3:0], ad_b0[11:0] /*res_calc[11:0]*/ }, // temp override.
-						 { 1'b0, fire_button, burn, pwm, ad_b1[11:0] } };
+						 { 1'b0, !fire_button, burn, pwm, ad_b1[11:0] } };
 		end else begin
 			ad_data <= ad_data;
 		end
