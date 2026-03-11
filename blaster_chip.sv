@@ -749,7 +749,19 @@ end
 	// write all samples into the fifo (as burst write of 4 16-bit samples)	
 	// When there are 8 words in the fifo, initiate a write 
 	// increment the address by 16bytes  = 8x 16bit = 2 samples of 64 bit;
-	
+
+	// monitor LCC digital I/O pins
+	logic [7:0] lcc_mon;
+	assign lcc_mon = { 
+							!iset[0],
+							!fire_button,
+							arm_led_n,
+							cont_led_n,
+							speaker,
+							lt3420_charge,
+							pwm,	
+							dump
+							};	
 			
 	// Fifo Write 
 	
@@ -762,10 +774,10 @@ end
 	always @(posedge clk) begin
 		ad_strobe_d <= { ad_strobe_d[1:0], ad_strobe & psram_ready}; 
 		if( ad_strobe ) begin
-		ad_data <= { { iest[11:8], ad_a0[11:0] },
-						 { iest[7:4], ad_a1[11:0] },
-						 { iest[3:0], ad_b0[11:0] /*res_calc[11:0]*/ }, // temp override.
-						 { 1'b0, !fire_button, burn, pwm, ad_b1[11:0] } };
+		ad_data <= { { iest[11:8], ad_a0[11:1],lcc_mon[7] },
+						 { iest[7:4], ad_a1[11:1],lcc_mon[6] },
+						 { iest[3:1],lcc_mon[5], ad_b0[11:1],lcc_mon[4] /*res_calc[11:0]*/ }, // temp override.
+						 { 1'b0, lcc_mon[3:1], !fire_button, burn, pwm, ad_b1[11:1],lcc_mon[0] } };
 		end else begin
 			ad_data <= ad_data;
 		end
@@ -1136,6 +1148,8 @@ end
 	assign tiny = |{ tiny_red, tiny_green, tiny_blue };
 
 	// 8ch digital logic analyser mem & vga display
+
+	
 	logic [7:0] tinyb_red, tinyb_green, tinyb_blue;
 	logic tinyb;
 	tiny_binary_scope #( 
@@ -1156,16 +1170,7 @@ end
 		// scroll halt input
 		.halt ( scroll_halt ),
 		// capture inputs
-		.ad_data( { 	
-						!iset[0],
-						!fire_button,
-						arm_led_n,
-						cont_led_n,
-						speaker,
-						lt3420_charge,
-						pwm,	
-						dump
-					 } ),
+		.ad_data( lcc_mon ),
 
 		.ad_strobe( ad_strobe ),
 		.ad_clk( clk ),

@@ -823,13 +823,17 @@ module vga_wave_display
 		{ q3,  q2, q1, q0 } <= mem[ rd_addr ];
 	end
 	
+	// extract 8 logic analyzer bits
+	logic [7:0] lcc_mon;
+	assign lcc_mon = { q3[0], q2[0], q1[13], q1[0], q0[15:13], q0[0] };
 
 	// Display Logic rd_data vs ycnt to give veritcal axis
 	// Scope screen is 256 rows on bottom 480 line display and takes the full 800 width. 
 	// The four channels will be different colors.
 	// if heights off bottom matches value, turn on the pel.
 
-	logic pel_gd, pel_a0, pel_a01, pel_a1, pel_a2, pel_b0, pel_b01, pel_b1, pel_b2, pel_es, pel_pw, pel_bn, pel_fr;
+	logic pel_gd, pel_a0, pel_a01, pel_a1, pel_a2, pel_b0, pel_b01, pel_b1, pel_b2, pel_es;
+	logic [7:0] pel_b;
 	always @(posedge clk) begin
 		if ( reset ) begin
 				pel_gd <= 0;
@@ -842,9 +846,7 @@ module vga_wave_display
 				pel_b0 <= 0;
 				pel_b01<= 0;
 				pel_es <= 0;
-				pel_pw <= 0;
-				pel_bn <= 0;
-				pel_fr <= 0;
+				pel_b  <= 0;
 		end else begin
 			if( ycnt >= 32 && ycnt <= ( 15 * 32 ) ) begin
 				pel_gd <= ( xcnt[5:0] == 6'd63 || ycnt[4:0] == 5'd0 ) ? 1'b1 : 1'b0; // a grid
@@ -857,12 +859,10 @@ module vga_wave_display
 				pel_b1 <= ( { 1'b0, q3[12:9], q3[7:4] } == ({1'b0,ycnt} - 128) ) ? 1'b1 : 1'b0; 
 				pel_b2 <= ( { 1'b0, q3[12],   q3[6:0] } == ({1'b0,ycnt} - 192) ) ? 1'b1 : 1'b0; // 16x b1
 				pel_es <= ( { 1'b0,q0[16:13],q1[16:13]} == ({1'b0,ycnt} - 160) ) ? 1'b1 : 1'b0; 
-				pel_pw <= ( (  q3[13] && ycnt[9:4] == 'd25  ) ||
-			               ( !q3[13] && ycnt[9:0] == 'd415 ) ) ? 1'b1 : 1'b0;
-				pel_bn <= ( (  q3[14] && ycnt[9:4] == 'd27  ) ||
-				            ( !q3[14] && ycnt[9:0] == 'd447 ) ) ? 1'b1 : 1'b0;
-				pel_fr <= ( (  q3[15] && ycnt[9:4] == 'd29  ) ||
-				            ( !q3[15] && ycnt[9:0] == 'd479 ) ) ? 1'b1 : 1'b0;
+				for( int ii = 0; ii < 8; ii++ ) begin
+					pel_b[ii] = (( lcc_mon[ii] && (ycnt == (400+(ii<<3)+1) || ycnt == (400+(ii<<3)+2) ) ) ||
+					             (!lcc_mon[ii] && (ycnt == (400+(ii<<3)+6)) ) ) ? 1'b1 : 1'b0;
+				end
 			end else begin
 				pel_gd <= 0;
 				pel_a0 <= 0;
@@ -873,9 +873,7 @@ module vga_wave_display
 				pel_b0 <= 0;
 				pel_b01<= 0;
 				pel_es <= 0;
-				pel_pw <= 0;
-				pel_bn <= 0;
-				pel_fr <= 0;
+				pel_b  <= 0;
 			end
 		end
 	end	
@@ -892,9 +890,7 @@ module vga_wave_display
 					( pel_b1  ) ? 24'h0000ff :
 					( pel_b2  ) ? 24'h0000c0 :
 					( pel_es  ) ? 24'hc0c0c0 :
-					( pel_pw  ) ? 24'hc0c000 :		
-					( pel_bn  ) ? 24'hc0c000 :		
-					( pel_fr  ) ? 24'hc0c000 :				
+					( |pel_b  ) ? 24'hc0c000 :		
 					( pel_gd  ) ? 24'h32006a : 24'h000000;
 	
 endmodule
