@@ -484,6 +484,189 @@ module tiny_scope
 									 24'h000000 ;
 endmodule
 
+module tiny_binary_scope
+// Scrolling scope with 60Hz/n capture rate (in Vsync)
+// 8 binary signals. min/max on each signal at full rate (glitch capture!)
+// Display pitch 8 rows per signal, gridlines, including zero of each signal
+// Signal height is 6 pels, with 2 pel wide highs
+// Vertical offset and horizontal start/stop parameterized
+#(
+	parameter V_START	= 240;//459 - 96,
+	parameter V_HEIGHT= 192;//96; // supported 96 at 1/2 vert scale, or 192 for full 1:1 vert scale
+	parameter H_START = 450, // Starting pel horizontally
+	parameter H_END 	= 750, // Last pel horizontally
+	parameter N 		= 3, // how many 60Hz frames to accumulate 
+	parameter GD_COLOR= 24'h32006a, /* smpte_deep_violet */
+	parameter BG_COLOR= 24'h1d1d1d /* smpte_eerie_black */
+	)
+	
+(
+	input clk,
+	input reset,
+	input blank,
+	input hsync,
+	input vsync,
+	input [7:0] ad_data,
+	input ad_strobe,
+	input ad_clk,
+	input halt,
+	output [7:0] red,
+	output [7:0] green,
+	output [7:0] blue
+);
+
+// sram write upon vsync 
+
+	logic [8:0] rd_addr, wr_addr;
+	logic [7:0] a0, a1, b0, b1;
+	logic we;
+	logic vsync_d1;
+	logic blank_d1;
+	logic [9:0] xcnt, ycnt;
+	
+	
+	// AD CLK based state machine, gets Min,Max and latches at rising vsync.
+	// Counter to accumulate over N vsync's
+	logic [3:0] vsync_cnt;
+	logic [5:0] sec_cnt; // 60 ticks/sec
+	logic [3:0] vsync_del;
+	logic [7:0] ad_min_cur, ad_max_cur;
+	logic [7:0] ad_min	 , ad_max;
+
+	logic gd_mark, gd_mark_cur;
+	always @(posedge ad_clk) begin
+		if( ad_strobe ) begin
+			vsync_del[3:0] <= { vsync_del[2:0], vsync };
+			vsync_cnt <= ( !vsync_del[2] & vsync_del[3] ) ? ( vsync_cnt == N - 1 ) ? 0 : vsync_cnt + 1 : vsync_cnt; // count on falling
+			sec_cnt   <= ( !vsync_del[2] & vsync_del[3] ) ? (   sec_cnt == 59    ) ? 0 :   sec_cnt + 1 : sec_cnt;   // count to 60 falling
+			if( vsync_del[2] & !vsync_del[3] & vsync_cnt == 0 ) begin // rising edge of Nth vsync
+				// star a new cycle based on current sample
+				ad_min_cur <= ad_data;
+				ad_max_cur <= ad_data;
+				gd_mark_cur   <= ( sec_cnt == 0 ) ? 1'b1 : 1'b0;
+				// capture and hold the mins/maxes 
+				// will be picked up on falling vsync edge
+				ad_min <= ad_min_cur;
+				ad_max <= ad_max_cur;
+				gd_mark   <= gd_mark_cur;
+			end else begin // on the other data cycles
+				// Update mins/maxes
+				ad_min_cur <= ad_data & ad_min_cur ;
+				ad_max_cur <= ad_data | ad_max_cur ;
+				gd_mark_cur   <= ( sec_cnt == 0 ) ? 1'b1 : gd_mark_cur; // Capture if a sec tick occured
+				// Hold frame value;
+				ad_min <= ad_min;
+				ad_max <= ad_max;
+				gd_mark   <= gd_mark;
+			end
+		end else begin // non same cycles, just hold everything
+			vsync_cnt <= vsync_cnt;
+			vsync_del <= vsync_del;
+			// Update mins/maxes
+			ad_min_cur <= ad_min_cur;
+			ad_max_cur <= ad_max_cur;
+			gd_mark_cur   <= gd_mark_cur;
+			// Hold frame value;
+			ad_min <= ad_min;
+			ad_max <= ad_max;
+			gd_mark   <= gd_mark;
+		end
+	end
+		
+	// Capture Buffer Write COntrol 
+	
+	always @(posedge clk) begin
+		if ( reset ) begin
+			we <= 0;
+			wr_addr <= H_END - H_START; // Start at right edge aligned
+			vsync_d1 <= 0;
+		end else begin
+			vsync_d1 <= vsync;
+			if( halt ) begin
+				we <= 0;
+				wr_addr <= wr_addr;
+			end else begin
+				we <= ( !vsync && vsync_d1 && vsync_cnt == 0 ) ? 1'b1 : 1'b0; // vsync falling
+				wr_addr <= ( !vsync && vsync_d1 && vsync_cnt == 0 ) ? wr_addr + 1 : wr_addr ; // wrap
+			end
+		end
+	end	
+
+	// sram read with horzonal pixel counter, which starts with wr_addr - 639
+		
+	always @(posedge clk) begin
+		if ( reset ) begin
+			xcnt <= 0;
+			ycnt <= 0;
+			rd_addr <= 0;
+			blank_d1 <= 0;
+		end else begin
+			blank_d1 <= blank;
+			xcnt <= ( blank ) ? 0 : xcnt + 1;
+			ycnt <= ( vsync ) ? 0 : 
+					  ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
+			rd_addr <= wr_addr - (H_END - H_START) + xcnt - H_START;
+		end
+	end
+
+	// Srams to hold the data
+
+	logic [7:0] a_min, a_max;
+	logic vgrid;
+
+    generic_sram2p #(17, 9, (H_END - H_START + 1) ) _mem
+    (
+	   .dout 	    ( { a_max,a_min,vgrid } ),
+		.clk		    (clk),
+	   .wen		    (we),
+      .ren         (1'b1),
+	   .waddr	    (wr_addr),
+	   .raddr	    (rd_addr),
+	   .din 		    ({ad_max[7:0],
+		               ad_min[7:0],
+		               gd_mark           } )
+	);	
+	
+	// Display Logic rd_data vs ycnt to give veritcal axis
+	// if heights off bottom matches value, turn on the pel.
+	
+	logic pel_gd, pel_bg;
+	logic [7:0] pel;
+	logic [9:0] ypos;
+	
+	assign ypos = ycnt - V_START;
+	
+	always @(posedge clk) begin
+		if ( reset ) begin
+				pel_bg <= 0;
+				pel_gd <= 0;
+				pel    <= 0;
+		end else begin
+			if( ycnt >= V_START && ycnt < V_START + V_HEIGHT &&
+			    xcnt >= H_START && xcnt <= H_END ) begin
+				pel_bg <= 1'b1;
+				pel_gd <= ( vgrid  || ypos[2:0]==6 ) ? 1'b1 : 1'b0; // a grid
+				for( int ii = 0; ii < 8; ii++ ) begin
+					pel[ii] = ( ypos[5:3] == ii && 
+						((( ypos[2:0] >= 1 && ypos[2:0] <= 2) && a_max[ii] ) ||
+						 (( ypos[2:0] >= 3 && ypos[2:0] <= 5) && a_max[ii] && !a_min[ii] ) ||
+						 (( ypos[2:0] == 6 ) && !a_min[ii] ))) ? 1'b1 : 1'b0;
+				end
+			end else begin
+				pel_bg <= 0;
+				pel_gd <= 0;
+				pel    <= 0;
+			end
+		end
+	end	
+	
+	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
+	assign { red, green, blue } = 
+					( |pel   ) ? 24'hFFFFFF :
+					( pel_gd ) ? GD_COLOR   : 
+					( pel_bg ) ? BG_COLOR   : 
+									 24'h000000 ;
+endmodule // tiny binary
 
 
 ///////////////////////////////////

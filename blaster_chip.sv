@@ -1134,7 +1134,47 @@ end
 		.blue(  tiny_blue )
 	);
 	assign tiny = |{ tiny_red, tiny_green, tiny_blue };
-	
+
+	// 8ch digital logic analyser mem & vga display
+	logic [7:0] tinyb_red, tinyb_green, tinyb_blue;
+	logic tinyb;
+	tiny_binary_scope #( 
+		.V_HEIGHT( 64 ), // 96 or 192 options
+		.V_START ( 400  ),
+		.H_START	( 529 ),
+		.H_END 	( 784 ),
+		.N       ( 2   ), // 60 Hz frames per col pel
+		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
+		.BG_COLOR( 24'h00214c /* smpte_oxford_blue */ ) //24'h1d1d1d /* smpte_eerie_black */ )	
+	 ) _tinyb_scope(
+		.clk(   hdmi_clk ),
+		.reset( reset ),
+		// video sync 
+		.blank( blank ), 
+		.hsync( hsync ),
+		.vsync( vsync ),
+		// scroll halt input
+		.halt ( scroll_halt ),
+		// capture inputs
+		.ad_data( { 	
+						!iset[0],
+						!fire_button,
+						arm_led_n,
+						cont_led_n,
+						speaker,
+						lt3420_charge,
+						pwm,	
+						dump
+					 } ),
+
+		.ad_strobe( ad_strobe ),
+		.ad_clk( clk ),
+		// video output
+		.red(   tinyb_red ),
+		.green( tinyb_green ),
+		.blue(  tinyb_blue )
+	);
+	assign tinyb = |{ tinyb_red, tinyb_green, tinyb_blue };	
 	
 	// Energy accumulator
 	logic [7:0] pwr_str;
@@ -1307,9 +1347,9 @@ end
 //		                   : ((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green )),
 //		.blue	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[7:0]  ) 
 //		                   : ((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue  )),
-		.red	( (blipvert) ? bv_vdata[7:0]  : ((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   ) ),
-		.green( (blipvert) ? bv_vdata[15:8] : ((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green ) ),
-		.blue	( (blipvert) ? 8'h00          : ((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue  ) ),
+		.red	( (blipvert) ? bv_vdata[7:0]  : ((( tiny | tinyb ) ? (tiny_red   | tinyb_red  ) : wave_scope_red   ) | overlay_red   ) ),
+		.green( (blipvert) ? bv_vdata[15:8] : ((( tiny | tinyb ) ? (tiny_green | tinyb_green) : wave_scope_green ) | overlay_green ) ),
+		.blue	( (blipvert) ? 8'h00          : ((( tiny | tinyb ) ? (tiny_blue  | tinyb_blue ) : wave_scope_blue  ) | overlay_blue  ) ),
 		.hdmi_data( hdmi2_data ),
 		.dvi_data( dvi_data ),
 	);
