@@ -411,7 +411,7 @@ module tiny_scope
 	logic [7:0] b1_min, b1_max;	
 	logic vgrid;
 
-    generic_sram2p #(65, 9, 512 ) _mem
+    generic_sram2p #(65, 9, (H_END - H_START + 1) ) _mem
     (
 	   .dout 	    ( { a0_max,a1_max,b0_max,b1_max,a0_min,a1_min,b0_min,b1_min,vgrid } ),
 		.clk		    (clk),

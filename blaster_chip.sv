@@ -1107,7 +1107,7 @@ end
 	tiny_scope #( 
 		.V_HEIGHT( 192 ), // 96 or 192 options
 		.V_START ( 80  ),
-		.H_START	( 480 ),
+		.H_START	( 529 ),
 		.H_END 	( 784 ),
 		.N       ( 2   ), // 60 Hz frames per col pel
 		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
