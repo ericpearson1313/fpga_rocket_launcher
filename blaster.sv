@@ -463,10 +463,10 @@ assign adc_valid = cs_delay[VALID_SEL];
 
 // Monitor outputs with bias offsets
 // invert if not negated externally, as all current logic assumes negative externally
-assign ad_a0 = ( neg ) ? ad_hold_a0 + 12'h5 : ( ad_hold_a0 ^ 12'h7FF );
-assign ad_a1 = ( neg ) ? ad_hold_a1 + 12'h5 : ( ad_hold_a1 ^ 12'h7FF );
-assign ad_b0 = ( neg ) ? ad_hold_b0 + 12'h5 : ( ad_hold_b0 ^ 12'h7FF );
-assign ad_b1 = ( neg ) ? ad_hold_b1 + 12'h6 : ( ad_hold_b1 ^ 12'h7FF );
+assign ad_a0 = ( neg ) ? ad_hold_a0 : ( ad_hold_a0 ^ 12'hFFF );
+assign ad_a1 = ( neg ) ? ad_hold_a1 : ( ad_hold_a1 ^ 12'hFFF );
+assign ad_b0 = ( neg ) ? ad_hold_b0 : ( ad_hold_b0 ^ 12'hFFF );
+assign ad_b1 = ( neg ) ? ad_hold_b1 : ( ad_hold_b1 ^ 12'hFFF );
 assign ad_strobe = adc_valid; // valid pulse aligned with new data.
 
 endmodule

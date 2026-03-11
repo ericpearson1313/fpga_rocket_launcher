@@ -1288,7 +1288,7 @@ end
 	(
 		.clk  ( hdmi_clk  ),
 		.clk5 ( hdmi_clk5 ),
-		.reset( reset | charge ),  // battery limit during charging
+		.reset( reset ), //| charge ),  // battery limit during charging
 		.blank( blank ),
 		.hsync( hsync ),
 		.vsync( vsync ),
