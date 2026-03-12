@@ -824,8 +824,11 @@ module vga_wave_display
 	end
 	
 	// extract 8 logic analyzer bits
-	logic [7:0] lcc_mon;
-	assign lcc_mon = { q3[0], q2[0], q1[13], q1[0], q0[15:13], q0[0] };
+	logic [7:0] lcc_mon, lcc_prev, lcc_edge;
+	assign lcc_mon = { q0[0], q1[0], q2[13], q2[0], q3[15:13], q3[0] };
+	always @(posedge clk) lcc_prev <= lcc_mon;
+	assign lcc_edge = lcc_mon ^ lcc_prev;
+	
 
 	// Display Logic rd_data vs ycnt to give veritcal axis
 	// Scope screen is 256 rows on bottom 480 line display and takes the full 800 width. 
@@ -860,8 +863,12 @@ module vga_wave_display
 				pel_b2 <= ( { 1'b0, q3[12],   q3[6:0] } == ({1'b0,ycnt} - 192) ) ? 1'b1 : 1'b0; // 16x b1
 				pel_es <= ( { 1'b0,q0[16:13],q1[16:13]} == ({1'b0,ycnt} - 160) ) ? 1'b1 : 1'b0; 
 				for( int ii = 0; ii < 8; ii++ ) begin
-					pel_b[ii] = (( lcc_mon[ii] && (ycnt == (400+(ii<<3)+1) || ycnt == (400+(ii<<3)+2) ) ) ||
-					             (!lcc_mon[ii] && (ycnt == (400+(ii<<3)+6)) ) ) ? 1'b1 : 1'b0;
+					pel_b[ii] = (( lcc_mon[ii]  && (ycnt == (400+(ii<<3)+1) || 
+															  ycnt == (400+(ii<<3)+2) ) ) ||
+									 ( lcc_edge[ii] && (ycnt == (400+(ii<<3)+3) || 
+															  ycnt == (400+(ii<<3)+4) ||
+															  ycnt == (400+(ii<<3)+5) ) ) ||
+					             (!lcc_mon[ii]  && (ycnt == (400+(ii<<3)+6) ) ) ) ? 1'b1 : 1'b0;
 				end
 			end else begin
 				pel_gd <= 0;
