@@ -361,10 +361,10 @@ always @(posedge clk) begin
 					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (256))) && // cap voltage > 50 Volts 
 					current_seen && fire_flag ) || 
 					//( fire_flag && (!ad_a0[11]&&((ad_a0 ^ 12'h7ff) > ( 205 * 6 )))) || // temp trigger for 6A
-				   ( fire_flag && ( dv > 13'sd40 ))	// dv > +24 V/us
+				   ( fire_flag && ( dv > 13'sd160 ))	// dv > +24 V/us
 					) ? 1'b1 : burn; 
 		ad_b1_del <= ad_b1; // ad_b1 only changes on sample x16, but is fine for our detection use
-		//burn <= ( fire_flag && ( dv > 13'sd50 ) ) ? 1'b1 : burn; // rise rate > 10V/sample == 30 V/usec
+		//burn <= ( fire_flag && ( dv > 13'sd160 ) ) ? 1'b1 : burn; // rise rate > 10V/sample == 30 V/usec
 	end
 end
 
@@ -386,11 +386,13 @@ parameter COUNT_20MS = 28'h01_00000; // 20ms / CLOCK_FREQ_MHZ
 parameter COUNT_30MS = 28'h01_80000; // 30ms / CLOCK_FREQ_MHZ
 
 
-always @(posedge clk) thresh_hi <= (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
+always @(posedge clk) thresh_hi <= (!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 + 20 ) :
+											  (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
 											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
 											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 + 20 ) : // until 20ms setpoint 4amp
 											                           /* remainder */  ( ADC_DN_PER_AMP * 8 + 20 ) ; // remainder  setpoint 6Amp
-always @(posedge clk) thresh_lo <= (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
+always @(posedge clk) thresh_lo <= (!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
+											  (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
 											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) : 
 											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 - 20 ) : 
 											                           /* remainder */  ( ADC_DN_PER_AMP * 8 - 20 ) ;
@@ -444,7 +446,7 @@ always @(posedge clk) begin
 			ramp_flag <= 1; // short back to back pulses
 			pwm_pulse <= 1; // Set pwm output
 			pulse_time <= 1; // start max width counter
-			pulse_count <= 30; // two pulses
+			pulse_count <= 3; // two pulses
 		end else begin // await trigger
 			ramp_flag <= 1;
 			pwm_pulse <= 0;
@@ -540,7 +542,7 @@ always @( posedge clk ) begin
 	if( reset ) begin
 		cap_charged <= 0;
 	end else begin
-		cap_charged <= ( strobe_d && vcap > (( 300 * 10000 ) / 2005 ) ) ? 1'b1 :
+		cap_charged <= ( strobe_d && vcap > (( 320 * 10000 ) / 2005 ) ) ? 1'b1 :
 		               ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
 	end
 end
@@ -753,7 +755,7 @@ end
 	// monitor LCC digital I/O pins
 	logic [7:0] lcc_mon;
 	assign lcc_mon = { 
-							!iset[0],
+							!iset[0], // can put burn here
 							!fire_button,
 							arm_led_n,
 							cont_led_n,
