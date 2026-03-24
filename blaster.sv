@@ -470,3 +470,89 @@ assign ad_b1 = ( neg ) ? ad_hold_b1 : ( ad_hold_b1 ^ 12'hFFF );
 assign ad_strobe = adc_valid; // valid pulse aligned with new data.
 
 endmodule
+
+module adc_monitor_4ch 
+(
+	// Input clock, reset
+	input logic clk,
+	input logic reset,
+	
+	// External A/D Converters (2.5v)
+	input  logic        ad_cs,
+	input  logic  [1:0] ad_sdata_a,
+	input  logic  [1:0] ad_sdata_b,
+	
+	// Differential Negation
+	input  logic  neg,
+	
+	// ADC monitor outputs
+	output [11:0] ad_a0,
+	output [11:0] ad_a1,
+	output [11:0] ad_b0,
+	output [11:0] ad_b1,
+	output ad_strobe
+);
+
+// CS pipeline to trigger everything
+logic [20:0] cs_delay;
+always @(posedge clk) begin
+	if( reset ) begin
+		cs_delay[20:0]     <= 21'd0;
+   end else begin
+		// shift chain for the chip select
+		cs_delay[20:0]  <= { cs_delay[19:0], ad_cs };		
+	end
+end
+
+// DATA Input Receiver
+
+logic [11:0] ad_load_a0, ad_load_a1, ad_load_b0, ad_load_b1;
+logic [11:0] ad_hold_a0, ad_hold_a1, ad_hold_b0, ad_hold_b1;
+logic [11:0] load;
+
+parameter LOAD_SEL = 1;   // select first load delay, load reg input (ie 1 cycle early).
+parameter HOLD_SEL = 14;  // select output hold delay bit
+parameter VALID_SEL = 15;   // the cycle the adc hold registers are updatead
+
+always @(posedge clk) begin
+	if( reset ) begin
+		ad_load_a0[11:0] <= 12'd0;
+		ad_load_a1[11:0] <= 12'd0;
+		ad_load_b0[11:0] <= 12'd0;
+		ad_load_b1[11:0] <= 12'd0;
+		ad_hold_a0[11:0] <= 12'd0;
+		ad_hold_a1[11:0] <= 12'd0;
+		ad_hold_b0[11:0] <= 12'd0;
+		ad_hold_b1[11:0] <= 12'd0;
+   end else begin
+		// Load Pulse Chain
+		load[11:0] <= { cs_delay[LOAD_SEL], load[11:1] };
+		// low power reg load with bit 
+		for( int ii = 0; ii < 12; ii++ ) begin
+			ad_load_a0[ii] <= ( load[ii] ) ? ad_sdata_a[0] : ad_load_a0[ii];
+			ad_load_a1[ii] <= ( load[ii] ) ? ad_sdata_a[1] : ad_load_a1[ii];
+			ad_load_b0[ii] <= ( load[ii] ) ? ad_sdata_b[0] : ad_load_b0[ii];
+			ad_load_b1[ii] <= ( load[ii] ) ? ad_sdata_b[1] : ad_load_b1[ii];
+		end
+		// Load hold reg 
+		begin
+			ad_hold_a0 <= (cs_delay[HOLD_SEL]) ? ad_load_a0 : ad_hold_a0;
+			ad_hold_a1 <= (cs_delay[HOLD_SEL]) ? ad_load_a1 : ad_hold_a1;
+			ad_hold_b0 <= (cs_delay[HOLD_SEL]) ? ad_load_b0 : ad_hold_b0;
+			ad_hold_b1 <= (cs_delay[HOLD_SEL]) ? ad_load_b1 : ad_hold_b1;
+		end
+	end
+end
+
+logic adc_valid;
+assign adc_valid = cs_delay[VALID_SEL];
+
+// Monitor outputs with bias offsets
+// invert if not negated externally, as all current logic assumes negative externally
+assign ad_a0 = ( neg ) ? ad_hold_a0 : ( ad_hold_a0 ^ 12'hFFF );
+assign ad_a1 = ( neg ) ? ad_hold_a1 : ( ad_hold_a1 ^ 12'hFFF );
+assign ad_b0 = ( neg ) ? ad_hold_b0 : ( ad_hold_b0 ^ 12'hFFF );
+assign ad_b1 = ( neg ) ? ad_hold_b1 : ( ad_hold_b1 ^ 12'hFFF );
+assign ad_strobe = adc_valid; // valid pulse aligned with new data.
+
+endmodule

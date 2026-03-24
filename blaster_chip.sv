@@ -477,7 +477,18 @@ adc_module_4ch  _adc (
 	.ad_strobe( ad_strobe )
 );
 
+// Arm is based on vcap with 300v on thresh and 50v off thresh
+logic cap_charged;
+always @( posedge clk ) begin
+	if( reset ) begin
+		cap_charged <= 0;
+	end else begin
+		cap_charged <= ( strobe_d && vcap > (( 320 * 10000 ) / 2005 ) ) ? 1'b1 :
+		               ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
+	end
+end
 
+assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 
 // Modelling Coil Current
 // estimate is before sample and 16x finer timing
@@ -535,19 +546,37 @@ igniter_resistance _res_measurement (
 );
 
 assign pwm = pwm_pulse | res_pwm;
+`endif // FORGE_EMULATOR
 
-// Arm is based on vcap with 300v on thresh and 50v off thresh
-logic cap_charged;
-always @( posedge clk ) begin
-	if( reset ) begin
-		cap_charged <= 0;
-	end else begin
-		cap_charged <= ( strobe_d && vcap > (( 320 * 10000 ) / 2005 ) ) ? 1'b1 :
-		               ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
-	end
-end
+	/////////////////////////////////
+	////
+	////       ANALYSER
+	////
+	//////////////////////////////////
+	
+	// Inputs to be limited to LCC I/O
+	
+// Monitor ADC Inputs
+logic [11:0] mad_a0, mad_a1, mad_b0, mad_b1;
+logic mad_strobe;
+adc_monitor_4ch  i_amon (
+	// Input clock
+	.clk( clk ),
+	.reset( reset ),
+	// External A/D interface
+	.ad_cs( ad_cs ),
+	.ad_sdata_a( { ad_sdata_b[1], ad_sdata_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
+	.ad_sdata_b( { ad_sdata_a[0], ad_sdata_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
+	// Differential Negate
+	.neg( 1'b0 ),
+	// ADC held data and strobe
+	.ad_a0( mad_a0 ),
+	.ad_a1( mad_a1 ),
+	.ad_b0( mad_b0 ),
+	.ad_b1( mad_b1 ),
+	.ad_strobe( mad_strobe )
+);	
 
-assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 
 // Energy Accumulators
 // Accululated during fire_flag | res_flag.
@@ -557,17 +586,17 @@ logic [21:0] pout, pcap; // instantaneous power
 logic [10:0] vout, vcap, iout, icap;
 
 // clip inputs to +ve
-assign vout = ( ad_b1[11] || ad_b1[10:4] == 7'h7F ) ? 11'b0 : ( ad_b1[10:0] ^ 11'h7FF );
-assign vcap = ( ad_a1[11] || ad_a1[10:4] == 7'h7F ) ? 11'b0 : ( ad_a1[10:0] ^ 11'h7ff );
-assign iout = ( ad_a0[11] || ad_a0[10:4] == 7'h7F ) ? 11'b0 : ( ad_a0[10:0] ^ 11'h7ff );
-assign icap = ( ad_b0[11] || ad_b0[10:4] == 7'h7F ) ? 11'b0 : ( ad_b0[10:0] ^ 11'h7ff );
+assign vout = ( mad_b1[11] || mad_b1[10:4] == 7'h7F ) ? 11'b0 : ( mad_b1[10:0] ^ 11'h7FF );
+assign vcap = ( mad_a1[11] || mad_a1[10:4] == 7'h7F ) ? 11'b0 : ( mad_a1[10:0] ^ 11'h7ff );
+assign iout = ( mad_a0[11] || mad_a0[10:4] == 7'h7F ) ? 11'b0 : ( mad_a0[10:0] ^ 11'h7ff );
+assign icap = ( mad_b0[11] || mad_b0[10:4] == 7'h7F ) ? 11'b0 : ( mad_b0[10:0] ^ 11'h7ff );
 
 // accumulate during fire pulse or individual continuity test pulses
 assign acc_flag = ( fire_flag & !burn ) | res_flag;
 
 // Acculuate both Cap and Output power products.
 always @(posedge clk) begin
-	strobe_d <= ad_strobe;
+	strobe_d <= mad_strobe;
 	// P = I * V
    pout[21:0] <= vout[10:0] * iout[10:0];
    pcap[21:0] <= vcap[10:0] * icap[10:0];
@@ -583,7 +612,7 @@ always @(posedge clk) begin
 	end
 end
 
-`endif // FORGE_EMULATOR
+
 
 // Digio pads.
 	logic [6:0] digio_in, digio_out;
@@ -770,25 +799,25 @@ end
 	logic almost_empty;
 	logic [15:0] wrfifo_data;
 	logic wrfifo;
-	logic [3:0][15:0] ad_data;
-	logic [2:0] ad_strobe_d;
+	logic [3:0][15:0] mad_data;
+	logic [2:0] mad_strobe_d;
 	
 	always @(posedge clk) begin
-		ad_strobe_d <= { ad_strobe_d[1:0], ad_strobe & psram_ready}; 
-		if( ad_strobe ) begin
-		ad_data <= { { iest[11:8], ad_a0[11:1],lcc_mon[7] },
-						 { iest[7:4], ad_a1[11:1],lcc_mon[6] },
-						 { iest[3:1],lcc_mon[5], ad_b0[11:1],lcc_mon[4] }, 
-						 { 1'b0, lcc_mon[3:1], ad_b1[11:1],lcc_mon[0] } };
+		mad_strobe_d <= { mad_strobe_d[1:0], mad_strobe & psram_ready}; 
+		if( mad_strobe ) begin
+		mad_data <= { { iest[11:8], mad_a0[11:1],lcc_mon[7] },
+						 { iest[7:4], mad_a1[11:1],lcc_mon[6] },
+						 { iest[3:1],lcc_mon[5], mad_b0[11:1],lcc_mon[4] }, 
+						 { 1'b0, lcc_mon[3:1], mad_b1[11:1],lcc_mon[0] } };
 		end else begin
-			ad_data <= ad_data;
+			mad_data <= mad_data;
 		end
 	end
-	assign wrfifo_data = ( ad_strobe ) ? { iest[11:8], ad_a0[11:1],lcc_mon[7] } :
-			               ( ad_strobe_d[0] ) ? ad_data[2] :
-			               ( ad_strobe_d[1] ) ? ad_data[1] :
-			               ( ad_strobe_d[2] ) ? ad_data[0] : 16'h0048;
-	assign wrfifo = (ad_strobe & psram_ready) | (|ad_strobe_d);
+	assign wrfifo_data = ( mad_strobe ) ? { iest[11:8], mad_a0[11:1],lcc_mon[7] } :
+			               ( mad_strobe_d[0] ) ? mad_data[2] :
+			               ( mad_strobe_d[1] ) ? mad_data[1] :
+			               ( mad_strobe_d[2] ) ? mad_data[0] : 16'h0048;
+	assign wrfifo = (mad_strobe & psram_ready) | (|mad_strobe_d);
 	
 	adc_fifo _write_fifo
 	(
