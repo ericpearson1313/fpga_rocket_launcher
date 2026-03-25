@@ -514,10 +514,10 @@ logic adc_valid;
 assign adc_valid = cs_delay[VALID_SEL];
 
 // data outputs with negation
-assign ad_out0 = ad_hold_0 ^ ((ad_neg[0])?12'h7FF:0);
-assign ad_out1 = ad_hold_1 ^ ((ad_neg[1])?12'h7FF:0);
-assign ad_out2 = ad_hold_2 ^ ((ad_neg[2])?12'h7FF:0);
-assign ad_out3 = ad_hold_3 ^ ((ad_neg[3])?12'h7FF:0);
+assign ad_out0 = ad_hold_0 ^ ((ad_neg[0])?12'hFFF:12'h800);
+assign ad_out1 = ad_hold_1 ^ ((ad_neg[1])?12'hFFF:12'h800);
+assign ad_out2 = ad_hold_2 ^ ((ad_neg[2])?12'hFFF:12'h800);
+assign ad_out3 = ad_hold_3 ^ ((ad_neg[3])?12'hFFF:12'h800);
 assign ad_strobe = adc_valid; // valid pulse aligned with new data.
 
 endmodule

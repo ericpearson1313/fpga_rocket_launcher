@@ -296,10 +296,10 @@ module lcc_tb( );
 			sh_icap[10:0] = int'(icap * ADC_DN_PER_AMP   );
 			sh_vout[10:0] = int'(vout / ADC_VOLTS_PER_DN );
 			sh_iout[10:0] = int'(iout * ADC_DN_PER_AMP   );
-			sh_vcap[11] = 0;
-			sh_icap[11] = 0;
-			sh_vout[11] = 0;
-			sh_iout[11] = 0;
+			sh_vcap[11] = 1;
+			sh_icap[11] = 1;
+			sh_vout[11] = 1;
+			sh_iout[11] = 1;
 			@(negedge n_sclk ); 
 			@(negedge n_sclk ); 
 			for( int bitpos = 11; bitpos >= 0; bitpos-- ) begin
