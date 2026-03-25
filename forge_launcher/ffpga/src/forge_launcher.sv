@@ -187,17 +187,24 @@ assign speaker = spk_toggle & spk_en ;
 // If burn through occurs we will see high dvdt on the output.
 // In this case we'll stop operation to minimize voltage spikes.
  
+logic current_seen;
 logic [11:0] ad_vout_del = 0;
 logic signed [12:0] dv; // delta voltage
 assign dv[12:0] = { ad_vout[11], ad_vout[11:0] } - { ad_vout_del[11], ad_vout_del[11:0] };
 initial ad_vout_del = 0;
-logic signed [12:0] max_dvdt = 24 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ); // (24 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
+logic signed [12:0] max_dvdt = 100 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ); // (100 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
 always @(posedge clk) begin
 	if( reset ) begin
 		burn <= 0;
+		current_seen <= 0;
 		ad_vout_del <= 0;
 	end else begin
-		burn <=( fire_flag && ( dv > max_dvdt ) ) ? 1'b1 : burn;	// dv > +24 V/us
+		current_seen <= ( fire_flag && !ad_iout[11] && ad_iout >100 ) ? 1'b1 : current_seen; // current > 1/2 Amp seen
+		burn <=(((( ad_iout[11] || ad_iout < 32) || ((ad_vout > ad_vcap) && !ad_vout[11]&&!ad_vcap[11]) ) && // Iout < 1/6 amp || Vout > Vcap
+					(!ad_vcap[11] && ((ad_vcap) > (256))) && // and Vcap > 50 Volts 
+					current_seen && fire_flag ) || 		// and have seen current over 1/2 amp in this firing cycle, 
+				   ( fire_flag && ( dv > max_dvdt ))	// dv > +100 V/us, open
+					) ? 1'b1 : burn; 
 		ad_vout_del <= ad_vout; // ad_vout only changes on sample x16, but is fine for our detection use
 	end
 end
@@ -348,7 +355,7 @@ always @( posedge clk ) begin
 	if( reset ) begin
 		cap_charged <= 0;
 	end else begin
-		cap_charged <= ( ad_strobe && vcap > (( 300 * 10000 ) / 2005 ) ) ? 1'b1 :
+		cap_charged <= ( ad_strobe && vcap > (( 320 * 10000 ) / 2005 ) ) ? 1'b1 :
 		               ( ad_strobe && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
 	end
 end
