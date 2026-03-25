@@ -158,10 +158,6 @@ parameter COIL_IND_UH = 390;
 //                 FORGE EMULATOR <start>
 //
 
-// Signals Tied Off during emulation
-logic [43:0] eout = 0;
-logic [43:0] ecap = 0;
-
 // Emulation data for display
 logic 			burn;				
 logic [11:0] 	ad_a0, ad_a1, ad_b0, ad_b1;
@@ -181,7 +177,7 @@ logic				long_fire;		// turns on blipvert
 	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _uut (
 		// System
 		.clk				( clk ),
-		.reset			( 1'b0 ),//reset ),
+		.reset			( reset ),
 		// Front Panel
 		.fire_button 	( fire_button ),
 		.arm_led 		( arm_led ),
@@ -490,22 +486,6 @@ end
 
 assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
 
-// Modelling Coil Current
-// estimate is before sample and 16x finer timing
-model_coil _model (
-	// Input clock
-	.clk( clk ),
-	.reset( reset ),
-	// PWM input
-	.pwm( pwm ),
-	// Votlage Inputs
-	.vcap( ad_a1 ), // ADC voltage across cap
-	.vout( ad_b1 ), // ADC voltage across output
-	// Current input to rebase estimate
-	.iout( ad_a0 ), // Output current
-	// Coil Current estimate
-	.iest_coil( iest )
-);
 
 logic res_val;
 logic [11:0] res_calc;
@@ -578,6 +558,24 @@ adc_monitor_4ch  i_amon (
 );	
 
 
+// Modelling Coil Current
+// estimate is before sample and 16x finer timing
+model_coil _model (
+	// Input clock
+	.clk( clk ),
+	.reset( reset ),
+	// PWM input
+	.pwm( pwm ),
+	// Votlage Inputs
+	.vcap( mad_a1 ), // ADC voltage across cap
+	.vout( mad_b1 ), // ADC voltage across output
+	// Current input to rebase estimate
+	.iout( mad_a0 ), // Output current
+	// Coil Current estimate
+	.iest_coil( iest )
+);
+
+
 // Energy Accumulators
 // Accululated during fire_flag | res_flag.
 logic [43:0] eout, ecap; // accumulated cap energy and output energy as 44 bits
@@ -592,7 +590,13 @@ assign iout = ( mad_a0[11] || mad_a0[10:4] == 7'h7F ) ? 11'b0 : ( mad_a0[10:0] ^
 assign icap = ( mad_b0[11] || mad_b0[10:4] == 7'h7F ) ? 11'b0 : ( mad_b0[10:0] ^ 11'h7ff );
 
 // accumulate during fire pulse or individual continuity test pulses
-assign acc_flag = ( fire_flag & !burn ) | res_flag;
+logic [11:0] acc_window;
+always @(posedge clk) begin
+	acc_window = ( pwm ) ? 12'hfff : ( acc_window == 0 ) ? 0 : acc_window - 1; // 100usec
+end
+
+assign acc_flag = |acc_window;
+
 
 // Acculuate both Cap and Output power products.
 always @(posedge clk) begin
