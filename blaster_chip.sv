@@ -1,4 +1,4 @@
-
+// vim: ts=4:
 `timescale 1ns / 1ps
 module blaster_chip
 
@@ -158,9 +158,9 @@ parameter COIL_IND_UH = 390;
 //                 FORGE EMULATOR <start>
 //
 
-// Emulation data for display
-logic 			burn;				
-logic	[11:0]	igniter_res;
+	// Emulation data for display
+	logic 			burn = 0;				
+	logic	[11:0]	igniter_res = 0;
 
 	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _uut (
 		// System
@@ -190,24 +190,7 @@ logic	[11:0]	igniter_res;
 		.auto_mode	( !iset[2] ),
 		.use_est	( iset[1] ),
 		.mute		( !iset[0] ),
-		.key		( key ),
-		// Internal Logging outputs
-		.ad_iout			(  ) , 
-		.ad_vcap       (  ), 
-		.ad_vbat       (  ), 
-		.ad_vout       (  ),
-		.ad_strobe     (  ),
-		.iest          (  ),
-		.burn          ( burn ),
-		.igniter_res	( igniter_res ),
-		// intenal logging control signals
-		.scroll_halt	( ),
-		.charge			( ),
-		.fire_done		( ),
-		.fire_button_debounce (  ),
-		.cap_halt		(  ),
-		.long_fire		(  )
-
+		.key		( key )
    );
 
 

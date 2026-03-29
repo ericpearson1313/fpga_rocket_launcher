@@ -40,25 +40,7 @@ module forge_launcher
 	input logic mute,	// Only beep on 1st cont measurement
 	
 	// Backdoor keypad controls
-	input	logic [4:0] key,  // keypad 
-
-	// monitor outputs for Display
-	output logic [11:0] 	ad_iout, 
-	output logic [11:0] 	ad_vcap, 
-	output logic [11:0] 	ad_vbat, // future 
-	output logic [11:0] 	ad_vout,
-	output logic 		ad_strobe,
-	output logic [11:0] 	iest,
-	output logic 		burn = 0,
-	output logic [11:0]	igniter_res,	
-	
-	// Display and Logging control outputs
-	output logic scroll_halt = 0,
-	output logic charge,
-	output logic fire_done = 0,
-	output logic fire_button_debounce,
-	output logic cap_halt = 0,
-	output logic long_fire
+	input	logic [4:0] key  // keypad 
 );
 
 	// ADC Scale parameters
@@ -68,11 +50,27 @@ module forge_launcher
 	parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
 	parameter COIL_IND_UH = 390;
 
-
-// Free running counter
-logic [25:0] count;
-always_ff @(posedge clk) 
+	// Free running counter
+	logic [25:0] count;
+	always_ff @(posedge clk) 
 	count <= count + 1;
+
+	// monitor outputs for Display
+	logic [11:0] 	ad_iout; 
+	logic [11:0] 	ad_vcap; 
+	logic [11:0] 	ad_vbat; // future 
+	logic [11:0] 	ad_vout;
+	logic 			ad_strobe;
+	logic [11:0] 	iest;
+	logic 		    burn = 0;
+	
+	// Display and Logging control outputs
+	logic scroll_halt = 0;
+	logic charge;
+	logic fire_done = 0;
+	logic fire_button_debounce;
+	logic cap_halt = 0;
+	logic long_fire;
 
 //////////////////////////////////////////////
 // fire button 10ms debounce 

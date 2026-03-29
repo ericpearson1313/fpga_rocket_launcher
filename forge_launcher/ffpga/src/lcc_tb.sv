@@ -86,23 +86,7 @@ module lcc_tb( );
 				.auto_mode      ( 1'b1 ),
 				.use_est		( 1'b1 ),
 				.mute           ( mute ),
-                .key            ( 5'b00000 ),
-       			// debug outputs for Display monitoring
-       			.ad_iout		( ),
-        		.ad_vcap		( ),
-        		.ad_vbat		( ),
-        		.ad_vout		( ),
-        		.ad_strobe		( ),
-        		.iest			( ),
-        		.burn			( ),
-        		.igniter_res	( ),
-        		// Display and Logging control outputs
-        		.scroll_halt	( ),
-        		.charge			( ),      
-        		.fire_done		( ),
-        		.fire_button_debounce ( ),
-        		.cap_halt		( ),
-        		.long_fire		( )
+                .key            ( 5'b00000 )
     );
 	
 	
