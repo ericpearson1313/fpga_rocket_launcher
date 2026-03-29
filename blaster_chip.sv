@@ -161,15 +161,7 @@ parameter COIL_IND_UH = 390;
 // Emulation data for display
 logic 			burn;				
 logic	[11:0]	igniter_res;
-// Emulation display control signals
 
-logic				fire_done;		// Changes fire button function
-logic				fire_button_debounce; // Debounced fire button for zoom
-logic 			cap_halt;		// disables 4M buffer capture
-logic				long_fire;		// turns on blipvert
-
-
-	
 	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _uut (
 		// System
 		.clk				( clk ),
@@ -200,10 +192,10 @@ logic				long_fire;		// turns on blipvert
 		.mute		( !iset[0] ),
 		.key		( key ),
 		// Internal Logging outputs
-		.ad_iout	(  ) , 
-		.ad_vcap         (  ), 
-		.ad_vbat         (  ), 
-		.ad_vout         (  ),
+		.ad_iout			(  ) , 
+		.ad_vcap       (  ), 
+		.ad_vbat       (  ), 
+		.ad_vout       (  ),
 		.ad_strobe     (  ),
 		.iest          (  ),
 		.burn          ( burn ),
@@ -211,10 +203,10 @@ logic				long_fire;		// turns on blipvert
 		// intenal logging control signals
 		.scroll_halt	( ),
 		.charge			( ),
-		.fire_done		( fire_done ),
-		.fire_button_debounce ( fire_button_debounce ),
-		.cap_halt		( cap_halt ),
-		.long_fire		( long_fire )
+		.fire_done		( ),
+		.fire_button_debounce (  ),
+		.cap_halt		(  ),
+		.long_fire		(  )
 
    );
 
@@ -525,9 +517,11 @@ assign pwm = pwm_pulse | res_pwm;
 `endif // FORGE_EMULATOR
 
 	/////////////////////////////////
+	/////////////////////////////////
 	////
 	////       ANALYSER
 	////
+	/////////////////////////////////
 	//////////////////////////////////
 	
 	// Monitor/Analyser Isolation variables
@@ -556,6 +550,19 @@ assign pwm = pwm_pulse | res_pwm;
 	assign m_pwm		=  pwm				;
 	assign m_dump		=  dump				;
 	
+	// Monitor will debounce launch button itself
+	logic m_fire_button_debounce, m_long_fire;
+	debounce _fbmon( .clk( clk ), .reset( reset ), .in( m_fire ), .out( m_fire_button_debounce ), .long( m_long_fire ));
+
+	// Capture deassert after detected fire
+	logic m_cap_halt;
+	logic [13:0] m_fire_cnt;
+	
+	always @(posedge clk) begin
+		m_fire_cnt <= ( reset ) ? 0 : ( m_fire_cnt == 14'd16000 ) ? 14'd16000 : ( m_fire_cnt == 0 && m_fire ) ? 1 : m_fire_cnt+1;
+		m_cap_halt <= ( reset ) ? 0 : ( m_fire_cnt == 14'd16000 ) ? 1 : m_cap_halt;
+	end
+
 	// monitor LCC digital I/O pins
 	logic [7:0] lcc_mon;
 	assign lcc_mon = { 
@@ -715,13 +722,13 @@ assign pwm = pwm_pulse | res_pwm;
 			key_del <= 0;
 		end else begin
 			key_del <= key[4];
-			zoom_button <= ( fire_done &  fire_button_debounce ) ? 1'b1 : 1'b0;
+			zoom_button <= ( m_dump & m_fire_button_debounce ) ? 1'b1 : 1'b0;
 			zoom_del <= zoom_button;
 			pwm_del <= pwm;
 			burn_del <= burn;
 			retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
-			base_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? awaddr : base_addr; 
-			burn_addr <= ( !pwm_del && pwm && retrigger == 0 && !cap_halt ) ? awaddr : // default to base addr
+			base_addr <= ( !pwm_del && pwm && retrigger == 0 && !m_cap_halt ) ? awaddr : base_addr; 
+			burn_addr <= ( !pwm_del && pwm && retrigger == 0 && !m_cap_halt ) ? awaddr : // default to base addr
 			             ( !burn_del && burn                              ) ? awaddr : // snap to burn addr
 							 ( !key_del && key == 5'h16                       ) ? burn_addr + (512<<zoom) :
 							 ( !key_del && key == 5'h14                       ) ? burn_addr - (512<<zoom) :
@@ -869,7 +876,7 @@ assign pwm = pwm_pulse | res_pwm;
 			awaddr <= 25'b0;
 			awvalid <= 0;
 		end else begin
-			if( cap_halt && awaddr[24:4] == (base_addr[24:4] - 16384) ) begin // approx 10 ms before start
+			if( m_cap_halt && awaddr[24:4] == (base_addr[24:4] - 16384) ) begin // approx 10 ms before start
 				awvalid <= 0;
 				awaddr <= awaddr;
 			end else begin
@@ -1004,7 +1011,7 @@ assign pwm = pwm_pulse | res_pwm;
 	logic        bv_wvalid;
 	logic blipvert;
 	
-	assign blipvert = ( key == 5'h17 ) ? 1'b1 : 1'b0;
+	assign blipvert = ( m_long_fire || key == 5'h17 ) ? 1'b1 : 1'b0;
 	
 	blipvert _bv_unit (
 		// System
