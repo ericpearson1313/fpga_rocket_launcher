@@ -160,13 +160,9 @@ parameter COIL_IND_UH = 390;
 
 // Emulation data for display
 logic 			burn;				
-logic [11:0] 	ad_a0, ad_a1, ad_b0, ad_b1;
-logic 			ad_strobe;
-logic	[11:0]	iest;	
 logic	[11:0]	igniter_res;
 // Emulation display control signals
-logic 			scroll_halt;	// scroll is halted after discharge
-logic 			charge;			// HDMI is held in reset during chargin
+
 logic				fire_done;		// Changes fire button function
 logic				fire_button_debounce; // Debounced fire button for zoom
 logic 			cap_halt;		// disables 4M buffer capture
@@ -204,17 +200,17 @@ logic				long_fire;		// turns on blipvert
 		.mute		( !iset[0] ),
 		.key		( key ),
 		// Internal Logging outputs
-		.ad_iout	( ad_a0 ) , 
-		.ad_vcap         ( ad_a1 ), 
-		.ad_vbat         ( ad_b0 ), 
-		.ad_vout         ( ad_b1 ),
-		.ad_strobe     ( ad_strobe ),
-		.iest          ( iest ),
+		.ad_iout	(  ) , 
+		.ad_vcap         (  ), 
+		.ad_vbat         (  ), 
+		.ad_vout         (  ),
+		.ad_strobe     (  ),
+		.iest          (  ),
 		.burn          ( burn ),
 		.igniter_res	( igniter_res ),
 		// intenal logging control signals
-		.scroll_halt	( scroll_halt ),
-		.charge			( charge ),
+		.scroll_halt	( ),
+		.charge			( ),
 		.fire_done		( fire_done ),
 		.fire_button_debounce ( fire_button_debounce ),
 		.cap_halt		( cap_halt ),
@@ -534,92 +530,128 @@ assign pwm = pwm_pulse | res_pwm;
 	////
 	//////////////////////////////////
 	
-	// Inputs to be limited to LCC I/O
+	// Monitor/Analyser Isolation variables
+	// These are the only varaibles available for LCC chip analyser
+	// 2 lcc inputs
+	logic m_mute;
+	logic m_fire;
+	// 6 lcc outpus
+	logic m_arm_led;
+	logic m_cont_led;
+	logic m_speaker;
+	logic m_charge;
+	logic m_pwm;
+	logic m_dump;
+	// and the 6 adc pins, expanded to 12 bit adc channels
+	logic [11:0] mad_a0, mad_a1, mad_b0, mad_b1;
+	logic mad_strobe;	
 	
-// Monitor ADC Inputs
-logic [11:0] mad_a0, mad_a1, mad_b0, mad_b1;
-logic mad_strobe;
-adc_monitor_4ch  i_amon (
-	// Input clock
-	.clk( clk ),
-	.reset( reset ),
-	// External A/D interface
-	.ad_cs( ad_cs ),
-	.ad_sdata_a( { ad_sdata_b[1], ad_sdata_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
-	.ad_sdata_b( { ad_sdata_a[0], ad_sdata_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
-	// Differential Negate
-	.neg( 1'b0 ),
-	// ADC held data and strobe
-	.ad_a0( mad_a0 ),
-	.ad_a1( mad_a1 ),
-	.ad_b0( mad_b0 ),
-	.ad_b1( mad_b1 ),
-	.ad_strobe( mad_strobe )
-);	
+	// Connect isolation varaibles up to I/O pins
+	assign m_mute		=  !iset[0]			;
+	assign m_fire		=  !fire_button	;
+	assign m_arm_led	=  arm_led_n		;
+	assign m_cont_led	=  cont_led_n		;
+	assign m_speaker	=  speaker			;
+	assign m_charge	=  lt3420_charge	;
+	assign m_pwm		=  pwm				;
+	assign m_dump		=  dump				;
+	
+	// monitor LCC digital I/O pins
+	logic [7:0] lcc_mon;
+	assign lcc_mon = { 
+							m_mute		, // can put burn here
+							m_fire		,
+							m_arm_led	,
+							m_cont_led	,
+							m_speaker	,
+							m_charge	,
+							m_pwm		,	
+							m_dump		};	
+							
+	// Monitor and decode ADC Inputs
+	adc_monitor_4ch  i_amon (
+		// Input clock
+		.clk( clk ),
+		.reset( reset ),
+		// External A/D interface
+		.ad_cs( ad_cs ),
+		.ad_sdata_a( { ad_sdata_b[1], ad_sdata_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
+		.ad_sdata_b( { ad_sdata_a[0], ad_sdata_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
+		// Differential Negate
+		.neg( 1'b0 ),
+		// ADC held data and strobe
+		.ad_a0( mad_a0 ),
+		.ad_a1( mad_a1 ),
+		.ad_b0( mad_b0 ),
+		.ad_b1( mad_b1 ),
+		.ad_strobe( mad_strobe )
+	);	
 
 
-// Modelling Coil Current
-// estimate is before sample and 16x finer timing
-model_coil _model (
-	// Input clock
-	.clk( clk ),
-	.reset( reset ),
-	// PWM input
-	.pwm( pwm ),
-	// Votlage Inputs
-	.vcap( mad_a1 ), // ADC voltage across cap
-	.vout( mad_b1 ), // ADC voltage across output
-	// Current input to rebase estimate
-	.iout( mad_a0 ), // Output current
-	// Coil Current estimate
-	.iest_coil( iest )
-);
+	// Modelling Coil Current
+	// estimate is before sample and 16x finer timing
+	model_coil _model (
+		// Input clock
+		.clk( clk ),
+		.reset( reset ),
+		// PWM input
+		.pwm( pwm ),
+		// Votlage Inputs
+		.vcap( mad_a1 ), // ADC voltage across cap
+		.vout( mad_b1 ), // ADC voltage across output
+		// Current input to rebase estimate
+		.iout( mad_a0 ), // Output current
+		// Coil Current estimate
+		.iest_coil( iest )
+	);
 
+	// clip inputs to +ve
+	logic [10:0] vout, vcap, iout, vbat;
+	assign vout = ( mad_b1[11] || mad_b1[10:4] == 7'h7F ) ? 11'b0 : ( mad_b1[10:0] ^ 11'h7FF );
+	assign vcap = ( mad_a1[11] || mad_a1[10:4] == 7'h7F ) ? 11'b0 : ( mad_a1[10:0] ^ 11'h7ff );
+	assign iout = ( mad_a0[11] || mad_a0[10:4] == 7'h7F ) ? 11'b0 : ( mad_a0[10:0] ^ 11'h7ff );
+	assign vbat = ( mad_b0[11] || mad_b0[10:4] == 7'h7F ) ? 11'b0 : ( mad_b0[10:0] ^ 11'h7ff );
 
-// Energy Accumulators
-// Accululated during fire_flag | res_flag.
-logic [43:0] eout; // accumulated output energy as 44 bits
-logic acc_flag, acc_flag_d, strobe_d;
-logic [21:0] pout; // instantaneous power
-logic [10:0] vout, vcap, iout, icap;
+	// Output Energy Accumulator, acc 1ms after last pwm pulse
+	logic [15:0] acc_window;
+	logic [43:0] eout; // accumulated output energy as 44 bits
+	logic acc_flag, acc_flag_d, strobe_d;
+	logic [21:0] pout; // instantaneous power
 
-// clip inputs to +ve
-assign vout = ( mad_b1[11] || mad_b1[10:4] == 7'h7F ) ? 11'b0 : ( mad_b1[10:0] ^ 11'h7FF );
-assign vcap = ( mad_a1[11] || mad_a1[10:4] == 7'h7F ) ? 11'b0 : ( mad_a1[10:0] ^ 11'h7ff );
-assign iout = ( mad_a0[11] || mad_a0[10:4] == 7'h7F ) ? 11'b0 : ( mad_a0[10:0] ^ 11'h7ff );
-assign icap = ( mad_b0[11] || mad_b0[10:4] == 7'h7F ) ? 11'b0 : ( mad_b0[10:0] ^ 11'h7ff );
+	always @(posedge clk)
+		acc_window = ( pwm ) ? 16'd48000 : ( acc_window == 0 ) ? 0 : acc_window - 1; // 1msusec
+	assign acc_flag = |acc_window;
 
-// accumulate during fire pulse or individual continuity test pulses
-logic [11:0] acc_window;
-always @(posedge clk) begin
-	acc_window = ( pwm ) ? 12'hfff : ( acc_window == 0 ) ? 0 : acc_window - 1; // 100usec
-end
-
-assign acc_flag = |acc_window;
-
-
-// Acculuate both Cap and Output power products.
-always @(posedge clk) begin
-	strobe_d <= mad_strobe;
-	// P = I * V
-   pout[21:0] <= vout[10:0] * iout[10:0];
-	if( strobe_d ) begin
-		acc_flag_d <= acc_flag;
-		// raw power loaded at flag rise, acculuated during flag, and held afterwards
-		eout[43:0] <= ( acc_flag && !acc_flag_d ) ? { 22'b0, pout[21:0] } : ( acc_flag ) ? ({ 22'b0, pout[21:0] } + eout[43:0]) : eout[43:0];
-	end else begin
-		acc_flag_d <= acc_flag_d;
-		eout[43:0] <= eout[43:0];
+	// Acculuate Output power products.
+	always @(posedge clk) begin
+		strobe_d <= mad_strobe;
+		pout[21:0] <= vout[10:0] * iout[10:0]; // P = I * V
+		if( strobe_d ) begin
+			acc_flag_d <= acc_flag;
+			// raw power loaded at flag rise, acculuated during flag, and held afterwards
+			eout[43:0] <= ( acc_flag && !acc_flag_d ) ? { 22'b0, pout[21:0] } : ( acc_flag ) ? ({ 22'b0, pout[21:0] } + eout[43:0]) : eout[43:0];
+		end else begin
+			acc_flag_d <= acc_flag_d;
+			eout[43:0] <= eout[43:0];
+		end
 	end
-end
 
-	// Energy accumulator
+	// Energy accumulator Display
 	logic [7:0] pwr_str;
 	string_overlay #(.LEN(8)) _pwr4 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d100),.y('d3), .out( pwr_str[4] ), .str("Out J 0x") );
 	hex_overlay    #(.LEN(2)) _pwr5 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d108),.y('d3), .out( pwr_str[5] ), .in( eout[39-:8] ) );
 	string_overlay #(.LEN(1)) _pwr6 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d110),.y('d3), .out( pwr_str[6] ), .str(".") );
 	hex_overlay    #(.LEN(5)) _pwr7 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d111),.y('d3), .out( pwr_str[7] ), .in( eout[31-:20]) );
 
+	
+	// Scroll Halt after 4 seconds of dump asserted
+	logic mscroll_halt;
+	logic [27:0] mscroll_count;
+	localparam SCROLL_HALT_COUNT = 4 * CLOCK_FREQ_MHZ * 1000 * 1000;
+	always @(posedge clk) begin
+				mscroll_count <= ( !dump | reset ) ? 0 : ( mscroll_count == SCROLL_HALT_COUNT ) ? SCROLL_HALT_COUNT : mscroll_count + 1;
+				mscroll_halt <= ( mscroll_count == SCROLL_HALT_COUNT ) ? 1'b1 : 1'b0;		
+	end
 
 // Digio pads.
 	logic [6:0] digio_in, digio_out;
@@ -788,18 +820,7 @@ end
 	// When there are 8 words in the fifo, initiate a write 
 	// increment the address by 16bytes  = 8x 16bit = 2 samples of 64 bit;
 
-	// monitor LCC digital I/O pins
-	logic [7:0] lcc_mon;
-	assign lcc_mon = { 
-							!iset[0], // can put burn here
-							!fire_button,
-							arm_led_n,
-							cont_led_n,
-							speaker,
-							lt3420_charge,
-							pwm,	
-							dump
-							};	
+
 			
 	// Fifo Write 
 	
@@ -983,7 +1004,7 @@ end
 	logic        bv_wvalid;
 	logic blipvert;
 	
-	assign blipvert = ( key == 5'h17 || long_fire ) ? 1'b1 : 1'b0;
+	assign blipvert = ( key == 5'h17 ) ? 1'b1 : 1'b0;
 	
 	blipvert _bv_unit (
 		// System
@@ -1125,32 +1146,7 @@ end
 	// 4ch Oscilloscope mem & vga display
 	logic [7:0] scope_red, scope_green, scope_blue;
 
-	//vga_scope _scope(
-	//	.clk(   hdmi_clk ),
-	//	.reset( reset ),
-	//	// video sync 
-	//	.blank( blank ), 
-	//	.hsync( hsync ),
-	//	.vsync( vsync ),
-	//	// Font data
-	//	.ascii_char( ascii_char ),
-	//	.hex_char( hex_char ),
-	//	.bin_char( bin_char ),
-	//	.char_x( char_x ),
-	//	.char_y( char_y ),
-	//	// capture inputs
-	//	.ad_a0( ad_a0 ),
-	//	.ad_a1( ad_a1 ),
-	//	.ad_b0( ad_b0 ),
-	//	.ad_b1( ad_b1 ),
-	//	.ad_strobe( ad_strobe ),
-	//	.ad_clk( clk ),
-	//	// video output
-	//	.red(   scope_red ),
-	//	.green( scope_green ),
-	//	.blue(  scope_blue )
-	//);
-	
+
 	// 4ch Oscilloscope mem & vga display
 	logic [7:0] tiny_red, tiny_green, tiny_blue;
 	logic tiny;
@@ -1170,7 +1166,7 @@ end
 		.hsync( hsync ),
 		.vsync( vsync ),
 		// scroll halt input
-		.halt ( scroll_halt ),
+		.halt ( mscroll_halt ),
 		// capture inputs
 		.ad_a0( ad_a0 ),
 		.ad_a1( ad_a1 ),
@@ -1206,7 +1202,7 @@ end
 		.hsync( hsync ),
 		.vsync( vsync ),
 		// scroll halt input
-		.halt ( scroll_halt ),
+		.halt ( mscroll_halt ),
 		// capture inputs
 		.ad_data( lcc_mon ),
 
