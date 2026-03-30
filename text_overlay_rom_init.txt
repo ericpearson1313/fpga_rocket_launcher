@@ -1,7 +1,7 @@
 // 128 column, 60 rows.  Even lines are ascii. Odd lines are color code, 0-F, <blank also 0>
 //-------------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|
-  LCC Emulator/Analyset 3MHZ 4CH 12BIT 32MByte 1.3s TRACE BUFFER, 800x480 WVGA
-  00000000000000000000000
+  LCC Emulator/Analyzer 3MHZ 4CH 12BIT 32MByte 1.3s Trace Buf, 800x480x60hz WVGA
+  44444444444444444444400
 
 
                                           
