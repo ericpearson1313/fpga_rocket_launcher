@@ -542,8 +542,8 @@ assign pwm = pwm_pulse | res_pwm;
 	logic [13:0] m_fire_cnt;
 	
 	always @(posedge clk) begin
-		m_fire_cnt <= ( reset ) ? 0 : ( m_fire_cnt == 14'd16000 ) ? 14'd16000 : ( m_fire_cnt == 0 && m_fire ) ? 1 : m_fire_cnt+1;
-		m_cap_halt <= ( reset ) ? 0 : ( m_fire_cnt == 14'd16000 ) ? 1 : m_cap_halt;
+		m_fire_cnt <= ( reset ) ? 0 : ( m_fire_cnt == 14'h3fff ) ? 14'h3fff : ( m_fire_cnt == 0 && !m_fire_button_debounce ) ? 0 : m_fire_cnt+1;
+		m_cap_halt <= ( reset ) ? 0 : ( m_fire_cnt == 14'h3fff ) ? 1 : m_cap_halt;
 	end
 
 	// monitor LCC digital I/O pins
@@ -585,7 +585,7 @@ assign pwm = pwm_pulse | res_pwm;
 		.clk( clk ),
 		.reset( reset ),
 		// PWM input
-		.pwm( pwm ),
+		.pwm( m_pwm ),
 		// Votlage Inputs
 		.vcap( mad_a1 ), // ADC voltage across cap
 		.vout( mad_b1 ), // ADC voltage across output
@@ -609,7 +609,7 @@ assign pwm = pwm_pulse | res_pwm;
 	logic [21:0] pout; // instantaneous power
 
 	always @(posedge clk)
-		acc_window = ( pwm ) ? 16'd48000 : ( acc_window == 0 ) ? 0 : acc_window - 1; // 1msusec
+		acc_window = ( m_pwm ) ? 16'd48000 : ( acc_window == 0 ) ? 0 : acc_window - 1; // 1msusec
 	assign acc_flag = |acc_window;
 
 	// Acculuate Output power products.
@@ -632,14 +632,13 @@ assign pwm = pwm_pulse | res_pwm;
 	hex_overlay    #(.LEN(2)) _pwr5 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d108),.y('d3), .out( pwr_str[5] ), .in( eout[39-:8] ) );
 	string_overlay #(.LEN(1)) _pwr6 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d110),.y('d3), .out( pwr_str[6] ), .str(".") );
 	hex_overlay    #(.LEN(5)) _pwr7 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d111),.y('d3), .out( pwr_str[7] ), .in( eout[31-:20]) );
-
 	
 	// Scroll Halt after 4 seconds of dump asserted
 	logic mscroll_halt;
 	logic [27:0] mscroll_count;
 	localparam SCROLL_HALT_COUNT = 4 * CLOCK_FREQ_MHZ * 1000 * 1000;
 	always @(posedge clk) begin
-				mscroll_count <= ( !dump | reset ) ? 0 : ( mscroll_count == SCROLL_HALT_COUNT ) ? SCROLL_HALT_COUNT : mscroll_count + 1;
+				mscroll_count <= ( !m_dump | reset ) ? 0 : ( mscroll_count == SCROLL_HALT_COUNT ) ? SCROLL_HALT_COUNT : mscroll_count + 1;
 				mscroll_halt <= ( mscroll_count == SCROLL_HALT_COUNT ) ? 1'b1 : 1'b0;		
 	end
 
@@ -707,11 +706,11 @@ assign pwm = pwm_pulse | res_pwm;
 			key_del <= key[4];
 			zoom_button <= ( m_dump & m_fire_button_debounce ) ? 1'b1 : 1'b0;
 			zoom_del <= zoom_button;
-			pwm_del <= pwm;
+			pwm_del <= m_pwm;
 			burn_del <= burn;
-			retrigger <= ( !pwm_del && pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
-			base_addr <= ( !pwm_del && pwm && retrigger == 0 && !m_cap_halt ) ? awaddr : base_addr; 
-			burn_addr <= ( !pwm_del && pwm && retrigger == 0 && !m_cap_halt ) ? awaddr : // default to base addr
+			retrigger <= ( !pwm_del && m_pwm && retrigger == 0 ) ? 16'hffff : ( retrigger == 0 ) ? 0 : retrigger - 1;
+			base_addr <= ( !pwm_del && m_pwm && retrigger == 0 && !m_cap_halt ) ? awaddr : base_addr; 
+			burn_addr <= ( !pwm_del && m_pwm && retrigger == 0 && !m_cap_halt ) ? awaddr : // default to base addr
 			             ( !burn_del && burn                              ) ? awaddr : // snap to burn addr
 							 ( !key_del && key == 5'h16                       ) ? burn_addr + (512<<zoom) :
 							 ( !key_del && key == 5'h14                       ) ? burn_addr - (512<<zoom) :
