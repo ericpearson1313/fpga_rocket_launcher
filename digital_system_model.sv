@@ -51,7 +51,10 @@ logic [29:0] deltai;
 assign deltai[29:0] = $signed( deltav[12:0] ) * (* multstyle = "dsp" *) $signed( { 1'b0, 16'd36837 } ); // Use a DSP 18x18 block
 
 // Iest current is signed 12.24 in ADC current DN scale
-assign iest_next[35:0] = i_acc[35:0] + { {6{deltai[29]}}, deltai[29:0] };
+// Add inflection of inductance due to saturation, at 12'd1024 ~= 5A
+// Halve inductive effect which doubles rate (di/dt)
+assign iest_next[35:0] = i_acc[35:0] + (( i_acc[34] ) ? { {6{deltai[29]}}, deltai[28:0], 1'b0 } :
+                                                        { {6{deltai[29]}}, deltai[29:0]       });
 	
 // current accumulator
 logic pwm_del;
