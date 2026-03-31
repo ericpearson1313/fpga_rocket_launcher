@@ -867,11 +867,10 @@ assign pwm = pwm_pulse | res_pwm;
 			end
 		end
 	end
-
-		
+	
 	/////////////////////////////////
 	////
-	////       VIDEO
+	////       HDMI VIDEO
 	////
 	//////////////////////////////////
 	
@@ -1036,26 +1035,7 @@ assign pwm = pwm_pulse | res_pwm;
 		.q			( bv_vdata[16:0] )
 		);	
 		
-	//////////////////////
-	//////////////////////
-   //
-	// HDMI #1
-   //
-   //////////////////////
-	//////////////////////
-	
 
-	// Process ADC diag looking for 0's and holding till vsync
-	// ensures zero's will be seen by the eye. (1/10 sec?)
-	logic [3:0] diag_reg, diag;
-	logic [21:0] tenth;
-	assign diag = { LIdiag, CVdiag, CIdiag, LVdiag }; // A0, A1, B0, B1
-	always @(posedge clk) begin
-		tenth <= tenth + 1;
-		diag_reg <= ( tenth == 0 ) ? diag : diag & diag_reg;
-	end
-
-	
 	// Average of the adc values
 	
 	logic [0:3][33:0]  acc	   ; // accumulate 4M x 12 bit samples, 1.3 sec
@@ -1171,8 +1151,6 @@ assign pwm = pwm_pulse | res_pwm;
 	assign tiny = |{ tiny_red, tiny_green, tiny_blue };
 
 	// 8ch digital logic analyser mem & vga display
-
-	
 	logic [7:0] tinyb_red, tinyb_green, tinyb_blue;
 	logic tinyb;
 	tiny_binary_scope #( 
@@ -1235,18 +1213,9 @@ assign pwm = pwm_pulse | res_pwm;
 	//bin_overlay #(.LEN(12)) _bin2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h4B), .y('h05), .out( bin_str[2] ), .in( value_3 ) );
 	//bin_overlay #(.LEN(12)) _bin3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h4B), .y('h07), .out( bin_str[3] ), .in( value_4 ) );
 
-	
-	// Dump Diag bits
-	logic [3:0] diag_str;
-	//bin_overlay #(.LEN(1)) _diag0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h46), .y('h01), .out( diag_str[0] ), .in( diag_reg[3] ) );
-	//bin_overlay #(.LEN(1)) _diag1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h46), .y('h03), .out( diag_str[1] ), .in( diag_reg[2] ) );
-	//bin_overlay #(.LEN(1)) _diag2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h46), .y('h05), .out( diag_str[2] ), .in( diag_reg[1] ) );
-	//bin_overlay #(.LEN(1)) _diag3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .bin_char(bin_char), .x('h46), .y('h07), .out( diag_str[3] ), .in( diag_reg[0] ) );
-	
 	// Merge overlays
 	logic overlay;
-	assign overlay = (|diag_str) | 
-	                 (|bin_str ) |
+	assign overlay = (|bin_str ) |
 						  (|hex_str ) |
 						  (|pwr_str ) |
 						  (|in_str  ) |
@@ -1255,41 +1224,7 @@ assign pwm = pwm_pulse | res_pwm;
 						  (|res_str ) |
 						  (|id_str  ) ;
 	
-	// video encoder
-	//logic [7:0] hdmi_data;
-	//video_encoder _encode
-	//(
-	//	.clk(  hdmi_clk  ),
-	//	.clk5( hdmi_clk5 ),
-	//	.reset( reset ),
-	//	.blank( blank ),
-	//	.hsync( hsync ),
-	//	.vsync( vsync ),
-	//	.red	( ( test_red   | {8{overlay}} | scope_red   ) ),
-	//	.green( ( test_green | {8{overlay}} | scope_green ) ),
-	//	.blue	( ( test_blue  | {8{overlay}} | scope_blue  ) ),
-	//	.hdmi_data( hdmi_data )
-	//);	
-	
-	//hdmi_out _hdmi_out ( // LDVS DDR outputs
-	//	.outclock( hdmi_clk5 ),
-	//	.din( hdmi_data ),
-	//	.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
-	//	.pad_out_b( )  // true differential, _b not req
-	//);
-	
-	
 
-	//////////////////////
-	//////////////////////
-   //
-	// HDMI #2
-   //
-   //////////////////////
-	//////////////////////
-
-
-	
 	// Oscilloscope & vga display
 	logic [7:0] wave_scope_red, wave_scope_green, wave_scope_blue;
 	vga_wave_display _wave_scope (
@@ -1336,7 +1271,7 @@ assign pwm = pwm_pulse | res_pwm;
 															 24'h000000 ;
 
 	// video encoder
-	logic [7:0] hdmi2_data;
+	logic [7:0] hdmi_data;
 	logic [7:0] dvi_data;
 	video_encoder _encode2
 	(
@@ -1355,43 +1290,26 @@ assign pwm = pwm_pulse | res_pwm;
 		// YUV mode input
 		.yuv_mode		( blipvert ), // use YUV2 mode, cheap USb capture devices provice lossless YUV2 capture mode 
 		// RBG Data
-//		.red	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 : (bv_vdata[16] ? 8'h08 : 8'h04) ) 
-//		                   : ((( tiny ) ? tiny_red   : wave_scope_red   ) | overlay_red   )),
-//		.green( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[15:8] ) 
-//		                   : ((( tiny ) ? tiny_green : wave_scope_green ) | overlay_green )),
-//		.blue	( (blipvert) ? ((bv_vvalid_n) ? 8'h00 :  bv_vdata[7:0]  ) 
-//		                   : ((( tiny ) ? tiny_blue  : wave_scope_blue  ) | overlay_blue  )),
 		.red	( (blipvert) ? bv_vdata[7:0]  : ((( tiny | tinyb ) ? (tiny_red   | tinyb_red  ) : wave_scope_red   ) | overlay_red   ) ),
 		.green( (blipvert) ? bv_vdata[15:8] : ((( tiny | tinyb ) ? (tiny_green | tinyb_green) : wave_scope_green ) | overlay_green ) ),
 		.blue	( (blipvert) ? 8'h00          : ((( tiny | tinyb ) ? (tiny_blue  | tinyb_blue ) : wave_scope_blue  ) | overlay_blue  ) ),
-		.hdmi_data( hdmi2_data ),
+		.hdmi_data( hdmi_data ),
 		.dvi_data( dvi_data ),
 	);
 		
-	// HDMI 2 Output, DVI outputs
+	// HDMI or DVI output.
 	hdmi_out _hdmi2_out ( // LDVS DDR outputs
 		.outclock( hdmi_clk5 ),
-		.din( dvi_data ),
+		.din( hdmi_data ), // hdmi_data or dvi_data 
 		.pad_out( {hdmi2_d2, hdmi2_d1, hdmi2_d0, hdmi2_ck} ), 
 		.pad_out_b( )  // true differential, _b not req
 	);
 	
-	// HDMI 1 output, HDMI outputs, with YUV2 support
-	hdmi_out _hdmi_out ( // LDVS DDR outputs
-		.outclock( hdmi_clk5 ),
-		.din( hdmi2_data ),
-		.pad_out( {hdmi_d2, hdmi_d1, hdmi_d0, hdmi_ck} ), 
-		.pad_out_b( )  // true differential, _b not req
-	);
 
 endmodule
 
 // 1024 moving window debounce 80/20
-// tick is about 1 per 480 cycles
-
-
-
-			
+// tick is about 1 per 480 cycles	
 module debounce(
 	input clk,
 	input reset,
