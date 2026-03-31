@@ -353,7 +353,7 @@ always @( posedge clk ) begin
 	if( reset ) begin
 		cap_charged <= 0;
 	end else begin
-		cap_charged <= ( ad_strobe && vcap > (( 320 * 10000 ) / 2005 ) ) ? 1'b1 :
+		cap_charged <= ( ad_strobe && vcap > (( 310 * 10000 ) / 2005 ) ) ? 1'b1 :
 		               ( ad_strobe && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
 	end
 end
