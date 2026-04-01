@@ -52,12 +52,13 @@
 
     // PLL Control, 2 x 48 Mhz = 96 Mhz
     assign pll_en = 1'b1;
-    assign pll_refdiv = 6'b00_0101;		// Equivalent value in decimal form 6'd5,
-    assign pll_fbdiv = 12'b0000_1001_0000;	// Equivalent value in decimal form 12'd144,
-    assign pll_postdiv1 = 3'b101;		// Equivalent value in decimal form 3'd5,
-    assign pll_postdiv2 = 3'b011;		// Equivalent value in decimal form 3'd3,
+    assign pll_refdiv = 6'b00_0001;		// Equivalent value in decimal form 6'd1,
+    assign pll_fbdiv = 12'b0000_0001_1100;	// Equivalent value in decimal form 12'd28,
+    assign pll_postdiv1 = 3'b111;		// Equivalent value in decimal form 3'd7,
+    assign pll_postdiv2 = 3'b010;		// Equivalent value in decimal form 3'd2,
     assign pll_bypass = 1'b0;
     assign pll_clk_selection = 1'b0;
+
     
     // Enable LAC 0
     assign logic_as_clk0_en = 1'b1;
