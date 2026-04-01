@@ -65,11 +65,9 @@ module forge_launcher
 	logic 		    burn = 0;
 	
 	// Display and Logging control outputs
-	logic scroll_halt = 0;
 	logic charge;
 	logic fire_done = 0;
 	logic fire_button_debounce;
-	logic cap_halt = 0;
 	logic long_fire;
 
 //////////////////////////////////////////////
@@ -87,21 +85,15 @@ forge_debounce #( CLOCK_FREQ_MHZ ) _firedb ( .clk( clk ), .reset( reset ), .in( 
 
 parameter PWM_START     = 1; // Enable PWM current control 
 parameter PWM_END			= (CLOCK_FREQ_MHZ*4/3) * 1000 * 1000; // Total time 1.333 sec
-parameter SCROLL_HALT	= (CLOCK_FREQ_MHZ*13/3) * 1000 * 1000; // Total time 4.333 sec
-parameter CAP_HALT		= PWM_START + 1000 * CLOCK_FREQ_MHZ/3; // stop capture before re-trigger or wrap
 
 always @(posedge clk) begin
 	if( reset ) begin // for now, later should allow arm release
 		fire_count <= 0;
 		fire_flag <= 0;
 		fire_done <= 0;
-		scroll_halt <= 0;
-		cap_halt <= 0;
 	end else begin
 		fire_count <= ( fire_count == 0 && !fire_button_debounce ) ? 0 : fire_count + 1; // committed when past debounce
 		fire_flag <= ( fire_count == PWM_START && !fire_done ) ? 1'b1 : ( fire_count == PWM_END ) ? 1'b0 : fire_flag;
-		scroll_halt <= ( fire_count == SCROLL_HALT ) ? 1'b1 : scroll_halt;
-		cap_halt <= ( fire_count == CAP_HALT ) ? 1'b1 : cap_halt;
 		fire_done <= ( fire_count == PWM_END ) ? 1'b1 : fire_done;
 	end
 end
