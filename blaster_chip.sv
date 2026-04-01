@@ -40,6 +40,7 @@ module blaster_chip
 	output logic		  ad_sclk,
 	input  logic  [1:0] ad_sdata_a,
 	input  logic  [1:0] ad_sdata_b,
+	// adc diag signals, not connected on lcc Dev board
 	input  logic        CIdiag,
 	input  logic        CVdiag,
 	input  logic        LIdiag,
@@ -55,7 +56,7 @@ module blaster_chip
 	inout  wire spi_ds,
 	inout  wire spi_nrst,
 	
-	// HDMI Output 1 (Tru LVDS)
+	// HDMI Output 1 (not connect on LCC Dev board)
 	output logic		hdmi_d0,
 	output logic		hdmi_d1,
 	output logic		hdmi_d2,
@@ -168,7 +169,7 @@ parameter COIL_IND_UH = 390;
 		.clk				( clk ),
 		.reset			( reset ),
 		// Front Panel
-		.fire_button 	( fire_button ),
+		.fire_button 	( !fire_button ),
 		.arm_led 		( arm_led ),
 		.cont_led 		( cont_led ),
 		.speaker 		( speaker ),
@@ -1049,7 +1050,7 @@ assign pwm = pwm_pulse | res_pwm;
 			acc_cnt <= 0;
 			avg     <= 0;
 		end else begin
-			if( ad_strobe ) begin
+			if( mad_strobe ) begin
 				acc[0] <= ( acc_cnt == 0 ) ? { 22'h00_0000, mad_a0[11:0] } : acc[0] + { 22'h00_0000, mad_a0[11:0] };
 				acc[1] <= ( acc_cnt == 0 ) ? { 22'h00_0000, mad_a1[11:0] } : acc[1] + { 22'h00_0000, mad_a1[11:0] };
 				acc[2] <= ( acc_cnt == 0 ) ? { 22'h00_0000, mad_b0[11:0] } : acc[2] + { 22'h00_0000, mad_b0[11:0] };
@@ -1174,7 +1175,7 @@ assign pwm = pwm_pulse | res_pwm;
 		// capture inputs
 		.ad_data( lcc_mon ),
 
-		.ad_strobe( ad_strobe ),
+		.ad_strobe( mad_strobe ),
 		.ad_clk( clk ),
 		// video output
 		.red(   tinyb_red ),
@@ -1295,7 +1296,7 @@ assign pwm = pwm_pulse | res_pwm;
 		.green( (blipvert) ? bv_vdata[15:8] : ((( tiny | tinyb ) ? (tiny_green | tinyb_green) : wave_scope_green ) | overlay_green ) ),
 		.blue	( (blipvert) ? 8'h00          : ((( tiny | tinyb ) ? (tiny_blue  | tinyb_blue ) : wave_scope_blue  ) | overlay_blue  ) ),
 		.hdmi_data( hdmi_data ),
-		.dvi_data( dvi_data ),
+		.dvi_data( dvi_data )
 	);
 		
 	// HDMI or DVI output.
