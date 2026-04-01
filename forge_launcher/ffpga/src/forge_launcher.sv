@@ -220,14 +220,17 @@ logic [11:0] 	thresh_hi, thresh_lo;
 localparam COUNT_10MS = 28'h00_80000; // 10ms / CLOCK_FREQ_MHZ
 localparam COUNT_20MS = 28'h01_00000; // 20ms / CLOCK_FREQ_MHZ
 localparam COUNT_30MS = 28'h01_80000; // 30ms / CLOCK_FREQ_MHZ
-always @(posedge clk) thresh_hi <= (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
-                                   (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
-                                   (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 + 20 ) : // until 20ms setpoint 4amp
-                                   /* remainder */  ( ADC_DN_PER_AMP * 8 + 20 ) ; // remainder  setpoint 6Amp
-always @(posedge clk) thresh_lo <= (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) :
-                                   (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) :
-                                   (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 - 20 ) :
-                                   /* remainder */  ( ADC_DN_PER_AMP * 8 - 20 ) ;
+always @(posedge clk) thresh_hi <= (!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 + 20 ) :
+											  (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
+											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
+											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 + 20 ) : // until 20ms setpoint 4amp
+											                           /* remainder */  ( ADC_DN_PER_AMP * 8 + 20 ) ; // remainder  setpoint 6Amp
+always @(posedge clk) thresh_lo <= (!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
+											  (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
+											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) : 
+											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 - 20 ) : 
+											                           /* remainder */  ( ADC_DN_PER_AMP * 8 - 20 ) ;
+
 
 always @(posedge clk) begin
 	if( reset ) begin
@@ -588,8 +591,9 @@ logic [15:0] deltai;
 always_ff @(posedge clk) deltai <= deltai_rom[(deltav[12])?0:deltav[10-:6]]; // 6 msb bits 
 
 // Iest current is signed 12.12 in ADC current DN scale
+// coil saturation at 5A ( i_acc[22] = 1 }
 always_ff @(posedge clk)
-	iest_next[23:0] <= i_acc[23:0] + { 8'h00, deltai };
+	iest_next[23:0] <= i_acc[23:0] + i_acc[22] ? { 7'h00, deltai, 1'b0 } : { 8'h00, deltai };
 	
 // current accumulator
 logic pwm_del;
