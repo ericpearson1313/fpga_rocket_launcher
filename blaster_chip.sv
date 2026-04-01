@@ -150,7 +150,7 @@ parameter ADC_DN_PER_AMP = 205;
 parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
 parameter COIL_IND_UH = 390;
 	
-//`define FORGE_EMULATOR
+`define FORGE_EMULATOR
 `ifdef FORGE_EMULATOR
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
@@ -161,6 +161,7 @@ parameter COIL_IND_UH = 390;
 	// Emulation data for display
 	logic 			burn = 0;				
 	logic	[11:0]	igniter_res = 0;
+	logic [11:0] 	iest;
 
 	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _uut (
 		// System
@@ -1049,10 +1050,10 @@ assign pwm = pwm_pulse | res_pwm;
 			avg     <= 0;
 		end else begin
 			if( ad_strobe ) begin
-				acc[0] <= ( acc_cnt == 0 ) ? { 22'h00_0000, ad_a0[11:0] } : acc[0] + { 22'h00_0000, ad_a0[11:0] };
-				acc[1] <= ( acc_cnt == 0 ) ? { 22'h00_0000, ad_a1[11:0] } : acc[1] + { 22'h00_0000, ad_a1[11:0] };
-				acc[2] <= ( acc_cnt == 0 ) ? { 22'h00_0000, ad_b0[11:0] } : acc[2] + { 22'h00_0000, ad_b0[11:0] };
-				acc[3] <= ( acc_cnt == 0 ) ? { 22'h00_0000, ad_b1[11:0] } : acc[3] + { 22'h00_0000, ad_b1[11:0] };
+				acc[0] <= ( acc_cnt == 0 ) ? { 22'h00_0000, mad_a0[11:0] } : acc[0] + { 22'h00_0000, mad_a0[11:0] };
+				acc[1] <= ( acc_cnt == 0 ) ? { 22'h00_0000, mad_a1[11:0] } : acc[1] + { 22'h00_0000, mad_a1[11:0] };
+				acc[2] <= ( acc_cnt == 0 ) ? { 22'h00_0000, mad_b0[11:0] } : acc[2] + { 22'h00_0000, mad_b0[11:0] };
+				acc[3] <= ( acc_cnt == 0 ) ? { 22'h00_0000, mad_b1[11:0] } : acc[3] + { 22'h00_0000, mad_b1[11:0] };
 				if( acc_cnt == 0 ) begin
 					avg[0] <= acc[0][33-:12];
 					avg[1] <= acc[1][33-:12];
@@ -1137,11 +1138,11 @@ assign pwm = pwm_pulse | res_pwm;
 		// scroll halt input
 		.halt ( mscroll_halt ),
 		// capture inputs
-		.ad_a0( ad_a0 ),
-		.ad_a1( ad_a1 ),
-		.ad_b0( ad_b0 ),
-		.ad_b1( ad_b1 ),
-		.ad_strobe( ad_strobe ),
+		.ad_a0( mad_a0 ),
+		.ad_a1( mad_a1 ),
+		.ad_b0( mad_b0 ),
+		.ad_b1( mad_b1 ),
+		.ad_strobe( mad_strobe ),
 		.ad_clk( clk ),
 		// video output
 		.red(   tiny_red ),
