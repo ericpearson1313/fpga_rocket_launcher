@@ -190,7 +190,9 @@ logic [11:0] ad_vout_del = 0;
 logic signed [12:0] dv; // delta voltage
 assign dv[12:0] = { ad_vout[11], ad_vout[11:0] } - { ad_vout_del[11], ad_vout_del[11:0] };
 initial ad_vout_del = 0;
+/* verilator lint_off REALCVT */
 logic signed [12:0] max_dvdt = 100 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ); // (100 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
+/* verilator lint_on REALCVT */
 always @(posedge clk) begin
 	if( reset ) begin
 		burn <= 0;
@@ -220,16 +222,16 @@ logic [11:0] 	thresh_hi, thresh_lo;
 localparam COUNT_10MS = 28'h00_80000; // 10ms / CLOCK_FREQ_MHZ
 localparam COUNT_20MS = 28'h01_00000; // 20ms / CLOCK_FREQ_MHZ
 localparam COUNT_30MS = 28'h01_80000; // 30ms / CLOCK_FREQ_MHZ
-always @(posedge clk) thresh_hi <= (!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 + 20 ) :
-											  (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
-											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
-											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 + 20 ) : // until 20ms setpoint 4amp
-											                           /* remainder */  ( ADC_DN_PER_AMP * 8 + 20 ) ; // remainder  setpoint 6Amp
-always @(posedge clk) thresh_lo <= (!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
-											  (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
-											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) : 
-											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 - 20 ) : 
-											                           /* remainder */  ( ADC_DN_PER_AMP * 8 - 20 ) ;
+always @(posedge clk) thresh_hi <= 	(!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 + 20 ) :
+									(fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
+									(fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
+									(fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 + 20 ) : // until 20ms setpoint 4amp
+									                         /* remainder */  ( ADC_DN_PER_AMP * 8 + 20 ) ; // remainder  setpoint 6Amp
+always @(posedge clk) thresh_lo <= 	(!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
+									(fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
+									(fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) : 
+									(fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 - 20 ) : 
+									                         /* remainder */  ( ADC_DN_PER_AMP * 8 - 20 ) ;
 
 
 always @(posedge clk) begin
@@ -584,8 +586,19 @@ always_ff @(posedge clk) deltav[12:0] <= { vcap_corr[11], vcap_corr[11:0] } - { 
 logic [15:0] deltai_rom[63:0];// rom deltaI units in (4.12)
 always_comb begin
 	for( int ii = 0; ii < 64; ii++ )
+/* verilator lint_off REALCVT */
 		deltai_rom[ii] = ( (ii * 32 + 16) * 4096 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP ) / ( CLOCK_FREQ_MHZ * COIL_IND_UH );
+/* verilator lint_on REALCVT */
 end
+
+/* synopsys translate_off */
+initial begin
+	@(posedge clk);
+	@(posedge clk);
+	for( int ii = 0; ii < 64; ii++ )
+		$display(" rom[%d] = %d;", ii, deltai_rom[ii] );
+end
+/* synopsys translate_on */
 
 logic [15:0] deltai;
 always_ff @(posedge clk) deltai <= deltai_rom[(deltav[12])?0:deltav[10-:6]]; // 6 msb bits 
@@ -593,7 +606,7 @@ always_ff @(posedge clk) deltai <= deltai_rom[(deltav[12])?0:deltav[10-:6]]; // 
 // Iest current is signed 12.12 in ADC current DN scale
 // coil saturation at 5A ( i_acc[22] = 1 }
 always_ff @(posedge clk)
-	iest_next[23:0] <= i_acc[23:0] + i_acc[22] ? { 7'h00, deltai, 1'b0 } : { 8'h00, deltai };
+	iest_next[23:0] <= i_acc[23:0] + (i_acc[22] ? { 7'h00, deltai, 1'b0 } : { 8'h00, deltai });
 	
 // current accumulator
 logic pwm_del;
