@@ -177,7 +177,7 @@ assign speaker = spk_toggle & spk_en ;
 // If burn through occurs we will see high dvdt on the output.
 // In this case we'll stop operation to minimize voltage spikes.
  
-logic current_seen;
+logic current_seen = 0;
 logic [11:0] ad_vout_del = 0;
 logic signed [12:0] dv; // delta voltage
 assign dv[12:0] = { ad_vout[11], ad_vout[11:0] } - { ad_vout_del[11], ad_vout_del[11:0] };

@@ -167,7 +167,7 @@ parameter COIL_IND_UH = 390;
 	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _uut (
 		// System
 		.clk				( clk ),
-		.reset			( reset ),
+		.reset			( 1'b0 ),//reset ),
 		// Front Panel
 		.fire_button 	( !fire_button ),
 		.arm_led 		( arm_led ),
