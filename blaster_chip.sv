@@ -12,11 +12,11 @@ module blaster_chip
 	input  logic arm_button,
 	input  logic fire_button,
 
-	// Output LED/SPK
-	output logic arm_led_n,
-	output logic cont_led_n,
-	output logic speaker,
-	output logic speaker_n,
+	//  LED/SPK
+	input logic arm_led_n,
+	input logic cont_led_n,
+	input logic speaker,
+	input logic speaker_n,
 	
 	// Bank 1A: Analog Inputs / IO
 	output [8:1] anain,
@@ -29,15 +29,15 @@ module blaster_chip
 	output 		tx232,
 	
 	// High Voltage 
-	output logic lt3420_charge,
+	input logic lt3420_charge,
 	input  logic lt3420_done,
-	output logic pwm,	
-	output logic dump,
+	input logic pwm,	
+	input logic dump,
 	input  logic cont_n,
 	
 	// External A/D Converters (2.5v)
-	output logic        ad_cs,
-	output logic		  ad_sclk,
+	input logic        ad_cs,
+	input logic		  		ad_sclk,
 	input  logic  [1:0] ad_sdata_a,
 	input  logic  [1:0] ad_sdata_b,
 	// adc diag signals, not connected on lcc Dev board
@@ -88,14 +88,12 @@ logic hdmi_clk5;  // 5x pixel clk clock for data xmit, 10b*3=30/3lanes=10ddr=5
 trial_pll _spll(
 	.inclk0 (clk_in),		// External clock input
 	.c0     (clk_out), 	// Flash Clock 6Mhz, also External clock output differential
-	.c1	  (clk),			// Global Clock ADC rate 48 Mhz
+	.c1	  (clk ),			// Global Clock ADC rate 48 Mhz
 	.c2	  (clk4),		// Global Clock SPI8 rate 192 Mhz
 	.c3	  (hdmi_clk),	// HDMI pixel clk
 	.c4	  (hdmi_clk5)  // HDMI ddr clock 5x
 	);
 	
-assign ad_sclk  = !clk;
-
 // delayed from fpga config and external reset d-assert
 
 logic [3:0] reset_shift = 0; // initial value upon config
@@ -130,9 +128,6 @@ assign tx232 = rx232;
 // LEDs active low
 logic arm_led;
 logic cont_led;
-assign arm_led_n = arm_led;	// not complemented bc external NPN
-assign cont_led_n = cont_led; //  we added a NPN  to drive 12v led
-assign speaker_n = !speaker;
 
 // AIN
 assign anain[3:1] = iset[2:0]; // active low switch inputs
@@ -151,355 +146,7 @@ parameter ADC_DN_PER_AMP = 205;
 parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
 parameter COIL_IND_UH = 390;
 	
-`define FORGE_EMULATOR
-`ifdef FORGE_EMULATOR
-/////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////
-//
-//                 FORGE EMULATOR <start>
-//
 
-	// Emulation data for display
-	logic 			burn = 0;				
-	logic	[11:0]	igniter_res = 0;
-	logic [11:0] 	iest;
-
-	forge_launcher #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _uut (
-		// System
-		.clk				( clk ),
-		.reset			( 1'b0 ),//reset ),
-		// Front Panel
-		.fire_button 	( !fire_button ),
-		.arm_led 		( arm_led ),
-		.cont_led 		( cont_led ),
-		.speaker 		( speaker ),
-		// High Voltage
-		.lt3420_charge ( lt3420_charge ),
-		.lt3420_done   ( 1'b0 ),
-		.pwm           ( pwm ),
-		.dump				( dump ),
-		// ADC interface
-		.ad_cs			( ad_cs ),
-		.ad_s_iout     ( ad_sdata_a[1] ),
-		.ad_s_vcap     ( ad_sdata_b[1] ),
-		.ad_s_vout     ( ad_sdata_a[0] ),
-		.neg_iout	( 1'b0 ),
-		.neg_vcap	( 1'b0 ),
-		.neg_vout	( 1'b0 ),
-		
-		// Emulation interconnectes
-		// Tied off Debug inputs
-		.auto_mode	( !iset[2] ),
-		.use_est	( iset[1] ),
-		.mute		( !iset[0] ),
-		.key		( key )
-   );
-
-
-
-
-//
-//                 FORGE EMULATOR <end>
-//
-/////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////
-`else // FORGE EMULATOR
-
-
-//////////////////////////////////////////////
-// fire button 10ms debounce 
-// signal to get 1.3 sec of pwm current control
-// signal One shot capture mode on 1st rising pwm edge 1.3 sec
-// signal to set discharge at 1.3sec
-// signal to stop tiny scroll window at 4.3 sec
-//////////////////////////////////////////////
-
-logic [27:0] fire_count; 
-logic fire_flag;
-logic fire_done ; // self discharge 
-logic scroll_halt;
-logic cap_halt; // full rate capture
-logic fire_button_debounce;
-logic long_fire; // fire button held down >1 wsec
-
-debounce _firedb ( .clk( clk ), .reset( reset ), .in( !fire_button ), .out( fire_button_debounce ), .long( long_fire ));
-
-parameter PWM_START     = 1; // Enable PWM current control 
-parameter PWM_END			= (48+16) * 1000 * 1000; // Total time 1.333 sec
-parameter SCROLL_HALT	= (48*4+16) * 1000 * 1000; // Total time 1.333 sec
-parameter CAP_HALT		= PWM_START + 1000 * 16; // stop capture before re-trigger or wrap
-
-always @(posedge clk) begin
-	if( reset ) begin // for now, later should allow arm release
-		fire_count <= 0;
-		fire_flag <= 0;
-		fire_done <= 0;
-		scroll_halt <= 0;
-		cap_halt <= 0;
-	end else begin
-		fire_count <= ( fire_count == 0 && !fire_button_debounce ) ? 0 : fire_count + 1; // committed when past debounce
-		fire_flag <= ( fire_count == PWM_START && !fire_done ) ? 1'b1 : ( fire_count == PWM_END ) ? 1'b0 : fire_flag;
-		scroll_halt <= ( fire_count == SCROLL_HALT ) ? 1'b1 : scroll_halt;
-		cap_halt <= ( fire_count == CAP_HALT ) ? 1'b1 : cap_halt;
-		fire_done <= ( fire_count == PWM_END ) ? 1'b1 : fire_done;
-	end
-end
-
-assign dump = fire_done  | key == 5'h1B; // always dump after firing
-
-////////////////////////////////
-// Power On auto charge and continuity until fire button
-////////////////////////////////
-
-logic charge;  // charge cap flag
-logic continuity; // test cont flag
-always @( posedge clk ) begin
-	if( reset ) begin
-		charge <= !iset[2]; //Latch on reset
-		continuity <= 0;
-	end else begin
-		if( cap_charged && charge ) begin // switch to continuity
-			charge <= 0;
-			continuity <= 1;
-		end else if( continuity && fire_flag 
-		) begin
-			charge <= 0;
-			continuity <= 0;
-		end else begin
-			charge <= charge;
-			continuity <= continuity;	
-		end
-	end
-end
-
-assign lt3420_charge = charge | key == 5'h1A;
-
-
-//////////////////////////////
-
-
-
-// Speaker is differential out gives 6Vp-p
-logic [15:0] tone_cnt;
-logic cont_tone, first_tone;
-logic spk_en, spk_toggle;
-
-always @(posedge clk) begin
-	if( tone_cnt == 0 ) begin
-		spk_toggle <= !spk_toggle;
-		{spk_en, tone_cnt}<= ( key == 5'h11 || fire_button_debounce ) ? { 1'b1, 16'h2CCA } :
-								   //( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
-								   ( key == 5'h13 ) ? { 1'b1, 16'h238D } :
-								   //( key == 5'h14 ) ? { 1'b1, 16'h218E } :
-								   ( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
-								   //( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
-								   //( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-								   ( /*key == 5'h18 ||*/ ( (cont_tone && iset[0]) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
-	end else begin
-		tone_cnt <= tone_cnt - 1;
-		spk_en <= spk_en;
-		spk_toggle <= spk_toggle;
-	end
-end
-
-assign speaker = spk_toggle & spk_en ; 
-
-
-
-////////////////////////////////////////////
-// Burn-through detect 
-// to detect when the current falls to zero during the fire_flag while still have remaining cap voltage.
-// Output voltage is expected to rise to cap voltage. This will happen after current rise.
-// After observation the real indication is output voltage rise rate at burnthrough, or open circuit.
- 
-logic burn;
-logic current_seen;
-logic [11:0] ad_b1_del;
-logic signed [12:0] dv; // delta voltage
-
-assign dv[12:0] = { ad_b1[11], ad_b1[11:0] ^ 12'h7ff } - { ad_b1_del[11], ad_b1_del[11:0] ^ 12'h7ff };
-
-always @(posedge clk) begin
-	if( reset ) begin
-		burn <= 0;
-		current_seen <= 0;
-		ad_b1_del <= 12'h7ff;
-	end else begin
-		current_seen <= ( fire_flag && (!ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (100)))) ? 1'b1 : current_seen; // current > 1/2 Amp seen
-		burn <=((( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (32)) || (((ad_b1 ^ 12'h7ff) > (ad_a1 ^ 12'h7ff))&&!ad_b1[11]&&!ad_a1[11]) ) && // output current < 1/6 amp || output voltage > cap voltage
-					(!ad_a1[11] && ((ad_a1 ^ 12'h7ff) > (256))) && // cap voltage > 50 Volts 
-					current_seen && fire_flag ) || 
-					//( fire_flag && (!ad_a0[11]&&((ad_a0 ^ 12'h7ff) > ( 205 * 6 )))) || // temp trigger for 6A
-				   ( fire_flag && ( dv > 13'sd160 ))	// dv > +24 V/us
-					) ? 1'b1 : burn; 
-		ad_b1_del <= ad_b1; // ad_b1 only changes on sample x16, but is fine for our detection use
-		//burn <= ( fire_flag && ( dv > 13'sd160 ) ) ? 1'b1 : burn; // rise rate > 10V/sample == 30 V/usec
-	end
-end
-
-////////////////////////////////////////////
-// PWM Current limited pulse generator
-////////////////////////////////////////////
-logic [11:0] ad_a0, ad_a1, ad_b0, ad_b1;
-logic ad_strobe;
-logic [11:0] 	iest;
-logic 			pwm_pulse;
-logic [15:0] 	pulse_time;
-logic [9:0] 	pulse_count;
-logic				ramp_flag;
-
-logic [11:0] 	thresh_hi, thresh_lo;
-
-parameter COUNT_10MS = 28'h00_80000; // 10ms / CLOCK_FREQ_MHZ
-parameter COUNT_20MS = 28'h01_00000; // 20ms / CLOCK_FREQ_MHZ
-parameter COUNT_30MS = 28'h01_80000; // 30ms / CLOCK_FREQ_MHZ
-
-
-always @(posedge clk) thresh_hi <= (!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 + 20 ) :
-											  (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
-											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
-											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 + 20 ) : // until 20ms setpoint 4amp
-											                           /* remainder */  ( ADC_DN_PER_AMP * 8 + 20 ) ; // remainder  setpoint 6Amp
-always @(posedge clk) thresh_lo <= (!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
-											  (fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
-											  (fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) : 
-											  (fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 - 20 ) : 
-											                           /* remainder */  ( ADC_DN_PER_AMP * 8 - 20 ) ;
-
-always @(posedge clk) begin
-	if( reset ) begin
-		pwm_pulse <= 0;
-		pulse_time <= 0;
-		pulse_count <= 0;
-		ramp_flag <= 0;
-	end else begin
-		if( pwm_pulse ) begin // turn off pulse if time or current level exceeded
-			if( pulse_time < 32 ) begin // min pulse width
-				pwm_pulse <= pwm_pulse;
-				pulse_count <= pulse_count;
-				pulse_time <= pulse_time + 1; // inc count	
-				ramp_flag <= ramp_flag;
-			end else if(( burn )																	// burnthrough
-			         || ( pulse_time >= (48  * 16))    									// usec @ 48 Mhz 
-						||	( !ad_a0[11] && ((ad_a0 ^ 12'h7FF) > (thresh_hi)))		// measure iout > 2.2 amps (panic only?)
-						||	( !iest[11]  && ((iest  ^ 12'h7ff) > (thresh_hi)) && iset[1] )	// est iout > 2.2 amps, disable est use, fb only
-						) begin //  >2 amp * 205 DN/A measured + 10%
-				pwm_pulse <= 0;
-				pulse_time <= 0;
-				pulse_count <= pulse_count - 1;
-				ramp_flag <= ramp_flag;
-			end else begin
-				ramp_flag <= ramp_flag;
-				pwm_pulse <= pwm_pulse;
-				pulse_count <= pulse_count;
-				pulse_time <= pulse_time + 1; // inc count
-			end
-		end else if( !burn && !pwm_pulse && ( fire_flag || pulse_count > 0 ) ) begin // wait for ad_a0 to fall
-			if( pulse_time < (48 * 4) ) begin // min pulse width
-				ramp_flag <= ramp_flag;
-				pwm_pulse <= pwm_pulse;
-				pulse_count <= pulse_count;
-				pulse_time <= pulse_time + 1; // inc count					
-			end else if ( ( ad_a0[11] || ((ad_a0 ^ 12'h7FF) < (thresh_lo))) ) begin //  <2 amp * 205 DN/A measured - 10%
-				ramp_flag <= ramp_flag;
-				pwm_pulse <= 1;
-				pulse_time <= 1;
-				pulse_count <= pulse_count;
-			end else begin // current above min tolerance
-				ramp_flag <= 0;  // cleared now meeting min tolerage
-				pwm_pulse <= 0;
-				pulse_time <= pulse_time + 1; 
-				pulse_count <= pulse_count;
-			end			
-		end else if( ( key == 5'h10) && count[15:0] == 0 ) begin // (re)Triggered by fire key at 64k/48Mhz=1.3ms period
-			ramp_flag <= 1; // short back to back pulses
-			pwm_pulse <= 1; // Set pwm output
-			pulse_time <= 1; // start max width counter
-			pulse_count <= 3; // two pulses
-		end else begin // await trigger
-			ramp_flag <= 1;
-			pwm_pulse <= 0;
-			pulse_time <= 0;		
-			pulse_count <= 0;
-		end
-	end
-end
-
-
-// Free runnig ADC converters
-// 12 bit, 4 channel simultaneous, 3 Mhz
-adc_module_4ch  _adc (
-	// Input clock
-	.clk( clk ),
-	.reset( reset ),
-	// External A/D interface
-	.ad_cs( ad_cs ),
-	.ad_sdata_a( { ad_sdata_b[1], ad_sdata_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
-	.ad_sdata_b( { ad_sdata_a[0], ad_sdata_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
-	// Differential Negate
-	.neg( 1'b0 ),
-	// ADC held data and strobe
-	.ad_a0( ad_a0 ),
-	.ad_a1( ad_a1 ),
-	.ad_b0( ad_b0 ),
-	.ad_b1( ad_b1 ),
-	.ad_strobe( ad_strobe )
-);
-
-// Arm is based on vcap with 300v on thresh and 50v off thresh
-logic cap_charged;
-always @( posedge clk ) begin
-	if( reset ) begin
-		cap_charged <= 0;
-	end else begin
-		cap_charged <= ( strobe_d && vcap > (( 310 * 10000 ) / 2005 ) ) ? 1'b1 :
-		               ( strobe_d && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
-	end
-end
-
-assign arm_led = cap_charged | ( charge && count[24:21] == 0 );
-
-
-logic res_val;
-logic [11:0] res_calc;
-ohm_div _resistance (
-	// Input clock
-	.clk( clk ),
-	.reset( reset ),
-	// Votlage and Current Inputs
-	.valid_in( ad_strobe ),
-	.v_in( ad_b1 ), // ADC Vout
-	.i_in( ad_a0 ), // ADC Iout
-	// Resistance Output
-	.valid_out( res_val ),
-	.r_out( res_calc )
-);
-
-logic res_pwm;
-logic res_flag;
-logic [11:0] igniter_res;
-igniter_resistance _res_measurement (
-	// Input clock
-	.clk( clk ),
-	.reset( reset ),
-	// Resistance input
-	.valid_in( res_val ),
-	.r_in( res_calc ),
-	// PWM output and enable input
-	.pwm( res_pwm ),
-	.enable( key == 5'h19 || continuity ),
-	// Avg Resistance output
-	.valid_out( ),
-	.r_out( igniter_res ),
-	// Tone and LED output
-	.tone( cont_tone ),
-	.first_tone( first_tone ),
-	.led( cont_led ),
-	.energy( res_flag )
-);
-
-assign pwm = pwm_pulse | res_pwm;
-`endif // FORGE_EMULATOR
 
 	/////////////////////////////////
 	/////////////////////////////////
@@ -559,7 +206,8 @@ assign pwm = pwm_pulse | res_pwm;
 							m_charge	,
 							m_pwm		,	
 							m_dump		};	
-							
+	
+
 	// Monitor and decode ADC Inputs
 	adc_monitor_4ch  i_amon (
 		// Input clock
@@ -578,10 +226,10 @@ assign pwm = pwm_pulse | res_pwm;
 		.ad_b1( mad_b1 ),
 		.ad_strobe( mad_strobe )
 	);	
-
-
+	
 	// Modelling Coil Current
 	// estimate is before sample and 16x finer timing
+	logic [11:0] iest;
 	model_coil _model (
 		// Input clock
 		.clk( clk ),
@@ -1184,16 +832,6 @@ assign pwm = pwm_pulse | res_pwm;
 	);
 	assign tinyb = |{ tinyb_red, tinyb_green, tinyb_blue };	
 		
-	// 12 bit resistance number is 6.5. so 
-	// plotting as 8.4 with { 2`b00, in[10:1] } will give Ohms. A decimal point woudl be nice
-	logic [4:0] res_str;
-	string_overlay #(.LEN(8)) _res0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d100),.y('d5), .out( res_str[0] ), .str("Res $ 0x") );
-	hex_overlay    #(.LEN(2)) _res1 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d108),.y('d5), .out( res_str[1] ), .in( { 2'b00, igniter_res[10:5] ^ 6'h3F } ) );
-	string_overlay #(.LEN(1)) _res2 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d110),.y('d5), .out( res_str[2] ), .str(".") );
-	hex_overlay    #(.LEN(1)) _res3 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .hex_char(hex_char)    , .x('d111),.y('d5), .out( res_str[3] ), .in( { igniter_res[4:1] ^ 4'hF } ) );
-	//string_overlay #(.LEN(11))_res4 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d117),.y('d5), .out( res_str[4] ), .str("(3E.E=Open)") );
-
-	
 	// Port Names
 	logic [3:0] in_str;
    //string_overlay #(.LEN(2)) _in0 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('h48),.y('h01), .out( in_str[0]), .str("A0") );
@@ -1223,7 +861,6 @@ assign pwm = pwm_pulse | res_pwm;
 						  (|in_str  ) |
 						  ( text_ovl && text_color == 0 ) | // normal text
 						  ( key_strg) |
-						  (|res_str ) |
 						  (|id_str  ) ;
 	
 
