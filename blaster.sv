@@ -475,7 +475,7 @@ module adc_monitor_4ch
 (
 	// Input clock, reset
 	input logic clk,
-	input logic reset,
+	input logic reset, // Ignored
 	
 	// External A/D Converters (2.5v)
 	input  logic        ad_cs,
@@ -493,15 +493,10 @@ module adc_monitor_4ch
 	output ad_strobe
 );
 
-// CS pipeline to trigger everything
+// CS pulse pipeline chain to trigger everything
 logic [20:0] cs_delay;
 always @(posedge clk) begin
-	if( reset ) begin
-		cs_delay[20:0]     <= 21'd0;
-   end else begin
-		// shift chain for the chip select
-		cs_delay[20:0]  <= { cs_delay[19:0], ad_cs };		
-	end
+	cs_delay[20:0]  <= { cs_delay[19:0], ad_cs };		
 end
 
 // DATA Input Receiver
@@ -515,16 +510,7 @@ parameter HOLD_SEL = 14;  // select output hold delay bit
 parameter VALID_SEL = 15;   // the cycle the adc hold registers are updatead
 
 always @(posedge clk) begin
-	if( reset ) begin
-		ad_load_a0[11:0] <= 12'd0;
-		ad_load_a1[11:0] <= 12'd0;
-		ad_load_b0[11:0] <= 12'd0;
-		ad_load_b1[11:0] <= 12'd0;
-		ad_hold_a0[11:0] <= 12'd0;
-		ad_hold_a1[11:0] <= 12'd0;
-		ad_hold_b0[11:0] <= 12'd0;
-		ad_hold_b1[11:0] <= 12'd0;
-   end else begin
+	begin
 		// Load Pulse Chain
 		load[11:0] <= { cs_delay[LOAD_SEL], load[11:1] };
 		// low power reg load with bit 

@@ -146,7 +146,9 @@ parameter ADC_DN_PER_AMP = 205;
 parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
 parameter COIL_IND_UH = 390;
 	
-
+	// Signals that are otherwise used or undeclared with analyser only
+	logic [11:0] iest;
+	logic burn = 0;
 
 	/////////////////////////////////
 	/////////////////////////////////
@@ -209,9 +211,11 @@ parameter COIL_IND_UH = 390;
 	
 
 	// Monitor and decode ADC Inputs
+	logic cc_strobe;
+	logic [11:0] cc_a0, cc_a1, cc_b0, cc_b1;
 	adc_monitor_4ch  i_amon (
 		// Input clock
-		.clk( clk ),
+		.clk( !ad_sclk ),
 		.reset( reset ),
 		// External A/D interface
 		.ad_cs( ad_cs ),
@@ -220,16 +224,50 @@ parameter COIL_IND_UH = 390;
 		// Differential Negate
 		.neg( 1'b0 ),
 		// ADC held data and strobe
-		.ad_a0( mad_a0 ),
-		.ad_a1( mad_a1 ),
-		.ad_b0( mad_b0 ),
-		.ad_b1( mad_b1 ),
-		.ad_strobe( mad_strobe )
+		.ad_a0( cc_a0 ),
+		.ad_a1( cc_a1 ),
+		.ad_b0( cc_b0 ),
+		.ad_b1( cc_b1 ),
+		.ad_strobe( cc_strobe )
 	);	
+	
+	////////////////////////////
+	// Clock Domain Crossing,
+	// !ad_sclk data over to clk
+	////////////////////////////
+	
+	// Generate toggle ad_strobe
+	logic cc_toggle;
+	always @(negedge ad_sclk)
+		cc_toggle <= ( cc_strobe ) ? !cc_toggle : cc_toggle;
+		
+	// Receive toggle, metastability and load pulse and re_generated strobe
+	logic [4:0] cc_meta;
+	always @(posedge clk)
+		cc_meta[3:0] <= { cc_meta[3], cc_meta[2] ^ cc_meta[1], cc_meta[1], cc_meta[0], cc_toggle };
+		
+	// Latch valid data
+	always @(posedge clk) begin
+		mad_a0 <= ( cc_meta[3] ) ? cc_a0 : mad_a0;
+		mad_a1 <= ( cc_meta[3] ) ? cc_a1 : mad_a1;
+		mad_b0 <= ( cc_meta[3] ) ? cc_b0 : mad_b0;
+		mad_b1 <= ( cc_meta[3] ) ? cc_b1 : mad_b1;
+	end
+	
+	// create 16 cycle stobe to sample the always valid data
+	logic [3:0] mad_cnt;
+	always @(posedge clk) begin
+		mad_cnt <= mad_cnt + 1;
+		mad_strobe <= ( mad_cnt == 15 ) ? 1'b1 : 1'b0;
+	end
+		
+	////////////////////////////////////
+	// AD data now on clk
+	///////////////////////////////////
 	
 	// Modelling Coil Current
 	// estimate is before sample and 16x finer timing
-	logic [11:0] iest;
+
 	model_coil _model (
 		// Input clock
 		.clk( clk ),
