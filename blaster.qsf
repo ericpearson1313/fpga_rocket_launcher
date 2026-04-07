@@ -152,13 +152,13 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CIdiag
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CVdiag
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LIdiag
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LVdiag
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_cs
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sclk
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_a[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_b[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ad_sdata_b[1]
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ad_cs
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ad_sclk
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ad_sdata_a
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ad_sdata_a[0]
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ad_sdata_a[1]
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ad_sdata_b[0]
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ad_sdata_b[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[2]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[3]
@@ -167,11 +167,11 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[5]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[6]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[7]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to anain[8]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to arm_button
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to arm_led_n
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to arm_button
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to arm_led_n
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk_in
 set_instance_assignment -name IO_STANDARD LVDS_E_3R -to clk_out
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_led_n
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to cont_led_n
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to cont_n
 set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[0]
 set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[1]
@@ -180,8 +180,8 @@ set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[3]
 set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[4]
 set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[5]
 set_instance_assignment -name IO_STANDARD "3.0-V LVCMOS" -to digio[6]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to dump
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to fire_button
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to dump
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to fire_button
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi2_ck
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi2_d0
 set_instance_assignment -name IO_STANDARD LVDS -to hdmi2_d1
@@ -193,12 +193,12 @@ set_instance_assignment -name IO_STANDARD LVDS -to hdmi_d2
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iset[2]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lt3420_charge
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to lt3420_charge
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lt3420_done
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to pwm
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to pwm
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to reset_n
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rx232
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to speaker
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to speaker
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to speaker_n
 set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[0]
 set_instance_assignment -name IO_STANDARD "1.8 V" -to spi8_data_pad[1]
@@ -223,6 +223,9 @@ set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to iset
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to fire_button
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ad_sdata_b
+set_global_assignment -name VERILOG_FILE in_reg.v
 set_global_assignment -name SYSTEMVERILOG_FILE forge_launcher/ffpga/src/forge_launcher.sv
 set_global_assignment -name VERILOG_FILE reg_ioe.v
 set_global_assignment -name SYSTEMVERILOG_FILE psram_ctrl.sv
@@ -253,5 +256,5 @@ set_global_assignment -name SDC_FILE blaster.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE packet_test.sv
 set_global_assignment -name SYSTEMVERILOG_FILE packet_assembler.sv
 set_global_assignment -name SYSTEMVERILOG_FILE auxiliary_video_information_info_frame.sv
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to fire_button
+set_global_assignment -name SIP_FILE in_reg.sip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

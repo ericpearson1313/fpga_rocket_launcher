@@ -36,10 +36,10 @@ module blaster_chip
 	input  logic cont_n,
 	
 	// External A/D Converters (2.5v)
-	input logic        ad_cs,
-	input logic		  		ad_sclk,
-	input  logic  [1:0] ad_sdata_a,
-	input  logic  [1:0] ad_sdata_b,
+	input  wire        ad_cs,
+	input  wire		  	 ad_sclk,
+	input  wire  [1:0] ad_sdata_a,
+	input  wire  [1:0] ad_sdata_b,
 	// adc diag signals, not connected on lcc Dev board
 	input  logic        CIdiag,
 	input  logic        CVdiag,
@@ -209,26 +209,39 @@ parameter COIL_IND_UH = 390;
 							m_pwm		,	
 							m_dump		};	
 	
+	// Create AD Clock
+	logic ad_clk;
+	assign ad_clk = !ad_sclk;
+	
+	// Register inputs
+	logic ireg_cs; /* synthesis useioff = 1 */
+	logic [1:0] ireg_a, ireg_b; /* synthesis useioff = 1 */
+	in_reg i_sdat1 ( .inclock( ad_clk ), .dout( ireg_cs   ), .pad_in( ad_cs         ) );
+	in_reg i_sdat2 ( .inclock( ad_clk ), .dout( ireg_a[0] ), .pad_in( ad_sdata_a[0] ) );
+	in_reg i_sdat3 ( .inclock( ad_clk ), .dout( ireg_a[1] ), .pad_in( ad_sdata_a[1] ) );
+	in_reg i_sdat4 ( .inclock( ad_clk ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
+	in_reg i_sdat5 ( .inclock( ad_clk ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
 
+	
 	// Monitor and decode ADC Inputs
 	logic cc_strobe;
 	logic [11:0] cc_a0, cc_a1, cc_b0, cc_b1;
 	adc_monitor_4ch  i_amon (
 		// Input clock
-		.clk( !ad_sclk ),
+		.clk( ad_clk ),
 		.reset( reset ),
 		// External A/D interface
-		.ad_cs( ad_cs ),
-		.ad_sdata_a( { ad_sdata_b[1], ad_sdata_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
-		.ad_sdata_b( { ad_sdata_a[0], ad_sdata_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
+		.ad_cs( ireg_cs ),
+		.ad_sdata_a( { ireg_b[1], ireg_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
+		.ad_sdata_b( { ireg_a[0], ireg_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
 		// Differential Negate
 		.neg( 1'b0 ),
 		// ADC held data and strobe
-		.ad_a0( cc_a0 ),
+		.ad_a0( cc_a0 ),			// data is always valid, but updated when strobed
 		.ad_a1( cc_a1 ),
 		.ad_b0( cc_b0 ),
 		.ad_b1( cc_b1 ),
-		.ad_strobe( cc_strobe )
+		.ad_strobe( cc_strobe ) // indates values have been updated.
 	);	
 	
 	////////////////////////////
@@ -238,23 +251,28 @@ parameter COIL_IND_UH = 390;
 	
 	// Generate toggle ad_strobe
 	logic cc_toggle;
-	always @(negedge ad_sclk)
-		cc_toggle <= ( cc_strobe ) ? !cc_toggle : cc_toggle;
+	always @(posedge ad_clk)
+		cc_toggle <= cc_toggle ^ cc_strobe;
 		
 	// Receive toggle, metastability and load pulse and re_generated strobe
-	logic [4:0] cc_meta;
-	always @(posedge clk)
-		cc_meta[3:0] <= { cc_meta[3], cc_meta[2] ^ cc_meta[1], cc_meta[1], cc_meta[0], cc_toggle };
+	logic cc_flop1, cc_flop2, cc_flop3, cc_flop4;
+	always @(posedge clk) begin
+		cc_flop1 <= cc_toggle;
+		cc_flop2 <= cc_flop1;
+		cc_flop3 <= cc_flop2;
+		cc_flop4 <= cc_flop3 ^ cc_flop2;
+	end
 		
 	// Latch valid data
 	always @(posedge clk) begin
-		mad_a0 <= ( cc_meta[3] ) ? cc_a0 : mad_a0;
-		mad_a1 <= ( cc_meta[3] ) ? cc_a1 : mad_a1;
-		mad_b0 <= ( cc_meta[3] ) ? cc_b0 : mad_b0;
-		mad_b1 <= ( cc_meta[3] ) ? cc_b1 : mad_b1;
+		mad_a0 <= ( cc_flop4 ) ? cc_a0 : mad_a0;
+		mad_a1 <= ( cc_flop4 ) ? cc_a1 : mad_a1;
+		mad_b0 <= ( cc_flop4 ) ? cc_b0 : mad_b0;
+		mad_b1 <= ( cc_flop4 ) ? cc_b1 : mad_b1;
 	end
 	
 	// create 16 cycle stobe to sample the always valid data
+	// even if clk and ad_clk drift apart
 	logic [3:0] mad_cnt;
 	always @(posedge clk) begin
 		mad_cnt <= mad_cnt + 1;
