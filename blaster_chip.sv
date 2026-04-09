@@ -216,11 +216,11 @@ parameter COIL_IND_UH = 390;
 	// Register inputs
 	logic ireg_cs, pre_reg;
 	logic [1:0] ireg_a, ireg_b;
-	in_reg i_sdat1 ( .inclock( ad_clk ), .dout( ireg_cs   ), .pad_in( ad_cs         ) );
-	in_reg i_sdat2 ( .inclock( ad_clk ), .dout( ireg_a[0] ), .pad_in( ad_sdata_a[0] ) );
-	in_reg i_sdat3 ( .inclock( ad_clk ), .dout( ireg_a[1] ), .pad_in( ad_sdata_a[1] ) );
-	in_reg i_sdat4 ( .inclock( ad_clk ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
-	in_reg i_sdat5 ( .inclock( ad_clk ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
+	in_reg i_sdat1 ( .inclock( clk4 ), .dout( ireg_cs   ), .pad_in( ad_cs         ) );
+	in_reg i_sdat2 ( .inclock( clk4 ), .dout( ireg_a[0] ), .pad_in( ad_sdata_a[0] ) );
+	in_reg i_sdat3 ( .inclock( clk4 ), .dout( ireg_a[1] ), .pad_in( ad_sdata_a[1] ) );
+	in_reg i_sdat4 ( .inclock( clk4 ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
+	in_reg i_sdat5 ( .inclock( clk4 ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
 
 
 	
@@ -860,33 +860,57 @@ parameter COIL_IND_UH = 390;
 	// 8ch digital logic analyser mem & vga display
 	logic [7:0] tinyb_red, tinyb_green, tinyb_blue;
 	logic tinyb;
-	tiny_binary_scope #( 
-		.V_HEIGHT( 64 ), // 96 or 192 options
+	vga_fast_capture #(
+		.V_HEIGHT( 40 ), // 96 or 192 options
 		.V_START ( 400  ),
 		.H_START	( 529 ),
 		.H_END 	( 784 ),
-		.N       ( 2   ), // 60 Hz frames per col pel
+		.N       ( 60   ), // 60 Hz frames per col pel
 		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
 		.BG_COLOR( 24'h00214c /* smpte_oxford_blue */ ) //24'h1d1d1d /* smpte_eerie_black */ )	
-	 ) _tinyb_scope(
+	) i_fast_scope (
 		.clk(   hdmi_clk ),
 		.reset( reset ),
 		// video sync 
 		.blank( blank ), 
 		.hsync( hsync ),
 		.vsync( vsync ),
-		// scroll halt input
-		.halt ( mscroll_halt ),
 		// capture inputs
-		.ad_data( lcc_mon ),
-
-		.ad_strobe( mad_strobe ),
-		.ad_clk( clk ),
+		.clk_fast( clk4 ),
+		.ad_cs( ireg_cs ),
+		.ad_data( { ireg_a, ireg_b } ),
 		// video output
 		.red(   tinyb_red ),
 		.green( tinyb_green ),
 		.blue(  tinyb_blue )
-	);
+	);	
+//	tiny_binary_scope #( 
+//		.V_HEIGHT( 64 ), // 96 or 192 options
+//		.V_START ( 400  ),
+//		.H_START	( 529 ),
+//		.H_END 	( 784 ),
+//		.N       ( 2   ), // 60 Hz frames per col pel
+//		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
+//		.BG_COLOR( 24'h00214c /* smpte_oxford_blue */ ) //24'h1d1d1d /* smpte_eerie_black */ )	
+//	 ) _tinyb_scope(
+//		.clk(   hdmi_clk ),
+//		.reset( reset ),
+//		// video sync 
+//		.blank( blank ), 
+//		.hsync( hsync ),
+//		.vsync( vsync ),
+//		// scroll halt input
+//		.halt ( mscroll_halt ),
+//		// capture inputs
+//		.ad_data( lcc_mon ),
+//
+//		.ad_strobe( mad_strobe ),
+//		.ad_clk( clk ),
+//		// video output
+//		.red(   tinyb_red ),
+//		.green( tinyb_green ),
+//		.blue(  tinyb_blue )
+//	);
 	assign tinyb = |{ tinyb_red, tinyb_green, tinyb_blue };	
 		
 	// Port Names

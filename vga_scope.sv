@@ -901,3 +901,160 @@ module vga_wave_display
 					( pel_gd  ) ? 24'h32006a : 24'h000000;
 	
 endmodule
+
+
+module vga_fast_capture
+// Input:  the ad_cs and ad_sdata_a/a/0/1 clocked at 192 Mhz
+// Function: at a periodic frame rate (64 frames ~= 1 sec), 
+// During vsync, trigger on rising edge of CS,
+// Fill the buffer (512 sameples)
+// Display the 5 binary waves in a window
+#(
+	parameter V_START	= 240;//459 - 96,
+	parameter V_HEIGHT  = 40;//96; // supported 96 at 1/2 vert scale, or 192 for full 1:1 vert scale
+	parameter H_START   = 450, // Starting pel horizontally
+	parameter H_END 	= 750, // Last pel horizontally
+	parameter N 		= 60, // how many 60Hz frames count between captures
+	parameter GD_COLOR= 24'h32006a, /* smpte_deep_violet */
+	parameter BG_COLOR= 24'h1d1d1d /* smpte_eerie_black */
+	)
+(
+	input clk, // video
+	input reset,
+	// Sync input
+	input blank,
+	input hsync,
+	input vsync,
+	// Data Input
+	input clk_fast,
+	input ad_cs,
+	input [3:0] ad_data,
+	// RGB output
+	output [7:0] red,
+	output [7:0] green,
+	output [7:0] blue
+);
+
+	// Memory Buffer
+	logic [4:0] mem [H_END-H_START:0];
+	
+	////////////////////////////
+	// Capture and Sram Write
+	////////////////////////////
+	
+	// Count vsync rising edges till start
+	logic [7:0] vcnt;
+	logic [3:0] vdel;
+	logic cap_armed, cap_done;
+	always @(posedge clk_fast) begin
+		vdel[3:0] <= { vdel[2:0], vsync }; // metastable clock crossing
+		vcnt <= ( !vdel[2] && vdel[1] ) ? (( vcnt == N ) ? 0 : vcnt + 1) : vcnt; // increment on rising edge and wrap at N
+	end
+
+	// Trigger and capture logic
+	logic [9:0] waddr;
+	logic we;
+	logic [1:0] state;
+	
+	always @(posedge clk_fast ) begin
+		if( reset ) begin
+			state <= 0; 
+			waddr <= 0;
+			we <= 0;
+		end else if( state == 0 ) begin
+			state <= ( !vdel[2] && vdel[1] && vcnt == 0 ) ? 1 : 0; // wait for N vsyncs to start
+			waddr <= 0;
+			we <= 0;
+		end else if( state == 1 ) begin
+			state <= ( !ad_cs ) ? 2 : 1; // wait for cs low
+			we <= 0;
+			waddr <= 0;
+		end else if( state == 2 ) begin
+			state <= ( ad_cs ) ? 3 : 2; // wait for cs high
+			waddr <= ( ad_cs ) ? 1 : 0;
+			we <= 1;
+		end else begin 
+			state <= ( waddr == H_END - H_START ) ? 0 : 3;
+			we <= 1;
+			waddr <= waddr + 1;
+		end
+	end
+	
+	
+	// write ram
+	always @(posedge clk_fast) 
+		if( we ) 
+			mem[ waddr ] <= { ad_data[3:0], ad_cs };
+			
+	
+	////////////////////////////
+	// Video and Sram Read
+	////////////////////////////
+	
+	// Video pel counters
+	logic [9:0] xcnt, ycnt; // pixel location
+	logic blank_d1;
+	logic [9:0] rd_addr; // sram read addr
+	always @(posedge clk) begin
+		if ( reset ) begin
+			xcnt <= 0;
+			ycnt <= 0;
+			rd_addr <= 0;
+			blank_d1 <= 0;
+		end else begin
+			blank_d1 <= blank;
+			xcnt <= ( blank ) ? 0 : xcnt + 1;
+			ycnt <= ( vsync ) ? 0 : 
+					  ( blank && !blank_d1 ) ? ycnt + 1 : ycnt;
+			rd_addr <= xcnt - H_START;
+		end
+	end
+
+	
+
+
+	// Read memory buffer
+	logic [4:0] rdata, ddata, edata;	
+	always @(posedge clk) rdata <= mem[ rd_addr ];
+	
+	// Identify edge transitoiuns
+	always @(posedge clk) ddata <= rdata;
+	assign edata = rdata ^ ddata;
+
+	// Create video output
+	logic pel_gd, pel_bg;
+	logic [4:0] pel;
+	logic [9:0] ypos;
+	assign ypos = ycnt - V_START;
+	
+	always @(posedge clk) begin
+		if ( reset ) begin
+				pel_bg <= 0;
+				pel_gd <= 0;
+				pel    <= 0;
+		end else begin
+			if( ycnt >= V_START && ycnt < V_START + V_HEIGHT &&
+			    xcnt >= H_START && xcnt <= H_END ) begin
+				pel_bg <= 1'b1;
+				pel_gd <= ( rd_addr[2:0] == 4  || ypos[2:0]==6 ) ? 1'b1 : 1'b0; // an 8x8 grid
+				for( int ii = 0; ii < 5; ii++ ) begin
+					pel[ii] = ( ypos[5:3] == ii && 
+						((( ypos[2:0] == 1                  ) && rdata[ii]  ) ||
+						 (( ypos[2:0] >= 2 && ypos[2:0] <= 5) && edata[ii]  ) ||
+						 (( ypos[2:0] == 6                  ) && !rdata[ii] ))) ? 1'b1 : 1'b0;
+				end
+			end else begin
+				pel_bg <= 0;
+				pel_gd <= 0;
+				pel    <= 0;
+			end
+		end
+	end	
+	
+	// colors: and priority a0 white, a1 red, b0 green, b1 blue, grid grey
+	assign { red, green, blue } = 
+					( |pel   ) ? 24'hFFFFFF :
+					( pel_gd ) ? GD_COLOR   : 
+					( pel_bg ) ? BG_COLOR   : 
+							     24'h000000 ;	
+endmodule
