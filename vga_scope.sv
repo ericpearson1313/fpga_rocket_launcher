@@ -1036,7 +1036,7 @@ module vga_fast_capture
 			if( ycnt >= V_START && ycnt < V_START + V_HEIGHT &&
 			    xcnt >= H_START && xcnt <= H_END ) begin
 				pel_bg <= 1'b1;
-				pel_gd <= ( rd_addr[2:0] == 4  || ypos[2:0]==6 ) ? 1'b1 : 1'b0; // an 8x8 grid
+				pel_gd <= ( rd_addr[1:0] == 2 ) ? 1'b1 : 1'b0; // an 8x8 grid
 				for( int ii = 0; ii < 5; ii++ ) begin
 					pel[ii] = ( ypos[5:3] == ii && 
 						((( ypos[2:0] == 1                  ) && rdata[ii]  ) ||

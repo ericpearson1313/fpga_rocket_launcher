@@ -216,13 +216,21 @@ parameter COIL_IND_UH = 390;
 	// Register inputs
 	logic ireg_cs, pre_reg;
 	logic [1:0] ireg_a, ireg_b;
-	in_reg i_sdat1 ( .inclock( clk4 ), .dout( ireg_cs   ), .pad_in( ad_cs         ) );
-	in_reg i_sdat2 ( .inclock( clk4 ), .dout( ireg_a[0] ), .pad_in( ad_sdata_a[0] ) );
-	in_reg i_sdat3 ( .inclock( clk4 ), .dout( ireg_a[1] ), .pad_in( ad_sdata_a[1] ) );
-	in_reg i_sdat4 ( .inclock( clk4 ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
-	in_reg i_sdat5 ( .inclock( clk4 ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
+	in_reg i_sdat1 ( .inclock( ad_clk ), .dout( ireg_cs   ), .pad_in( ad_cs         ) );
+	in_reg i_sdat2 ( .inclock( ad_clk ), .dout( ireg_a[0] ), .pad_in( ad_sdata_a[0] ) );
+	in_reg i_sdat3 ( .inclock( ad_clk ), .dout( ireg_a[1] ), .pad_in( ad_sdata_a[1] ) );
+	in_reg i_sdat4 ( .inclock( ad_clk ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
+	in_reg i_sdat5 ( .inclock( ad_clk ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
 
-
+	// 2nd register and filter CS is high only if will fall next cycel
+	logic fdel_cs, freg_cs;
+	logic [1:0] freg_a, freg_b;
+	always @(posedge ad_clk) begin
+		fdel_cs <= ireg_cs;
+		freg_a <= ireg_a;
+		freg_b <= ireg_b;
+	end
+	assign freg_cs = fdel_cs & !ireg_cs;
 	
 	// Monitor and decode ADC Inputs
 	logic cc_strobe;
@@ -232,9 +240,9 @@ parameter COIL_IND_UH = 390;
 		.clk( ad_clk ),
 		.reset( reset ),
 		// External A/D interface
-		.ad_cs( ireg_cs ),
-		.ad_sdata_a( { ireg_b[1], ireg_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
-		.ad_sdata_b( { ireg_a[0], ireg_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
+		.ad_cs( freg_cs ),
+		.ad_sdata_a( { freg_b[1], freg_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
+		.ad_sdata_b( { freg_a[0], freg_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
 		// Differential Negate
 		.neg( 1'b0 ),
 		// ADC held data and strobe
@@ -866,7 +874,7 @@ parameter COIL_IND_UH = 390;
 		.H_START	( 529 ),
 		.H_END 	( 784 ),
 		.N       ( 60   ), // 60 Hz frames per col pel
-		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
+		.GD_COLOR( 24'h404040 /* smpte_deep_violet */ ), 
 		.BG_COLOR( 24'h00214c /* smpte_oxford_blue */ ) //24'h1d1d1d /* smpte_eerie_black */ )	
 	) i_fast_scope (
 		.clk(   hdmi_clk ),
@@ -877,8 +885,8 @@ parameter COIL_IND_UH = 390;
 		.vsync( vsync ),
 		// capture inputs
 		.clk_fast( clk4 ),
-		.ad_cs( ireg_cs ),
-		.ad_data( { ireg_a, ireg_b } ),
+		.ad_cs( freg_cs ),
+		.ad_data( { freg_a, cc_strobe, cc_flop4 } ),
 		// video output
 		.red(   tinyb_red ),
 		.green( tinyb_green ),
