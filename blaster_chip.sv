@@ -216,13 +216,12 @@ parameter COIL_IND_UH = 390;
 	// Register inputs
 	logic ireg_cs, pre_reg;
 	logic [1:0] ireg_a, ireg_b;
-	in_reg i_sdat1 ( .inclock(!ad_clk ), .dout( pre_reg   ), .pad_in( ad_cs         ) );
+	in_reg i_sdat1 ( .inclock( ad_clk ), .dout( ireg_cs   ), .pad_in( ad_cs         ) );
 	in_reg i_sdat2 ( .inclock( ad_clk ), .dout( ireg_a[0] ), .pad_in( ad_sdata_a[0] ) );
 	in_reg i_sdat3 ( .inclock( ad_clk ), .dout( ireg_a[1] ), .pad_in( ad_sdata_a[1] ) );
 	in_reg i_sdat4 ( .inclock( ad_clk ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
 	in_reg i_sdat5 ( .inclock( ad_clk ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
-	always @(posedge ad_clk) 
-		ireg_cs <= pre_reg;
+
 
 	
 	// Monitor and decode ADC Inputs

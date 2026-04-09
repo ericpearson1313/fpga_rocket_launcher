@@ -2,12 +2,12 @@ create_clock -period 20.8 -waveform {0.000 10.4} -name ad_sclk  ad_sclk
 derive_pll_clocks -create_base_clocks
 derive_clock_uncertainty
 
-set_input_delay -clock ad_sclk -clock_fall -min 5.0   [get_ports {ad_sdata*}]
-set_input_delay -clock ad_sclk -clock_fall -max 9.9   [get_ports {ad_sdata*}]
-set_input_delay -clock ad_sclk -min 7.0    [get_ports {ad_cs}]
-set_input_delay -clock ad_sclk -max 12.0   [get_ports {ad_cs}]
-#set_input_delay -clock ad_sclk -clock_fall -min -2.5  [get_ports {ad_cs}]
-#set_input_delay -clock ad_sclk -clock_fall -max 2.5   [get_ports {ad_cs}]
+set_input_delay -clock ad_sclk -clock_fall -min 3.5   [get_ports {ad_sdata*}]
+set_input_delay -clock ad_sclk -clock_fall -max 9.5   [get_ports {ad_sdata*}]
+#set_input_delay -clock ad_sclk -min 7.0    [get_ports {ad_cs}]
+#set_input_delay -clock ad_sclk -max 12.0   [get_ports {ad_cs}]
+set_input_delay -clock ad_sclk -clock_fall -min 0.5   [get_ports {ad_cs}]
+set_input_delay -clock ad_sclk -clock_fall -max 4.5   [get_ports {ad_cs}]
 
 #create_generated_clock -source clk_in -divide_by 8                 -duty_cycle 50.00 -name {_spll|altpll_component|auto_generated|pll1|clk[0]}   clk_out
 #create_generated_clock -source clk_in                              -duty_cycle 50.00 -name {_spll|altpll_component|auto_generated|pll1|clk[1]}       clk
