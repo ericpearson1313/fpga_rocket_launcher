@@ -222,10 +222,10 @@ parameter COIL_IND_UH = 390;
 	in_reg i_sdat4 ( .inclock( clk4 ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
 	in_reg i_sdat5 ( .inclock( clk4 ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
 
-	// Double register as metastable paiir
+	// Double register as metastable pair
 	logic [1:0] cc_cs;
 	logic [1:0][1:0] cc_a, cc_b;
-	always @(posedge ad_clk) begin
+	always @(posedge clk4 ) begin
 		cc_cs	<= { cc_cs[0], ireg_cs };
 		cc_a	<= { cc_a[0], ireg_a };
 		cc_b	<= { cc_b[0], ireg_b };
@@ -1277,15 +1277,14 @@ module fast_adc_monitor_4ch
 	//logic [0:LN] seq_a = { {(CDEL-1){1'b0}}, 1'b1, {(CBIT-1){{(CREP-1){1'b0}},1'b1}}, 1'b0 };
 	//logic [0:LN] seq_b = { {LN{1'b0}}, 1'b1 };
 	
-	logic [LN:0] seq_a = 56'b00000000001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0;
-	logic [LN:0] seq_b = 56'b00000000000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_1;
-	logic [LN:0] sreg_a, sreg_b;
+	logic [0:LN] seq_a = 56'b00000000001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0;
+	logic [0:LN] seq_b = 56'b00000000000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_1;
+	logic [5:0] scnt;
 	always_ff @(posedge fclk) begin
-		sreg_a <= ( trig ) ? seq_a : { sreg_a[LN-1:0], 1'b0 };
-		sreg_b <= ( trig ) ? seq_b : { sreg_b[LN-1:0], 1'b0 };
+		scnt <= ( trig ) ? 1 : (scnt == 0 || scnt == LN) ? 0 : scnt + 1;
+		shift_en <= seq_a[scnt];
+		hold_en  <= seq_b[scnt];
 	end
-	assign shift_en = seq_a[LN];
-	assign hold_en  = seq_b[LN];
 	
 	// Tranistion hold_en (fclk) to load_en and data strobe
 	logic [3:0] hold_del;
