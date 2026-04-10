@@ -216,69 +216,41 @@ parameter COIL_IND_UH = 390;
 	// Register inputs
 	logic ireg_cs, pre_reg;
 	logic [1:0] ireg_a, ireg_b;
-	in_reg i_sdat1 ( .inclock( ad_clk ), .dout( ireg_cs   ), .pad_in( ad_cs         ) );
-	in_reg i_sdat2 ( .inclock( ad_clk ), .dout( ireg_a[0] ), .pad_in( ad_sdata_a[0] ) );
-	in_reg i_sdat3 ( .inclock( ad_clk ), .dout( ireg_a[1] ), .pad_in( ad_sdata_a[1] ) );
-	in_reg i_sdat4 ( .inclock( ad_clk ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
-	in_reg i_sdat5 ( .inclock( ad_clk ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
+	in_reg i_sdat1 ( .inclock( clk4 ), .dout( ireg_cs   ), .pad_in( ad_cs         ) );
+	in_reg i_sdat2 ( .inclock( clk4 ), .dout( ireg_a[0] ), .pad_in( ad_sdata_a[0] ) );
+	in_reg i_sdat3 ( .inclock( clk4 ), .dout( ireg_a[1] ), .pad_in( ad_sdata_a[1] ) );
+	in_reg i_sdat4 ( .inclock( clk4 ), .dout( ireg_b[0] ), .pad_in( ad_sdata_b[0] ) );
+	in_reg i_sdat5 ( .inclock( clk4 ), .dout( ireg_b[1] ), .pad_in( ad_sdata_b[1] ) );
 
-	// 2nd register and filter CS is high only if will fall next cycel
-	logic fdel_cs, freg_cs;
-	logic [1:0] freg_a, freg_b;
+	// Double register as metastable paiir
+	logic [1:0] cc_cs;
+	logic [1:0][1:0] cc_a, cc_b;
 	always @(posedge ad_clk) begin
-		fdel_cs <= ireg_cs;
-		freg_a <= ireg_a;
-		freg_b <= ireg_b;
+		cc_cs	<= { cc_cs[0], ireg_cs };
+		cc_a	<= { cc_a[0], ireg_a };
+		cc_b	<= { cc_b[0], ireg_b };
 	end
-	assign freg_cs = fdel_cs & !ireg_cs;
 	
-	// Monitor and decode ADC Inputs
-	logic cc_strobe;
-	logic [11:0] cc_a0, cc_a1, cc_b0, cc_b1;
-	adc_monitor_4ch  i_amon (
+	// Oversampled ADC data capture module
+	fast_adc_monitor_4ch  i_amon (
 		// Input clock
-		.clk( ad_clk ),
-		.reset( reset ),
+		.clk( clk ),
+		.fclk( clk4 ),
 		// External A/D interface
-		.ad_cs( freg_cs ),
-		.ad_sdata_a( { freg_b[1], freg_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
-		.ad_sdata_b( { freg_a[0], freg_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
+		//.ad_sdata_a( { freg_b[1], freg_a[1] } ), // originally ad_sdata_a[1:0] ), // = { Vcap, Iout }
+		//.ad_sdata_b( { freg_a[0], freg_b[0] } ), // originally ad_sdata_b[1:0] ), // = { Vout, Icap }
+		.ad_cs( cc_cs[1] ),
+		.ad_sdata( { cc_b[1][1], cc_a[1][1], cc_a[1][0], cc_b[1][0] } ),
 		// Differential Negate
 		.neg( 1'b0 ),
 		// ADC held data and strobe
-		.ad_a0( cc_a0 ),			// data is always valid, but updated when strobed
-		.ad_a1( cc_a1 ),
-		.ad_b0( cc_b0 ),
-		.ad_b1( cc_b1 ),
-		.ad_strobe( cc_strobe ) // indates values have been updated.
+		//.ad_a0( cc_a0 ),			// data is always valid, but updated when strobed
+		//.ad_a1( cc_a1 ),
+		//.ad_b0( cc_b0 ),
+		//.ad_b1( cc_b1 ),
+		.ad_data( { mad_a1, mad_a0, mad_b1, mad_b0 } ),
+		.ad_strobe( ) // we regenerate our own strobe
 	);	
-	
-	////////////////////////////
-	// Clock Domain Crossing,
-	// !ad_sclk data over to clk
-	////////////////////////////
-	
-	// Generate toggle ad_strobe
-	logic cc_toggle;
-	always @(posedge ad_clk)
-		cc_toggle <= cc_toggle ^ cc_strobe;
-		
-	// Receive toggle, metastability and load pulse and re_generated strobe
-	logic cc_flop1, cc_flop2, cc_flop3, cc_flop4;
-	always @(posedge clk) begin
-		cc_flop1 <= cc_toggle;
-		cc_flop2 <= cc_flop1;
-		cc_flop3 <= cc_flop2;
-		cc_flop4 <= cc_flop3 ^ cc_flop2;
-	end
-		
-	// Latch valid data
-	always @(posedge clk) begin
-		mad_a0 <= ( cc_flop4 ) ? cc_a0 : mad_a0;
-		mad_a1 <= ( cc_flop4 ) ? cc_a1 : mad_a1;
-		mad_b0 <= ( cc_flop4 ) ? cc_b0 : mad_b0;
-		mad_b1 <= ( cc_flop4 ) ? cc_b1 : mad_b1;
-	end
 	
 	// create 16 cycle stobe to sample the always valid data
 	// even if clk and ad_clk drift apart
@@ -865,12 +837,12 @@ parameter COIL_IND_UH = 390;
 	);
 	assign tiny = |{ tiny_red, tiny_green, tiny_blue };
 
-	// 8ch digital logic analyser mem & vga display
-	logic [7:0] tinyb_red, tinyb_green, tinyb_blue;
-	logic tinyb;
+	// 5ch digital oversampled scope on serial ADC inputs
+	logic [7:0] fast_red, fast_green, fast_blue;
+	logic fast;
 	vga_fast_capture #(
 		.V_HEIGHT( 40 ), // 96 or 192 options
-		.V_START ( 400  ),
+		.V_START ( 320 ),
 		.H_START	( 529 ),
 		.H_END 	( 784 ),
 		.N       ( 60   ), // 60 Hz frames per col pel
@@ -885,40 +857,42 @@ parameter COIL_IND_UH = 390;
 		.vsync( vsync ),
 		// capture inputs
 		.clk_fast( clk4 ),
-		.ad_cs( freg_cs ),
-		.ad_data( { freg_a, cc_strobe, cc_flop4 } ),
+		.ad_cs( cc_cs[1] ),
+		.ad_data( { cc_b[1][1], cc_a[1][1], cc_a[1][0], cc_b[1][0] } ),
+		// video output
+		.red(   fast_red ),
+		.green( fast_green ),
+		.blue(  fast_blue )
+	);	
+	assign fast = |{fast_red, fast_green, fast_blue};	
+	
+	tiny_binary_scope #( 
+		.V_HEIGHT( 64 ), // 96 or 192 options
+		.V_START ( 400  ),
+		.H_START	( 529 ),
+		.H_END 	( 784 ),
+		.N       ( 2   ), // 60 Hz frames per col pel
+		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
+		.BG_COLOR( 24'h00214c /* smpte_oxford_blue */ ) //24'h1d1d1d /* smpte_eerie_black */ )	
+	 ) _tinyb_scope(
+		.clk(   hdmi_clk ),
+		.reset( reset ),
+		// video sync 
+		.blank( blank ), 
+		.hsync( hsync ),
+		.vsync( vsync ),
+		// scroll halt input
+		.halt ( mscroll_halt ),
+		// capture inputs
+		.ad_data( lcc_mon ),
+
+		.ad_strobe( mad_strobe ),
+		.ad_clk( clk ),
 		// video output
 		.red(   tinyb_red ),
 		.green( tinyb_green ),
 		.blue(  tinyb_blue )
-	);	
-//	tiny_binary_scope #( 
-//		.V_HEIGHT( 64 ), // 96 or 192 options
-//		.V_START ( 400  ),
-//		.H_START	( 529 ),
-//		.H_END 	( 784 ),
-//		.N       ( 2   ), // 60 Hz frames per col pel
-//		.GD_COLOR( 24'h32006a /* smpte_deep_violet */ ), 
-//		.BG_COLOR( 24'h00214c /* smpte_oxford_blue */ ) //24'h1d1d1d /* smpte_eerie_black */ )	
-//	 ) _tinyb_scope(
-//		.clk(   hdmi_clk ),
-//		.reset( reset ),
-//		// video sync 
-//		.blank( blank ), 
-//		.hsync( hsync ),
-//		.vsync( vsync ),
-//		// scroll halt input
-//		.halt ( mscroll_halt ),
-//		// capture inputs
-//		.ad_data( lcc_mon ),
-//
-//		.ad_strobe( mad_strobe ),
-//		.ad_clk( clk ),
-//		// video output
-//		.red(   tinyb_red ),
-//		.green( tinyb_green ),
-//		.blue(  tinyb_blue )
-//	);
+	);
 	assign tinyb = |{ tinyb_red, tinyb_green, tinyb_blue };	
 		
 	// Port Names
@@ -1018,9 +992,9 @@ parameter COIL_IND_UH = 390;
 		// YUV mode input
 		.yuv_mode		( blipvert ), // use YUV2 mode, cheap USb capture devices provice lossless YUV2 capture mode 
 		// RBG Data
-		.red	( (blipvert) ? bv_vdata[7:0]  : ((( tiny | tinyb ) ? (tiny_red   | tinyb_red  ) : wave_scope_red   ) | overlay_red   ) ),
-		.green( (blipvert) ? bv_vdata[15:8] : ((( tiny | tinyb ) ? (tiny_green | tinyb_green) : wave_scope_green ) | overlay_green ) ),
-		.blue	( (blipvert) ? 8'h00          : ((( tiny | tinyb ) ? (tiny_blue  | tinyb_blue ) : wave_scope_blue  ) | overlay_blue  ) ),
+		.red	( (blipvert) ? bv_vdata[7:0]  : ((( tiny | tinyb | fast) ? (tiny_red   | tinyb_red  | fast_red  ) : wave_scope_red   ) | overlay_red   ) ),
+		.green( (blipvert) ? bv_vdata[15:8] : ((( tiny | tinyb | fast) ? (tiny_green | tinyb_green| fast_green) : wave_scope_green ) | overlay_green ) ),
+		.blue	( (blipvert) ? 8'h00          : ((( tiny | tinyb | fast) ? (tiny_blue  | tinyb_blue | fast_blue ) : wave_scope_blue  ) | overlay_blue  ) ),
 		.hdmi_data( hdmi_data ),
 		.dvi_data( dvi_data )
 	);
@@ -1236,3 +1210,93 @@ module blipvert (
 	end
 	
 endmodule
+
+module fast_adc_monitor_4ch 
+(
+	// Input clock, reset
+	input logic fclk,  // 192 Mhz, rising edge aligned with clk
+	input logic clk, 	 // 48 Mhz
+	input logic reset, // Ignored
+	
+	// External A/D Converters 
+	// Sampled at 192 Mhz, external metastbility
+	input  logic        ad_cs,
+	input  logic  [3:0] ad_sdata,
+	
+	// Differential Negation
+	input  logic  neg,
+	
+	// ADC monitor outputs on clk
+	output logic [3:0][11:0] ad_data, // always valid outputs
+	output logic ad_strobe	// pulse indicates data has been updated
+);
+
+	// Input shift registers (fclk), MSB first
+	logic [3:0][11:0] sreg;
+	logic shift_en;
+	always_ff @(posedge fclk) 
+		for( int ii = 0; ii < 4; ii++ ) 
+			sreg[ii] <= ( shift_en ) ? { sreg[ii][10:0], ad_sdata[ii] } : sreg[ii];
+	
+	// Hold registers (fclk) after last bit shifted on fast clock
+	logic [3:0][11:0] hreg;
+	logic hold_en;
+	always_ff @(posedge fclk)
+		for( int ii = 0; ii < 4; ii++ )
+			hreg[ii] <= ( hold_en ) ? sreg[ii] : hreg[ii];
+						
+	// Output register (clk) in slow clock domain
+	logic [3:0][11:0] oreg;
+	logic load_en;
+	always_ff @(posedge clk) 
+		for( int ii = 0; ii < 4; ii++ )
+			oreg <= ( load_en ) ? hreg : oreg; // Clock domain crossing
+			
+	// Handle negation (logic assume negatively wired ADCs
+	always_comb
+		for( int ii = 0; ii < 4; ii++ )
+			ad_data[ii] =  ( neg ) ? oreg : ~oreg;
+	
+	// trigger pipeline on fall of CS
+	
+	logic cs_del;
+	logic trig;
+	always @(posedge fclk) 
+		cs_del <= ad_cs;
+	assign trig = !ad_cs & cs_del;
+	
+	// fast Sequencer counter to generate:
+	// shift_en to sample input data, initial delay then 11 bits with even spacing
+	// hold_en to load data registers after last bit shifted in
+	
+	localparam C_DEL  = 11;	// delay from cs falling to first bit
+	localparam C_REP  = 4;	// bit sample interval
+	localparam C_BIT  = 12; // 12 bits
+	localparam LN     = C_DEL+(C_BIT-1)*C_REP; // last bit idx
+	
+	//logic [0:LN] seq_a = { {(CDEL-1){1'b0}}, 1'b1, {(CBIT-1){{(CREP-1){1'b0}},1'b1}}, 1'b0 };
+	//logic [0:LN] seq_b = { {LN{1'b0}}, 1'b1 };
+	
+	logic [LN:0] seq_a = 56'b00000000001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0;
+	logic [LN:0] seq_b = 56'b00000000000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_1;
+	logic [LN:0] sreg_a, sreg_b;
+	always_ff @(posedge fclk) begin
+		sreg_a <= ( trig ) ? seq_a : { sreg_a[LN-1:0], 1'b0 };
+		sreg_b <= ( trig ) ? seq_b : { sreg_b[LN-1:0], 1'b0 };
+	end
+	assign shift_en = seq_a[LN];
+	assign hold_en  = seq_b[LN];
+	
+	// Tranistion hold_en (fclk) to load_en and data strobe
+	logic [3:0] hold_del;
+	always @(posedge fclk)
+		hold_del <= { hold_del[2:0], hold_en };
+	
+	always @(posedge clk) 
+		load_en <= |hold_del;	// Clock crossing
+		
+	logic data_strobe;
+	always @(posedge clk) 
+		data_strobe <= load_en;
+	assign ad_strobe = data_strobe;
+endmodule	
