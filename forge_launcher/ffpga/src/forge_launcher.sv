@@ -458,7 +458,9 @@ always @(posedge clk) begin
 		sample_div <= (sample_div == 0) ? (ADC_CYCLES - 5'd1) : sample_div - 5'd1;
 	end
 end
-assign ad_cs = ( /*state_q == S_FIRE &&*/ sample_div == 5'd0 ) ? 1'b1 : 1'b0;
+
+always @(posedge clk) 
+	ad_cs <= ( sample_div == 5'd1 ) ? 1'b1 : 1'b0;
 
 
 // CS pipeline to trigger everything
@@ -468,7 +470,7 @@ always @(posedge clk) begin
 		cs_delay[20:0]     <= 21'd0;
    end else begin
 		// shift chain for the chip select
-		cs_delay[20:0]  <= { cs_delay[19:0], ad_cs };		
+		cs_delay[20:0]  <= { cs_delay[19:0], ( sample_div == 5'd0 ) ? 1'b1 : 1'b0 };		
 	end
 end
 

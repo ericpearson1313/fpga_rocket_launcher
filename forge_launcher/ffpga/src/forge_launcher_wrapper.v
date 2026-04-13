@@ -138,7 +138,7 @@
 		.neg_vout		( 1'b0 ),
 		.neg_vcap		( 1'b0 ),
 		// Tie off Debug inputs
-		.auto_mode		( 1'b0 ),
+		.auto_mode		( 1'b1 ),
 		.use_est			( 1'b1 ),
 		.mute			( !mute_nq ),
 		.key				( 5'b00000 )
