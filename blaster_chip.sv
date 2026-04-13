@@ -1271,7 +1271,7 @@ module fast_adc_monitor_4ch
 	// shift_en to sample input data, initial delay then 11 bits with even spacing
 	// hold_en to load data registers after last bit shifted in
 	
-	localparam C_DEL  = 9;	// delay from cs falling to first bit
+	localparam C_DEL  = 10;	// delay from cs falling to first bit
 	localparam C_REP  = 4;	// bit sample interval
 	localparam C_BIT  = 12; // 12 bits
 	localparam LN     = C_DEL+(C_BIT-1)*C_REP; // last bit idx
@@ -1279,8 +1279,8 @@ module fast_adc_monitor_4ch
 	//logic [0:LN] seq_a = { {(CDEL-1){1'b0}}, 1'b1, {(CBIT-1){{(CREP-1){1'b0}},1'b1}}, 1'b0 };
 	//logic [0:LN] seq_b = { {LN{1'b0}}, 1'b1 };
 	
-	logic [0:LN] seq_a = 54'b000000001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0;
-	logic [0:LN] seq_b = 54'b000000000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_1;
+	logic [0:LN] seq_a = 55'b0000000001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0001_0;
+	logic [0:LN] seq_b = 55'b0000000000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_1;
 	logic [5:0] scnt;
 	always_ff @(posedge fclk) begin
 		scnt <= ( trig ) ? 1 : (scnt == 0 || scnt == LN) ? 0 : scnt + 1;
