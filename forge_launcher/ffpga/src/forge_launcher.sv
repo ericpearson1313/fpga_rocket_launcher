@@ -447,82 +447,48 @@ module forge_adc_module_4ch
 // ADC sample pulse 
 // RUn ADCs in-continuous mode.
 // The fall of the CS signal is actually the moment of sampling, and MSB becomes valid
-parameter ADC_CYCLES = 5'd16; // 16 for 48Mhz, 15 for 45Mhz to give a 3Mhz sample rate. 
-										// CS is active low for 14 cycles to give a 12 bit output
-reg [4:0] sample_div = ADC_CYCLES - 5'd1;
-initial sample_div = ADC_CYCLES - 5'd1;
-always @(posedge clk) begin
-	if( reset ) begin
-		sample_div <= ADC_CYCLES - 5'd1;
-	end else begin
-		sample_div <= (sample_div == 0) ? (ADC_CYCLES - 5'd1) : sample_div - 5'd1;
-	end
-end
+parameter HOLD_SEL = 15;  // select output hold delay bit 1 cyclce early but account for input regs
+parameter ADCS_SEL = 15;  // early CS output cycle 
 
+
+reg [3:0] sample_div = 0;
+initial sample_div = 0;
+always @(posedge clk) sample_div <= sample_div + 1;
+
+// ad_cs reg is to be I/O_reg
+// ad_cs is active during sample_div == 0;
 always @(posedge clk) 
-	ad_cs <= ( sample_div == 5'd1 ) ? 1'b1 : 1'b0;
+	ad_cs <= ( sample_div == ADCS_SEL ) ? 1'b1 : 1'b0;
 
+// DATA Input I/O registers
+logic [3:0] ad_ireg;
+always @(posedge clk)
+	ad_ireg <= ad_sdata;
 
-// CS pipeline to trigger everything
-logic [20:0] cs_delay = 0;
-always @(posedge clk) begin
-	if( reset ) begin
-		cs_delay[20:0]     <= 21'd0;
-   end else begin
-		// shift chain for the chip select
-		cs_delay[20:0]  <= { cs_delay[19:0], ( sample_div == 5'd0 ) ? 1'b1 : 1'b0 };		
-	end
-end
+// Data input shift regisers MSB first
+logic [3:0][11:0] ad_sreg;
+always @(posedge clk)
+	for( int ii =  0; ii < 4; ii++ ) 
+		ad_sreg[ii] <= { ad_sreg[ii][10:0], ad_ireg[ii] };
 
-// DATA Input Receiver
+// Data hold registers
+logic ad_hold_en;
+always @(posedge clk) 
+	ad_hold_en <= ( sample_div == HOLD_SEL ) ? 1'b1 : 1'b0;
+logic [3:0][11:0] ad_hold;
+always @(posedge clk) 
+	for( int ii =  0; ii < 4; ii++ ) 
+		ad_hold[ii] <= ( ad_hold_en ) ? ad_sreg[ii] : ad_hold[ii];
+	
+// ad_strobe reg
+always @(posedge clk) ad_strobe <= ad_hold_en;
 
-logic [11:0] ad_load_0 = 0, ad_load_1 = 0, ad_load_2 = 0, ad_load_3 = 0;
-logic [11:0] ad_hold_0 = 0, ad_hold_1 = 0, ad_hold_2 = 0, ad_hold_3 = 0;
-logic [11:0] load;
-
-parameter LOAD_SEL = 1;   // select first load delay, load reg input (ie 1 cycle early).
-parameter HOLD_SEL = 14;  // select output hold delay bit
-parameter VALID_SEL = 15;   // the cycle the adc hold registers are updatead
-
-always @(posedge clk) begin
-	if( reset ) begin
-		ad_load_0[11:0] <= 12'd0;
-		ad_load_1[11:0] <= 12'd0;
-		ad_load_2[11:0] <= 12'd0;
-		ad_load_3[11:0] <= 12'd0;
-		ad_hold_0[11:0] <= 12'd0;
-		ad_hold_1[11:0] <= 12'd0;
-		ad_hold_2[11:0] <= 12'd0;
-		ad_hold_3[11:0] <= 12'd0;
-   end else begin
-		// Load Pulse Chain
-		load[11:0] <= { cs_delay[LOAD_SEL], load[11:1] };
-		// low power reg load with bit 
-		for( int ii = 0; ii < 12; ii++ ) begin
-			ad_load_0[ii] <= ( load[ii] ) ? ad_sdata[0] : ad_load_0[ii];
-			ad_load_1[ii] <= ( load[ii] ) ? ad_sdata[1] : ad_load_1[ii];
-			ad_load_2[ii] <= ( load[ii] ) ? ad_sdata[2] : ad_load_2[ii];
-			ad_load_3[ii] <= ( load[ii] ) ? ad_sdata[3] : ad_load_3[ii];
-		end
-		// Load hold reg 
-		begin
-			ad_hold_0 <= (cs_delay[HOLD_SEL]) ? ad_load_0 : ad_hold_0;
-			ad_hold_1 <= (cs_delay[HOLD_SEL]) ? ad_load_1 : ad_hold_1;
-			ad_hold_2 <= (cs_delay[HOLD_SEL]) ? ad_load_2 : ad_hold_2;
-			ad_hold_3 <= (cs_delay[HOLD_SEL]) ? ad_load_3 : ad_hold_3;
-		end
-	end
-end
-
-logic adc_valid;
-assign adc_valid = cs_delay[VALID_SEL];
-
+// Output optional negation
 // data outputs with negation
-assign ad_out0 = ad_hold_0 ^ ((ad_neg[0])?12'h7FF:12'h800);
-assign ad_out1 = ad_hold_1 ^ ((ad_neg[1])?12'h7FF:12'h800);
-assign ad_out2 = ad_hold_2 ^ ((ad_neg[2])?12'h7FF:12'h800);
-assign ad_out3 = ad_hold_3 ^ ((ad_neg[3])?12'h7FF:12'h800);
-assign ad_strobe = adc_valid; // valid pulse aligned with new data.
+assign ad_out0 = ad_hold[0] ^ ((ad_neg[0])?12'h7FF:12'h800);
+assign ad_out1 = ad_hold[1] ^ ((ad_neg[1])?12'h7FF:12'h800);
+assign ad_out2 = ad_hold[2] ^ ((ad_neg[2])?12'h7FF:12'h800);
+assign ad_out3 = ad_hold[3] ^ ((ad_neg[3])?12'h7FF:12'h800);
 
 endmodule
 
