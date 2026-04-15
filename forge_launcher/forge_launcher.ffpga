@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.53.001" lastChange="12 Apr 2026 19:47:01" projectChecksumState="0" projectChecksum="69a6e402">
+<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.53.001" lastChange="15 Apr 2026 19:31:48" projectChecksumState="0" projectChecksum="0862f44e">
     <Metadata>
         <LegalNotice>This Design was generated using Renesas' proprietary Go Configure Software Hub and is provided for use solely in connection with Renesas GreenPAK integrated circuits. Any unauthorized use, reproduction, distribution, or manufacture of this Design is prohibited. This Design is provided 'AS IS' without warranties of any kind.</LegalNotice>
     </Metadata>
@@ -303,7 +303,7 @@
         <wire output="0" input="42" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="66" wireText="NET66" wireState="0">
             <points>(97.00,609.00); (314.00,609.00); (314.00,613.00); (320.00,613.00)</points>
         </wire>
-        <wire output="1" input="43" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="67" wireText="NET67" wireState="0">
+        <wire output="1" input="43" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="67" wireText="NET67" wireState="0">
             <points>(212.00,558.00); (314.00,558.00); (314.00,564.00); (320.00,564.00)</points>
         </wire>
         <wire output="2" input="44" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="19" wireText="NET19" wireState="0">
@@ -750,6 +750,8 @@
             <openedTab>forge_launcher.sdc</openedTab>
             <openedTab>Floorplan</openedTab>
             <openedTab>forge_launcher.sv</openedTab>
+            <openedTab>PLL Configurator</openedTab>
+            <openedTab>I/O Planner</openedTab>
         </openedTabs>
         <pipelineStagesStates>
             <pipelineStageState>
@@ -776,7 +778,7 @@
             <placement-constraints/>
         </modules>
         <io-spec-tool>
-            <records filter="16" filter1="16">
+            <records filter="64" filter1="16">
                 <record id="CLK_t[0:0]_E_in0">
                     <port-name>clk</port-name>
                 </record>

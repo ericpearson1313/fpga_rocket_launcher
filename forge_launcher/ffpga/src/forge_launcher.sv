@@ -115,7 +115,7 @@ always @( posedge clk ) begin
 		continuity <= 0;
 		one_time <= 0;
 	end else begin
-		one_time <= ( one_time == 3 ) ? 3 : one_time + 1;
+		one_time <= ( one_time == 3 ) ? 3 : ( one_time == 0 && !count[16] ) ? 0 : one_time + 1;
 		if( one_time == 2 ) begin
 			charge_reg <= auto_mode;
 			continuity <= 0;
