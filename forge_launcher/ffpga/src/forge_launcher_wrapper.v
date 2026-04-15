@@ -131,9 +131,9 @@
 		.dump			( dump ),
 		// ADC interface
 		.ad_cs			( ad_cs ),
-		.ad_s_iout		( ad_sdata_a[0] ),
-		.ad_s_vout		( ad_sdata_b[1] ),
-		.ad_s_vcap		( ad_sdata_a[1] ),
+		.ad_s_iout		( ad_sdata_a[1] ),
+		.ad_s_vout		( ad_sdata_a[0] ),
+		.ad_s_vcap		( ad_sdata_b[1] ),
 		.neg_iout		( 1'b0 ),
 		.neg_vout		( 1'b0 ),
 		.neg_vcap		( 1'b0 ),
