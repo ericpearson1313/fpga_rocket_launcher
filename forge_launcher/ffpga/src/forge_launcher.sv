@@ -51,7 +51,8 @@ module forge_launcher
 	parameter COIL_IND_UH = 390;
 
 	// Free running counter
-	logic [25:0] count;
+	logic [25:0] count = 0;
+	initial count = 0;
 	always_ff @(posedge clk) 
 	count <= count + 1;
 
@@ -62,13 +63,12 @@ module forge_launcher
 	logic [11:0] 	ad_vout;
 	logic 			ad_strobe;
 	logic [11:0] 	iest;
-	logic 		    burn = 0;
+
 	
 	// Display and Logging control outputs
-	logic charge;
-	logic fire_done = 0;
-	logic fire_button_debounce;
-	logic long_fire;
+
+
+
 
 //////////////////////////////////////////////
 // fire button 10ms debounce 
@@ -78,27 +78,26 @@ module forge_launcher
 // signal to stop tiny scroll window at 4.3 sec
 //////////////////////////////////////////////
 
-logic [27:0] fire_count = 0; 
-logic fire_flag = 0;
-
+logic fire_button_debounce;
+logic long_fire;
 forge_debounce #( CLOCK_FREQ_MHZ ) _firedb ( .clk( clk ), .reset( reset ), .in( fire_button ), .out( fire_button_debounce ), .long( long_fire ));
 
 parameter PWM_START     = 1; // Enable PWM current control 
-parameter PWM_END			= (CLOCK_FREQ_MHZ*4/3) * 1000 * 1000; // Total time 1.333 sec
+parameter PWM_END		= (CLOCK_FREQ_MHZ*4/3) * 1000 * 1000; // Total time 1.333 sec
 
-always @(posedge clk) begin
-	if( reset ) begin // for now, later should allow arm release
-		fire_count <= 0;
-		fire_flag <= 0;
-		fire_done <= 0;
-	end else begin
-		fire_count <= ( fire_count == 0 && !fire_button_debounce ) ? 0 : fire_count + 1; // committed when past debounce
-		fire_flag <= ( fire_count == PWM_START && !fire_done ) ? 1'b1 : ( fire_count == PWM_END ) ? 1'b0 : fire_flag;
-		fire_done <= ( fire_count == PWM_END ) ? 1'b1 : fire_done;
-	end
+logic [27:0] fire_count = 0; 
+logic fire_flag = 0;
+logic fire_done = 0;
+initial fire_count = 0;
+initial fire_flag = 0;
+initial fire_done = 0;
+always_ff @(posedge clk) begin
+	fire_count <= ( fire_count == 0 && !fire_button_debounce ) ? 0 : fire_count + 1; // committed when past debounce
+	fire_flag <= ( fire_count >= PWM_START && fire_count < PWM_END && !fire_done ) ? 1'b1 : 1'b0;
+	fire_done <= ( fire_count == PWM_END ) ? 1'b1 : fire_done;
 end
 
-assign dump = fire_done  | key == 5'h1B; // always dump after firing
+assign dump = fire_done; // always dump after firing
 
 ////////////////////////////////
 // Power On auto charge and continuity until fire button
@@ -106,65 +105,42 @@ assign dump = fire_done  | key == 5'h1B; // always dump after firing
 logic charge_reg;
 logic continuity;
 logic [1:0] one_time;
+logic cap_charged;
 initial charge_reg = 0;
 initial continuity = 0;
 initial one_time = 0;
-always @( posedge clk ) begin
-	if( reset ) begin
+always_ff @( posedge clk ) begin
+	one_time <= ( one_time == 3 ) ? 3 : ( one_time == 0 && !count[16] ) ? 0 : one_time + 1;
+	if( one_time == 2 ) begin
+		charge_reg <= 1;//auto_mode;
+		continuity <= 0;
+	end else if( cap_charged && charge_reg ) begin // switch to continuity
+		charge_reg <= 0;
+		continuity <= 1;
+	end else if( continuity && fire_flag ) begin // and end the launch sequence
 		charge_reg <= 0;
 		continuity <= 0;
-		one_time <= 0;
 	end else begin
-		one_time <= ( one_time == 3 ) ? 3 : ( one_time == 0 && !count[16] ) ? 0 : one_time + 1;
-		if( one_time == 2 ) begin
-			charge_reg <= auto_mode;
-			continuity <= 0;
-		end else if( ( lt3420_done || cap_charged ) && charge_reg ) begin // switch to continuity
-			charge_reg <= 0;
-			continuity <= 1;
-		end else if( continuity && fire_flag ) begin // and end the launch sequence
-			charge_reg <= 0;
-			continuity <= 0;
-		end else begin
-			charge_reg <= charge_reg;
-			continuity <= continuity;	
-		end
+		charge_reg <= charge_reg;
+		continuity <= continuity;	
 	end
 end
-assign charge = charge_reg;
-assign lt3420_charge = charge | key == 5'h1A;
+
+assign lt3420_charge = charge_reg;
 
 //////////////////////////////
 
 // Speaker is differential out gives 6Vp-p
-logic [15:0] tone_cnt;
+logic [7:0] tone_cnt;
 logic cont_tone, first_tone;
 logic spk_en, spk_toggle;
-
-always @(posedge clk) begin
+always_ff @(posedge clk) begin
 	if( tone_cnt == 0 ) begin
 		spk_toggle <= !spk_toggle;
-		if( CLOCK_FREQ_MHZ == 24 ) begin
-			{spk_en, tone_cnt}<= ( key == 5'h11 || fire_button_debounce ) ? { 1'b1, 16'h1665 } :
-										//( key == 5'h12 ) ? { 1'b1, 16'h13f3 } :
-										( key == 5'h13 ) ? { 1'b1, 16'h11c6 } :
-										//( key == 5'h14 ) ? { 1'b1, 16'h10C7 } :
-										( key == 5'h15 ) ? { 1'b1, 16'h0EF2} :
-										//( key == 5'h16 ) ? { 1'b1, 16'h0d51 } :
-										//( key == 5'h17 ) ? { 1'b1, 16'h0bdd } :
-										( /*key == 5'h18 ||*/ ( (cont_tone && !mute) || first_tone ) ) ? { 1'b1, 16'h0b32 } : 0; // sw0 mutes tone
-		end else begin // CLK_FREQ_MHZ == 48
-			{spk_en, tone_cnt}<= ( key == 5'h11 || fire_button_debounce ) ? { 1'b1, 16'h2CCA } :
-										//( key == 5'h12 ) ? { 1'b1, 16'h27E7 } :
-										( key == 5'h13 ) ? { 1'b1, 16'h238D } :
-										//( key == 5'h14 ) ? { 1'b1, 16'h218E } :
-										( key == 5'h15 ) ? { 1'b1, 16'h1DE5 } :
-										//( key == 5'h16 ) ? { 1'b1, 16'h1AA2 } :
-										//( key == 5'h17 ) ? { 1'b1, 16'h17BA } :
-										( /*key == 5'h18 ||*/ ( (cont_tone && !mute) || first_tone ) ) ? { 1'b1, 16'h1665 } : 0; // sw0 mutes tone
-		end
+		{spk_en, tone_cnt} <= 	( fire_button_debounce               ) ? { 1'b1, 8'h2C } :
+								( (cont_tone && !mute) || first_tone ) ? { 1'b1, 8'h16 } : 0; // sw0 mutes tone
 	end else begin
-		tone_cnt <= tone_cnt - 1;
+		tone_cnt <= (count[7:0]==0) ? tone_cnt - 1 : tone_cnt;
 		spk_en <= spk_en;
 		spk_toggle <= spk_toggle;
 	end
@@ -176,57 +152,52 @@ assign speaker = spk_toggle & spk_en ;
 // Burn-through detect 
 // If burn through occurs we will see high dvdt on the output.
 // In this case we'll stop operation to minimize voltage spikes.
- 
-logic current_seen = 0;
+logic burn = 0; 
+//logic current_seen = 0;
 logic [11:0] ad_vout_del = 0;
+initial burn = 0;
+//initial current_seen = 0;
+initial ad_vout_del = 0;
+
 logic signed [12:0] dv; // delta voltage
 assign dv[12:0] = { ad_vout[11], ad_vout[11:0] } - { ad_vout_del[11], ad_vout_del[11:0] };
-initial ad_vout_del = 0;
 /* verilator lint_off REALCVT */
 logic signed [12:0] max_dvdt = 100 * (16 * 10000) / (ADC_VOLTS_PER_DN * 10000 * CLOCK_FREQ_MHZ); // (100 v/usec limit * 16 cyc/sample)/(.2005 v/dn * 48 Mhz)
 /* verilator lint_on REALCVT */
-always @(posedge clk) begin
-	if( reset ) begin
-		burn <= 0;
-		current_seen <= 0;
-		ad_vout_del <= 0;
-	end else begin
-		current_seen <= ( fire_flag && !ad_iout[11] && ad_iout >100 ) ? 1'b1 : current_seen; // current > 1/2 Amp seen
-		burn <=(((( ad_iout[11] || ad_iout < 32) || ((ad_vout > ad_vcap) && !ad_vout[11]&&!ad_vcap[11]) ) && // Iout < 1/6 amp || Vout > Vcap
-					(!ad_vcap[11] && ((ad_vcap) > (256))) && // and Vcap > 50 Volts 
-					current_seen && fire_flag ) || 		// and have seen current over 1/2 amp in this firing cycle, 
-				   ( fire_flag && ( dv > max_dvdt ))	// dv > +100 V/us, open
-					) ? 1'b1 : burn; 
-		ad_vout_del <= ad_vout; // ad_vout only changes on sample x16, but is fine for our detection use
-	end
+always_ff @(posedge clk) begin
+	burn <= (!fire_flag&&!fire_done) ? 0 : ( fire_flag && ( dv > max_dvdt )) ? 1'b1 : burn;
+	ad_vout_del <= ad_vout; // ad_vout only changes on sample x16, but is fine for our detection use
 end
 
 ////////////////////////////////////////////
 // PWM Current limited pulse generator
 ////////////////////////////////////////////
-logic 			pwm_pulse = 0;
-logic [15:0] 	pulse_time = 0;
-logic [9:0] 	pulse_count = 0;
-logic				ramp_flag = 0;
 
 logic [11:0] 	thresh_hi, thresh_lo;
 
 localparam COUNT_10MS = 28'h00_80000; // 10ms / CLOCK_FREQ_MHZ
 localparam COUNT_20MS = 28'h01_00000; // 20ms / CLOCK_FREQ_MHZ
 localparam COUNT_30MS = 28'h01_80000; // 30ms / CLOCK_FREQ_MHZ
-always @(posedge clk) thresh_hi <= 	(!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 + 20 ) :
+always_ff @(posedge clk) thresh_hi <= 	(!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 + 20 ) :
 									(fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 + 20 ) : // until 10ms setpoint 2Amp 
 									(fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 + 20 ) : // until 20ms setpoint 4amp
 									(fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 + 20 ) : // until 20ms setpoint 4amp
 									                         /* remainder */  ( ADC_DN_PER_AMP * 8 + 20 ) ; // remainder  setpoint 6Amp
-always @(posedge clk) thresh_lo <= 	(!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
+always_ff @(posedge clk) thresh_lo <= 	(!fire_flag                           ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
 									(fire_flag && fire_count < COUNT_10MS ) ? ( ADC_DN_PER_AMP * 2 - 20 ) : 
 									(fire_flag && fire_count < COUNT_20MS ) ? ( ADC_DN_PER_AMP * 4 - 20 ) : 
 									(fire_flag && fire_count < COUNT_30MS ) ? ( ADC_DN_PER_AMP * 6 - 20 ) : 
 									                         /* remainder */  ( ADC_DN_PER_AMP * 8 - 20 ) ;
 
-
-always @(posedge clk) begin
+logic 			pwm_pulse = 0;
+logic [15:0] 	pulse_time = 0;
+logic [9:0] 		pulse_count = 0;
+logic			ramp_flag = 0;
+initial			pwm_pulse = 0;
+initial			pulse_time = 0;
+initial			pulse_count = 0;
+initial			ramp_flag = 0;
+always_ff @(posedge clk) begin
 	if( reset ) begin
 		pwm_pulse <= 0;
 		pulse_time <= 0;
@@ -271,11 +242,6 @@ always @(posedge clk) begin
 				pulse_time <= pulse_time + 1; 
 				pulse_count <= pulse_count;
 			end			
-		end else if( ( key == 5'h10) && count[15:0] == 0 ) begin // (re)Triggered by fire key at 64k/48Mhz=1.3ms period
-			ramp_flag <= 1; // short back to back pulses
-			pwm_pulse <= 1; // Set pwm output
-			pulse_time <= 1; // start max width counter
-			pulse_count <= 3; // two pulses
 		end else begin // await trigger
 			ramp_flag <= 1;
 			pwm_pulse <= 0;
@@ -291,7 +257,6 @@ end
 forge_adc_module_4ch  _adc (
 	// Input clock
 	.clk( clk ),
-	.reset( reset ),
 	// External A/D interface
 	.ad_cs		( ad_cs ),
 	.ad_sdata 	( { ad_s_vout, 1'b0, ad_s_vcap, ad_s_iout } ),
@@ -309,7 +274,6 @@ forge_adc_module_4ch  _adc (
 forge_model_coil #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _model (
 	// Input clock
 	.clk( clk ),
-	.reset( reset ),
 	// PWM input
 	.pwm( pwm ),
 	// Votlage Inputs
@@ -324,14 +288,13 @@ forge_model_coil #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_U
 logic res_pwm;
 forge_igniter_continuity #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ ) _res_cont (
 	.clk( clk ),
-	.reset( reset ),
 	// Votlage and Current Inputs
 	.valid_in( ad_strobe ),
 	.v_in( ad_vout ), // ADC Vout
 	.i_in( ad_iout ), // ADC Iout
 	// PWM output and enable input
 	.pwm( res_pwm ),
-	.enable( key == 5'h19 || continuity ),
+	.enable( continuity ),
 	// Tone and LED output
 	.tone( cont_tone ),
 	.first_tone( first_tone ),
@@ -345,17 +308,14 @@ assign pwm = pwm_pulse | res_pwm;
 logic [10:0] vcap;
 assign vcap = ( ad_vcap[11] || ad_vcap[10:4] == 0 ) ? 11'b0 : ( ad_vcap[10:0] );
 
-logic cap_charged = 0;
-always @( posedge clk ) begin
-	if( reset ) begin
-		cap_charged <= 0;
-	end else begin
-		cap_charged <= ( ad_strobe && vcap > (( 310 * 10000 ) / 2005 ) ) ? 1'b1 :
-		               ( ad_strobe && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
-	end
+
+always_ff @( posedge clk ) begin
+	cap_charged <= ( ad_strobe && vcap > (( 310 * 10000 ) / 2005 ) ) ? 1'b1 :
+	               ( ad_strobe && vcap < (( 50  * 10000 ) / 2005 ) ) ? 1'b0 : cap_charged;
 end
 
-assign arm_led = cap_charged | ( charge_reg && ((CLOCK_FREQ_MHZ==24)?(count[23:20]==0):(count[24:21]==0)) );
+always_ff @(posedge clk)
+	arm_led <= cap_charged | ( charge_reg && (count[24:21]==0) );
 
 endmodule
 
@@ -378,7 +338,7 @@ module forge_debounce(
 	logic       inm;
 
 	
-	always @(posedge clk) { inm, meta } <= { meta, in };
+	always_ff @(posedge clk) { inm, meta } <= { meta, in };
 	
 	// State Machine	
 	localparam S_IDLE 		= 0;
@@ -390,7 +350,7 @@ module forge_debounce(
 	localparam S_WAIT_LOFF	= 6;
 	
 	logic [2:0] state = S_IDLE;
-	always @(posedge clk) begin
+	always_ff @(posedge clk) begin
 		if( reset ) begin
 			state <= S_IDLE;
 		end else begin
@@ -411,7 +371,7 @@ module forge_debounce(
 	assign long = (state == S_LONG || state == S_WAIT_LOFF) ? 1'b1 : 1'b0;
 	
 	// Counters
-	always @(posedge clk) begin
+	always_ff @(posedge clk) begin
 		if( reset ) begin
 			count0 <= 0;
 			count1 <= 0;
@@ -427,9 +387,8 @@ endmodule
 	
 module forge_adc_module_4ch 
 (
-	// Input clock, reset
+	// Input clock,
 	input logic clk,
-	input logic reset,
 	
 	// External A/D Converters (2.5v)
 	output logic        ad_cs,
@@ -437,11 +396,11 @@ module forge_adc_module_4ch
 	input  logic  [3:0] ad_neg,
 	
 	// ADC monitor outputs
-	output [11:0] ad_out0,
-	output [11:0] ad_out1,
-	output [11:0] ad_out2,
-	output [11:0] ad_out3,
-	output ad_strobe
+	output logic [11:0] ad_out0,
+	output logic [11:0] ad_out1,
+	output logic [11:0] ad_out2,
+	output logic [11:0] ad_out3,
+	output logic ad_strobe
 );
 
 // ADC sample pulse 
@@ -453,35 +412,35 @@ parameter ADCS_SEL = 15;  // early CS output cycle
 
 reg [3:0] sample_div = 0;
 initial sample_div = 0;
-always @(posedge clk) sample_div <= sample_div + 1;
+always_ff @(posedge clk) sample_div <= sample_div + 1;
 
 // ad_cs reg is to be I/O_reg
 // ad_cs is active during sample_div == 0;
-always @(posedge clk) 
+always_ff @(posedge clk) 
 	ad_cs <= ( sample_div == ADCS_SEL ) ? 1'b1 : 1'b0;
 
 // DATA Input I/O registers
 logic [3:0] ad_ireg;
-always @(posedge clk)
+always_ff @(posedge clk)
 	ad_ireg <= ad_sdata;
 
 // Data input shift regisers MSB first
-logic [3:0][11:0] ad_sreg;
-always @(posedge clk)
+reg [3:0][11:0] ad_sreg;
+always_ff @(posedge clk)
 	for( int ii =  0; ii < 4; ii++ ) 
 		ad_sreg[ii] <= { ad_sreg[ii][10:0], ad_ireg[ii] };
 
 // Data hold registers
 logic ad_hold_en;
-always @(posedge clk) 
+always_ff @(posedge clk) 
 	ad_hold_en <= ( sample_div == HOLD_SEL ) ? 1'b1 : 1'b0;
 logic [3:0][11:0] ad_hold;
-always @(posedge clk) 
+always_ff @(posedge clk) 
 	for( int ii =  0; ii < 4; ii++ ) 
 		ad_hold[ii] <= ( ad_hold_en ) ? ad_sreg[ii] : ad_hold[ii];
 	
 // ad_strobe reg
-always @(posedge clk) ad_strobe <= ad_hold_en;
+always_ff @(posedge clk) ad_strobe <= ad_hold_en;
 
 // Output optional negation
 // data outputs with negation
@@ -504,7 +463,6 @@ module forge_model_coil
 (
 	// Input clock, reset
 	input logic clk,
-	input logic reset,	
 	// ADC voltage inputs (sample and held )
 	input logic [11:0] vcap, // ADC native signed format. +-401V gives -+2000DN
 	input logic [11:0] vout, // -.2005V/DN, about 5 digital number steps per volt
@@ -525,7 +483,7 @@ parameter COIL_IND_UH = 390;
 
 // Current Model assignments and accumulator
 // Multiply by 1/Lf
-logic [23:0] iest_cur, iest_hold, iest_next, i_acc = 0;
+
 
 /////////////////////////
 // Coil Current Model
@@ -565,16 +523,10 @@ always_ff @(posedge clk) deltai <= deltai_rom[(deltav[12])?0:deltav[10-:6]]; // 
 
 // Iest current is signed 12.12 in ADC current DN scale
 // coil saturation at 5A ( i_acc[22] = 1 }
-always_ff @(posedge clk)
-	iest_next[23:0] <= i_acc[23:0] + (i_acc[22] ? { 7'h00, deltai, 1'b0 } : { 8'h00, deltai });
-	
-// current accumulator
-logic pwm_del;
-always @(posedge clk) pwm_del <= pwm;
-always @(posedge clk) begin
-	if( reset ) begin
-		i_acc[23:0] <= 36'b0;
-	end else if( !pwm ) begin // load rea value when pwm is low.
+logic [23:0] iest_next, i_acc;
+assign iest_next[23:0] = i_acc[23:0] + (i_acc[22] ? { 7'h00, deltai, 1'b0 } : { 8'h00, deltai });
+always_ff @(posedge clk) begin
+	if( !pwm ) begin // load rea value when pwm is low.
 		i_acc[23:0] <= { ( iout[11] ) ? 12'h0 : ( iout[11:0] ), 12'h000 };
 	end else begin // Accumulate during PWM for rise
 		i_acc[23:0] <= iest_next; // 12 fractional bits
@@ -597,7 +549,6 @@ module forge_igniter_continuity
 (
 	// System
 	input logic clk,
-	input logic reset,
 	
 	// ADC Inputs (output I,V)
 	input logic valid_in,
@@ -605,15 +556,15 @@ module forge_igniter_continuity
 	input logic [11:0] i_in,	
 	
 	// PWM Output
-	output pwm,
+	output logic pwm,
 
 	// input Enable
-	input enable,
+	input logic enable,
 	
 	// Outputs
-	output tone,
-	output first_tone,
-	output logic led = 0
+	output logic tone,
+	output logic first_tone,
+	output logic led,
 );
 	
 	// ADC Scale parameters
@@ -625,19 +576,15 @@ module forge_igniter_continuity
 	
 	// Triggering with 0.6 Sec holdoff
 	logic [24:0] holdoff = 0;
-	always @(posedge clk) begin
-		if( reset ) begin
+	always_ff @(posedge clk) begin
+		if( !enable ) begin
 			holdoff <= 0;
+		end else if( enable && ( holdoff == 0 ) ) begin // start
+			holdoff <= 1;
+		end else if( holdoff != 0 ) begin // holdoff delay until wrap
+			holdoff <= holdoff + 1;
 		end else begin
-			if( !enable ) begin
-				holdoff <= 0;
-			end else if( enable && ( holdoff == 0 ) ) begin // start
-				holdoff <= 1;
-			end else if( holdoff != 0 ) begin // holdoff delay until wrap
-				holdoff <= holdoff + 1;
-			end else begin
-				holdoff <= 0;
-			end
+			holdoff <= 0;
 		end
 	end
 	
@@ -650,37 +597,28 @@ module forge_igniter_continuity
 	assign current = ( i_in[11] ) ? 11'h000 : ( i_in[10:0] );
 	assign voltage = ( v_in[11] ) ? 11'h000 : ( v_in[10:0] );	
 	
-	localparam START_TIME = ( CLOCK_FREQ_MHZ == 24 ) ? 128 : 256;
-	localparam END_TIME = ( CLOCK_FREQ_MHZ == 24 ) ? 2048 : 4096;
+	localparam START_TIME = 256;
+	localparam END_TIME = 4096;
 	
 	// Max IV accumulate
 	logic [10:0] imax = 0, vmax = 0;
-	always @(posedge clk) begin
-		if( reset ) begin
+	always_ff @(posedge clk) begin
+		if( holdoff == 0 ) begin // Idle, just hold values, zero acc
 			imax <= 0;
 			vmax <= 0;
-		end else begin 
-			if( holdoff == 0 ) begin // Idle, just hold values, zero acc
-				imax <= 0;
-				vmax <= 0;
-			end else if( holdoff > START_TIME && holdoff < END_TIME && valid_in ) begin 
-			   // accumulate valid samples
-			    imax <= ( current > imax ) ? current : imax;
-			    vmax <= ( voltage > vmax ) ? voltage : vmax;
-			end else begin
-				imax <= imax;
-				vmax <= vmax;
-			end
+		end else if( holdoff > START_TIME && holdoff < END_TIME && valid_in ) begin 
+		   // accumulate valid samples
+		    imax <= ( current > imax ) ? current : imax;
+		    vmax <= ( voltage > vmax ) ? voltage : vmax;
+		end else begin
+			imax <= imax;
+			vmax <= vmax;
 		end
 	end
 	
 	// Set LED if between 1 and 16 ohms
-	always @(posedge clk) begin
-		if( reset ) begin
-			led <= 0;
-		end else begin // if we see 300mA there *IS* a connection
-			led <= (enable == 0 ) ? 1'b0 : ( holdoff == END_TIME + 1 ) ? (( imax > 64 ) ? 1'b1 : 1'b0 ) : led;
-		end
+	always_ff @(posedge clk) begin
+		led <= (enable == 0 ) ? 1'b0 : ( holdoff == END_TIME + 1 ) ? (( imax > 64 ) ? 1'b1 : 1'b0 ) : led;
 	end
 	
 	// Tones 
@@ -696,12 +634,8 @@ module forge_igniter_continuity
 
 	logic first = 1;	
 	initial first = 1;
-	always @(posedge clk) begin
-		if( reset ) begin
-			first <= 1;
-		end else begin
-			first <= ( beep_time == 8 ) ? 1'b0 : first;
-		end
+	always_ff @(posedge clk) begin
+		first <= ( !enable ) ? 1 : ( beep_time == 8 ) ? 1'b0 : first;
 	end
 			
 	assign first_tone = first & tone;

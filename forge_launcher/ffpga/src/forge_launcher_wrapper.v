@@ -46,20 +46,18 @@
 						output [2:0] pll_postdiv1,
 						output [2:0] pll_postdiv2,
 						output pll_bypass,
-						output pll_clk_selection
-
+						output pll_clk_selection,
+    						input pll_lock
 );
 
     // PLL Control, 50 Mhz int Osc Ref,  2 x 48 Mhz = 96 Mhz out
-     assign pll_en = 1'b1;
+    assign pll_en = 1'b1;
     assign pll_refdiv = 6'b00_0101;		// Equivalent value in decimal form 6'd5,
     assign pll_fbdiv = 12'b0000_1001_0000;	// Equivalent value in decimal form 12'd144,
     assign pll_postdiv1 = 3'b101;		// Equivalent value in decimal form 3'd5,
     assign pll_postdiv2 = 3'b011;		// Equivalent value in decimal form 3'd3,
     assign pll_bypass = 1'b0;
     assign pll_clk_selection = 1'b0;
-
-
     
     // Enable LAC 0
     assign logic_as_clk0_en = 1'b1;

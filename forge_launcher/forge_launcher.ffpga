@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.53.001" lastChange="15 Apr 2026 19:31:48" projectChecksumState="0" projectChecksum="0862f44e">
+<GPDProject version="40" oldestCompatibleVersion="32" GPDVersion="6.53.001" lastChange="16 Apr 2026 14:30:22" projectChecksumState="0" projectChecksum="2b61f77a">
     <Metadata>
         <LegalNotice>This Design was generated using Renesas' proprietary Go Configure Software Hub and is provided for use solely in connection with Renesas GreenPAK integrated circuits. Any unauthorized use, reproduction, distribution, or manufacture of this Design is prohibited. This Design is provided 'AS IS' without warranties of any kind.</LegalNotice>
     </Metadata>
     <generalProjectSettings/>
     <chip family="04" type="06" friendlyName="FFPGA" partNumber="67" package="26">
-        <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 14 0 30 22 22 2 30 83 22 22 0 28 3 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
-        <checksum crc32="0x53DB758A" version="2"/>
+        <nvmData registerLenght="480">0 0 0 28 0 0 0 0 A5 A5 A5 A5 0 0 0 0 0 0 0 0 5A 5A 5A 5A 0 0 34 0 30 22 22 2 30 80 22 22 0 28 3 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</nvmData>
+        <checksum crc32="0xE088FA40" version="2"/>
         <virtualProperties/>
         <VDDItem id="0">
             <item id="0" caption="VDDC (PIN 22)">
@@ -303,7 +303,7 @@
         <wire output="0" input="42" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="66" wireText="NET66" wireState="0">
             <points>(97.00,609.00); (314.00,609.00); (314.00,613.00); (320.00,613.00)</points>
         </wire>
-        <wire output="1" input="43" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="67" wireText="NET67" wireState="0">
+        <wire output="1" input="43" autoRouting="1" pen="#0293fdff;1.00;1;32;128" lineType="7" protected="1" CWLid="67" wireText="NET67" wireState="0">
             <points>(212.00,558.00); (314.00,558.00); (314.00,564.00); (320.00,564.00)</points>
         </wire>
         <wire output="2" input="44" autoRouting="1" pen="#ff8000ff;1.00;1;32;128" lineType="2" protected="1" CWLid="19" wireText="NET19" wireState="0">
@@ -716,7 +716,7 @@
                 <MAX_CPU>16</MAX_CPU>
                 <additionalArguments></additionalArguments>
                 <clockConcurrentOptimization>true</clockConcurrentOptimization>
-                <compilerVersion>23</compilerVersion>
+                <compilerVersion>22</compilerVersion>
                 <highDensityIOPacking>false</highDensityIOPacking>
                 <highDensityPackingLogic>true</highDensityPackingLogic>
                 <maximumRoutingIterations>300</maximumRoutingIterations>
@@ -750,8 +750,8 @@
             <openedTab>forge_launcher.sdc</openedTab>
             <openedTab>Floorplan</openedTab>
             <openedTab>forge_launcher.sv</openedTab>
-            <openedTab>PLL Configurator</openedTab>
             <openedTab>I/O Planner</openedTab>
+            <openedTab>PLL Configurator</openedTab>
         </openedTabs>
         <pipelineStagesStates>
             <pipelineStageState>
@@ -790,6 +790,9 @@
                 </record>
                 <record id="IOB_t[0:0]_xy[0:11]_out1">
                     <port-name>pll_bypass</port-name>
+                </record>
+                <record id="IOB_t[0:0]_xy[0:12]_in1">
+                    <port-name>pll_lock</port-name>
                 </record>
                 <record id="IOB_t[0:0]_xy[0:12]_out0">
                     <port-name>pll_fbdiv[0]</port-name>
@@ -1128,8 +1131,8 @@
                     <pllProperties>
                         <pllBypass>0</pllBypass>
                         <pllClockSelection>0</pllClockSelection>
-                        <pllEnableUserClockByPll>0</pllEnableUserClockByPll>
-                        <pllLock>0</pllLock>
+                        <pllEnableUserClockByPll>1</pllEnableUserClockByPll>
+                        <pllLock>1</pllLock>
                     </pllProperties>
                 </pllConfiguration>
             </pllConfigurations>
