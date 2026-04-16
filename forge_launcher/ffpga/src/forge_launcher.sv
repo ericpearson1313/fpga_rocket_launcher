@@ -564,7 +564,7 @@ module forge_igniter_continuity
 	// Outputs
 	output logic tone,
 	output logic first_tone,
-	output logic led,
+	output logic led
 );
 	
 	// ADC Scale parameters
