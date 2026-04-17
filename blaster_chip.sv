@@ -193,8 +193,8 @@ parameter COIL_IND_UH = 390;
 	logic [13:0] m_fire_cnt;
 	
 	always @(posedge clk) begin
-		m_fire_cnt <= ( reset ) ? 0 : ( m_fire_cnt == 14'h3fff ) ? 14'h3fff : ( m_fire_cnt == 0 && !m_fire_button_debounce ) ? 0 : m_fire_cnt+1;
-		m_cap_halt <= ( reset ) ? 0 : ( m_fire_cnt == 14'h3fff ) ? 1 : m_cap_halt;
+		m_fire_cnt <= ( m_charge ) ? 0 : ( m_fire_cnt == 14'h3fff ) ? 14'h3fff : ( m_fire_cnt == 0 && !m_fire_button_debounce ) ? 0 : m_fire_cnt+1;
+		m_cap_halt <= ( m_charge ) ? 0 : ( m_fire_cnt == 14'h3fff ) ? 1 : m_cap_halt;
 	end
 
 	// monitor LCC digital I/O pins
