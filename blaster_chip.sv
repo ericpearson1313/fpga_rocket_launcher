@@ -208,7 +208,18 @@ parameter COIL_IND_UH = 390;
 							m_charge	,
 							m_pwm		,	
 							m_dump		};	
-	
+
+	// Text legend
+	logic [7:0] leg_str;
+	string_overlay #(.LEN(4)) i_leg00 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d89),.y('d50+0), .out( leg_str[0] ), .str("Dump") );
+	string_overlay #(.LEN(4)) i_leg01 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d89),.y('d50+1), .out( leg_str[1] ), .str("Pwm ") );
+	string_overlay #(.LEN(4)) i_leg02 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d89),.y('d50+2), .out( leg_str[2] ), .str("Chrg") );
+	string_overlay #(.LEN(4)) i_leg03 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d89),.y('d50+3), .out( leg_str[3] ), .str("Spkr") );
+	string_overlay #(.LEN(4)) i_leg04 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d89),.y('d50+4), .out( leg_str[4] ), .str("Cont") );
+	string_overlay #(.LEN(4)) i_leg05 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d89),.y('d50+5), .out( leg_str[5] ), .str("Arm ") );
+	string_overlay #(.LEN(4)) i_leg06 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d89),.y('d50+6), .out( leg_str[6] ), .str("Fire") );
+	string_overlay #(.LEN(4)) i_leg07 (.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y), .ascii_char(ascii_char), .x('d89),.y('d50+7), .out( leg_str[7] ), .str("Mute") );
+
 	// Create AD Clock
 	logic ad_clk;
 	assign ad_clk = !ad_sclk;
@@ -926,6 +937,7 @@ parameter COIL_IND_UH = 390;
 						  (|in_str  ) |
 						  ( text_ovl && text_color == 0 ) | // normal text
 						  ( key_strg) |
+						  (|leg_str ) |
 						  (|id_str  ) ;
 	
 
