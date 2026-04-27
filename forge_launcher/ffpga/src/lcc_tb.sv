@@ -166,7 +166,8 @@ module lcc_tb( );
 		.ADC_DN_PER_AMP		( ADC_DN_PER_AMP   ),
 		.ADC_DN_PER_JOULE	( ADC_DN_PER_AMP   ), // joule use amp scale
 		.CLOCK_FREQ_MHZ		( CLOCK_FREQ_MHZ   ), 
-		.COIL_IND_UH		( COIL_IND_UH 	   )
+		.COIL_UH			( 390 ),
+		.CAP_UF             ( 200 )
 	) i_intsim (
 		.clk	( clk ),
 		.reset	( reset ),
