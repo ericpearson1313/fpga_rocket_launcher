@@ -153,6 +153,15 @@ module lcc_tb( );
 	// System Model     
 	/////////////////////	
 	
+	parameter R = 2.0; // Load resistance
+	parameter R_DUMP = 300.0; // dump resistance f(real is 3k3)
+	parameter CAP_VOLTAGE = 320.0;
+	parameter COIL_UH = 390.0;
+	parameter FREQ_MHZ = 48;
+	parameter PERIOD_NS = 20.8;
+	parameter CAP_UF = 200.0;  // 200uF
+	parameter CH_RATE = 30.0; //  Joule/sec (real 3.0)
+
 	// integer system model for inclusion in fpga
 	// to build a chip tester system simulator. 
 	// a simulator include an integer model to calaculate
@@ -166,8 +175,11 @@ module lcc_tb( );
 		.ADC_DN_PER_AMP		( ADC_DN_PER_AMP   ),
 		.ADC_DN_PER_JOULE	( ADC_DN_PER_AMP   ), // joule use amp scale
 		.CLOCK_FREQ_MHZ		( CLOCK_FREQ_MHZ   ), 
-		.COIL_UH			( 390 ),
-		.CAP_UF             ( 200 )
+		.COIL_UH			( COIL_UH ),
+		.CAP_UF             ( CAP_UF ),
+		.CH_RATE			( CH_RATE ), // normally 2.5 J/s
+		.R_DUMP				( R_DUMP ), // normally 3k3
+		.R					( R ) // resistance ohms
 	) i_intsim (
 		.clk	( clk ),
 		.reset	( reset ),
@@ -186,6 +198,13 @@ module lcc_tb( );
 		.ad_ecap	( ad_ecap )
 	);
 
+	real m_iout, m_vout, m_vcap, m_icap, m_ecap;
+	assign m_iout = ad_iout / ADC_DN_PER_AMP;
+	assign m_icap = ad_icap / ADC_DN_PER_AMP;
+	assign m_vout = ad_vout * ADC_VOLTS_PER_DN;
+	assign m_vcap = ad_vcap * ADC_VOLTS_PER_DN;
+	assign m_ecap = ad_ecap / ADC_DN_PER_AMP;
+
 	// Model of power module 
 	// root states are capacitor energy and coil (output) current.
 	// The model updates these dynamically from the pwm state
@@ -193,14 +212,6 @@ module lcc_tb( );
 	// The output voltage is a function of igniter resistance and coil (output) current.
 	// 
 
-	parameter R = 2.0; // Load resistance
-	parameter R_DUMP = 300.0; // dump resistance f(real is 3k3)
-	parameter CAP_VOLTAGE = 320.0;
-	parameter COIL_UH = 399.0;
-	parameter FREQ_MHZ = 48;
-	parameter PERIOD_NS = 20.8;
-	parameter CAP_UF = 200.0;  // 200uF
-	parameter CH_RATE = 30.0; //  Joule/sec (real 3.0)
 
 	real ecap, ecap_n; 		
 	real icap, icap_n; 

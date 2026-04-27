@@ -17,7 +17,8 @@ module lcc_syssim #(
 	parameter	COIL_UH				= 390, // coil in uH
 	parameter 	CAP_UF				= 200,
 	parameter   CH_RATE				= 30.0, // Joule/sec
-	parameter   R_DUMP 				= 300.0 // Dump resistor in ohms
+	parameter   R_DUMP 				= 300.0, // Dump resistor in ohms
+	parameter   R      				= 2.0 // igniter resistance in ohms
 	) (
 		// system
 		input logic clk,
@@ -47,6 +48,7 @@ module lcc_syssim #(
 	localparam ADC_DUMP_CONST = (1<<30) * ( ADC_DN_PER_JOULE / ( R_DUMP * CAP_UF * CLOCK_FREQ_MHZ ) );
 	localparam ADC_COIL_CONST = (1<<30) / ( COIL_UH * CLOCK_FREQ_MHZ );
 	localparam ADC_CAP_CONST  = (1<<30) * ( ADC_DN_PER_JOULE * ( ADC_VOLTS_PER_DN ) / ( ADC_DN_PER_AMP ) );
+	localparam ADC_OUT_CONST  = (1<<16) * ( R / ( ADC_DN_PER_AMP * ADC_VOLTS_PER_DN ) );
 
 	// Cap Energy to voltage rom
 	logic [11:0] vcap_rom [63:0]; // unsigned 6 MSBs as input
@@ -60,6 +62,7 @@ module lcc_syssim #(
 		$display("ADC_DUMP_CONST = %f", ADC_DUMP_CONST );
 		$display("ADC_COIL_CONST = %f", ADC_COIL_CONST );
 		$display("ADC_CAP_CONST = %f", ADC_CAP_CONST );
+		$display("ADC_OUT_CONST = %f", ADC_OUT_CONST );
 		/* synopsys translate_on */
 	end
 	always_ff @(posedge clk) vcap <= vcap_rom[ ecap[38-:6] ];
@@ -88,9 +91,11 @@ module lcc_syssim #(
 		end else if( pwm ) begin
 			iout <= iout + ((( vcap - vout ) * ADC_COIL_CONST) << (40-30));
 			ecap <= ecap - vcap * iout * ADC_CAP_CONST;
+			vout <= ( iout * ADC_OUT_CONST ) >> 16;
 		end else /* !pwm */ begin
 			iout <= iout - ((( vout ) * ADC_COIL_CONST) << (40-12-16));
 			ecap <= ecap;
+			vout <= ( iout * ADC_OUT_CONST ) >> 16;
 		end 
 	end
 
