@@ -152,6 +152,39 @@ module lcc_tb( );
 	/////////////////////
 	// System Model     
 	/////////////////////	
+	
+	// integer system model for inclusion in fpga
+	// to build a chip tester system simulator. 
+	// a simulator include an integer model to calaculate
+	// the ADC values, which are derived from inductor and capacitor
+	// models that respond to control inputs
+
+	logic [11:0] ad_iout, ad_vout, ad_vcap, ad_icap, ad_ecap;
+
+	lcc_syssim #(
+    	.ADC_VOLTS_PER_DN	( ADC_VOLTS_PER_DN ), 
+		.ADC_DN_PER_AMP		( ADC_DN_PER_AMP   ),
+		.ADC_DN_PER_JOULE	( ADC_DN_PER_AMP   ), // joule use amp scale
+		.CLOCK_FREQ_MHZ		( CLOCK_FREQ_MHZ   ), 
+		.COIL_IND_UH		( COIL_IND_UH 	   )
+	) i_intsim (
+		.clk	( clk ),
+		.reset	( reset ),
+		// hardware power control signals
+		.dump	( dump ),
+		.charge ( charge ),
+		.pwm	( pwm ),
+		// virtual simulaiton inputs
+		.burn	( burn ),
+		// ADC outputs
+		.ad_iout	( ad_iout ),
+		.ad_vout	( ad_vout ),
+		.ad_vcap	( ad_vcap ),
+		// Monitoring outputs
+		.ad_icap	( ad_icap ),
+		.ad_ecap	( ad_ecap )
+	);
+
 	// Model of power module 
 	// root states are capacitor energy and coil (output) current.
 	// The model updates these dynamically from the pwm state
