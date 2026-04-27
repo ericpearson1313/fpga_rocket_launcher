@@ -46,6 +46,7 @@ module lcc_syssim #(
 	localparam ADC_CHARGE_PER_CYCLE = ( CH_RATE * ADC_DN_PER_JOULE * (1<<30) ) / ( CLOCK_FREQ_MHZ * 1000000.0 );
 	localparam ADC_DUMP_CONST = (1<<30) * ( ADC_DN_PER_JOULE / ( R_DUMP * CAP_UF * CLOCK_FREQ_MHZ ) );
 	localparam ADC_COIL_CONST = (1<<30) / ( COIL_UH * CLOCK_FREQ_MHZ );
+	localparam ADC_CAP_CONST  = (1<<30) * ( ADC_DN_PER_JOULE * ( ADC_VOLTS_PER_DN ) / ( ADC_DN_PER_AMP ) );
 
 	// Cap Energy to voltage rom
 	logic [11:0] vcap_rom [63:0]; // unsigned 6 MSBs as input
@@ -58,6 +59,7 @@ module lcc_syssim #(
 		$display("ADC_CHARGE_PER_CYCLE = %f", ADC_CHARGE_PER_CYCLE );
 		$display("ADC_DUMP_CONST = %f", ADC_DUMP_CONST );
 		$display("ADC_COIL_CONST = %f", ADC_COIL_CONST );
+		$display("ADC_CAP_CONST = %f", ADC_CAP_CONST );
 		/* synopsys translate_on */
 	end
 	always_ff @(posedge clk) vcap <= vcap_rom[ ecap[38-:6] ];
@@ -85,7 +87,7 @@ module lcc_syssim #(
 			ecap <= ecap;
 		end else if( pwm ) begin
 			iout <= iout + ((( vcap - vout ) * ADC_COIL_CONST) << (40-30));
-			ecap <= ecap;
+			ecap <= ecap - vcap * iout * ADC_CAP_CONST;
 		end else /* !pwm */ begin
 			iout <= iout - ((( vout ) * ADC_COIL_CONST) << (40-12-16));
 			ecap <= ecap;
