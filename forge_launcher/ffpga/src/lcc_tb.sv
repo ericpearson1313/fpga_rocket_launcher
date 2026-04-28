@@ -305,7 +305,7 @@ module lcc_tb( );
 	lcc_adcsim i_adcsim(
 		.clk( !clk ),
 		.reset( reset ),
-		.ad_in( { ad_vcap, ad_icap, ad_vout, ad_iout } ),
+		.ad_in( { 12'd0, ad_vcap, ad_vout, ad_iout } ),
 		.ad_out( m_ad_out[3:0] ),
 		.ad_cs( n_cs )
 	);
@@ -314,6 +314,12 @@ module lcc_tb( );
 	// adc sampling, conversion
 	// and transmission
 	
+`define USE_SYNTH_ADSSIM
+`ifdef USE_SYNTH_ADSSIM
+	assign data[1] = m_ad_out[2];
+	assign data[0] = m_ad_out[0];
+	assign data[3] = m_ad_out[1];
+`else
 	// ADC sampling and transmission.
 	logic [11:0] sh_vcap;
 	logic [11:0] sh_icap;
@@ -360,4 +366,5 @@ module lcc_tb( );
 	
 	// adc oe.
 	assign data[3:0] = ( n_cs == 1'b0 ) ? data_n[3:0] : 4'bxxxx;
+`endif
 endmodule
