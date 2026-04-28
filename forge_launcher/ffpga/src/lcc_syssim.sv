@@ -38,22 +38,26 @@ module lcc_syssim #(
 		output logic [11:0] ad_ecap
 	);
 	
-	logic [11:0] vout;
-	logic [39:0] iout;
-	logic [39:0] ecap;
-	logic [11:0] icap;
-	logic [11:0] vcap;
+	logic signed [11:0] vout;
+	logic signed [39:0] iout;
+	logic signed [39:0] ecap;
+	logic signed [11:0] icap;
+	logic signed [11:0] vcap;
 
-	localparam ADC_CHARGE_PER_CYCLE = ( CH_RATE * ADC_DN_PER_JOULE * (1<<30) ) / ( CLOCK_FREQ_MHZ * 1000000.0 );
-	localparam ADC_DUMP_CONST = (1<<30) * ( ADC_DN_PER_JOULE / ( R_DUMP * CAP_UF * CLOCK_FREQ_MHZ ) );
-	localparam ADC_COIL_CONST = (1<<30) / ( COIL_UH * CLOCK_FREQ_MHZ );
-	localparam ADC_CAP_CONST  = (1<<30) * ( ADC_DN_PER_JOULE * ( ADC_VOLTS_PER_DN ) / ( ADC_DN_PER_AMP ) );
-	localparam ADC_OUT_CONST  = (1<<16) * ( R / ( ADC_DN_PER_AMP * ADC_VOLTS_PER_DN ) );
+	// 268435456.0 = (1<<28)
+	// 16777216.0 = (1<<24)
+	// 65536.0 = (1<<16)
+
+	localparam ADC_CHARGE_PER_CYCLE = ( 268435456.0 * ADC_DN_PER_JOULE * CH_RATE ) / ( CLOCK_FREQ_MHZ * 1000000.0 );
+	localparam ADC_DUMP_CONST = ( 268435456.0 * 512.0 ) / ( R_DUMP * CAP_UF * CLOCK_FREQ_MHZ );
+	localparam ADC_COIL_CONST = ( 16777216.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP   ) / ( COIL_UH * CLOCK_FREQ_MHZ );
+	localparam ADC_CAP_CONST  = ( 268435456.0 * 512.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_JOULE ) / ( ADC_DN_PER_AMP * CLOCK_FREQ_MHZ * 1000000.0 );
+	localparam ADC_OUT_CONST  = ( 65536.0 *  R ) / ( ADC_DN_PER_AMP * ADC_VOLTS_PER_DN );
 
 	// Cap Energy to voltage rom
 	logic [11:0] vcap_rom [63:0]; // unsigned 6 MSBs as input
 	initial begin
-		for( int ee = 0; ee < 2048; ee+=32 )
+		for( int ee = 16; ee < 2048; ee+=32 )
 			vcap_rom[ee>>5] = $sqrt( ( 2.0 * ee * 1000000.0 ) / ( ADC_DN_PER_JOULE * CAP_UF ) ) / ADC_VOLTS_PER_DN;
 		/* synopsys translate_off */
 		for( int ii = 0; ii < 64; ii++ ) 
@@ -79,7 +83,7 @@ module lcc_syssim #(
 		end else if( dump ) begin
 			iout <= 40'd0;
 			vout <= 12'd0;
-			ecap <= ecap - (((ecap) * ADC_DUMP_CONST) << (40-30));
+			ecap <= ecap - ((ecap[39-:12] * ADC_DUMP_CONST)>>9);
 		end else if( charge ) begin
 			iout <= 40'd0;
 			vout <= 12'd0;
@@ -89,13 +93,13 @@ module lcc_syssim #(
 			vout <= vcap;
 			ecap <= ecap;
 		end else if( pwm ) begin
-			iout <= iout + ((( vcap - vout ) * ADC_COIL_CONST) << (40-30));
-			ecap <= ecap - vcap * iout * ADC_CAP_CONST;
-			vout <= ( iout * ADC_OUT_CONST ) >> 16;
+			iout <= iout + ((( vcap - vout ) * ADC_COIL_CONST)<<4 ) ;
+			ecap <= ecap - ((( vcap * iout[39-:12] ) * ADC_CAP_CONST)>>9);
+			vout <= ( iout[39-:12] * ADC_OUT_CONST ) >> 16;
 		end else /* !pwm */ begin
-			iout <= iout - ((( vout ) * ADC_COIL_CONST) << (40-12-16));
+			iout <= iout - (( vout * ADC_COIL_CONST )<<4);
 			ecap <= ecap;
-			vout <= ( iout * ADC_OUT_CONST ) >> 16;
+			vout <= ( iout[39-:12] * ADC_OUT_CONST ) >> 16;
 		end 
 	end
 

@@ -199,11 +199,11 @@ module lcc_tb( );
 	);
 
 	real m_iout, m_vout, m_vcap, m_icap, m_ecap;
-	assign m_iout = ad_iout / ADC_DN_PER_AMP;
-	assign m_icap = ad_icap / ADC_DN_PER_AMP;
-	assign m_vout = ad_vout * ADC_VOLTS_PER_DN;
-	assign m_vcap = ad_vcap * ADC_VOLTS_PER_DN;
-	assign m_ecap = ad_ecap / ADC_DN_PER_AMP;
+	assign m_iout = ad_iout * 1.0 / ADC_DN_PER_AMP;
+	assign m_icap = ad_icap * 1.0 / ADC_DN_PER_AMP;
+	assign m_vout = ad_vout * 1.0 * ADC_VOLTS_PER_DN;
+	assign m_vcap = ad_vcap * 1.0 * ADC_VOLTS_PER_DN;
+	assign m_ecap = ad_ecap * 1.0 / ADC_DN_PER_AMP;
 
 	// Model of power module 
 	// root states are capacitor energy and coil (output) current.
