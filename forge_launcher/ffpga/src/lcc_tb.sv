@@ -219,6 +219,14 @@ module lcc_tb( );
 	real iout, iout_n; 
 	real vout, vout_n; 
 	
+`define INT_SYSSIM
+`ifdef INT_SYSSIM
+	assign ecap = m_ecap;
+	assign icap = m_icap;
+	assign vcap = m_vcap;
+	assign iout = m_iout;
+	assign vout = m_vout;
+`else
 	initial begin
 		// HV Cap model
 		vcap = 0.0;
@@ -286,7 +294,7 @@ module lcc_tb( );
 			icap = icap_n;		
 		end // Analog model
 	end // analog model
-
+`endif
 	
 	/////////////////////
 	// AD7352 Model     
