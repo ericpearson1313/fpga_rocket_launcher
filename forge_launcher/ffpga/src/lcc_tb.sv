@@ -299,6 +299,17 @@ module lcc_tb( );
 	/////////////////////
 	// AD7352 Model     
 	/////////////////////
+
+	// Synthesiable version
+	logic [3:0] m_ad_out;
+	lcc_adcsim i_adcsim(
+		.clk( !clk ),
+		.reset( reset ),
+		.ad_in( { ad_vcap, ad_icap, ad_vout, ad_iout } ),
+		.ad_out( m_ad_out[3:0] ),
+		.ad_cs( n_cs )
+	);
+
 	// Models amplification
 	// adc sampling, conversion
 	// and transmission

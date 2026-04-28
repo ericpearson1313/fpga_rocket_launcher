@@ -3,6 +3,32 @@
 // To be part a an FGPA impremented chip tester.
 
 `timescale 1ns / 1ps
+
+module lcc_adcsim (
+		// system
+		input logic clk,
+		input logic reset,
+		// ADC simulator connections, parallel in, serial out
+		input logic [3:0][11:0] ad_in,
+		output logic [3:0] ad_out,
+		// driven by sampled falling edge of cs
+		input logic ad_cs
+	);
+
+	logic [19:0] cs_del;
+	always_ff @(posedge clk)
+		cs_del <= { cs_del[18:0], ad_cs };
+	logic [19:0] cs_trig;
+	assign cs_trig[18:0] =  cs_del[19:0] &~{ cs_del[18:0], ad_cs };
+	logic [3:0][11:0] hold;
+	always_ff @(posedge clk)
+		for( int ii = 0; ii < 4; ii++ )
+			hold[ii] <= ( cs_trig[0] ) ? ad_in[ii] : ( |cs_trig[14-:12] ) ? { hold[ii][10:0], 1'b0 } : hold[ii];
+	always_comb 
+		for( int jj = 0; jj < 4; jj++ )
+			ad_out[jj] = hold[jj][11];
+endmodule
+
 // Primary synthesiable model of the coil current and capacitor energy
 // intgration of coil current and cap energy are done in extended fixed point ADC units
 // Capcitor voltage is derived by LUT from cap voltage
