@@ -1,7 +1,7 @@
 // vim: ts=4:
 // Inteteger model for synthesizable system simulation.
 // To be part a an FGPA impremented chip tester.
-
+// assume external cs input io reg, and serial data io output reg.
 `timescale 1ns / 1ps
 
 module lcc_adcsim (
@@ -23,7 +23,7 @@ module lcc_adcsim (
 	logic [3:0][11:0] hold;
 	always_ff @(posedge clk)
 		for( int ii = 0; ii < 4; ii++ )
-			hold[ii] <= ( cs_trig[0] ) ? ( ad_in[ii] ^ 12'h800 ) : ( |cs_trig[14-:12] ) ? { hold[ii][10:0], 1'b0 } : hold[ii];
+			hold[ii] <= ( cs_trig[0] ) ? ( ad_in[ii] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[ii][10:0], 1'b0 } : hold[ii];
 	always_comb 
 		for( int jj = 0; jj < 4; jj++ )
 			ad_out[jj] = hold[jj][11];

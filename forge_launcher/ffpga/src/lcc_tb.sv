@@ -301,13 +301,16 @@ module lcc_tb( );
 	/////////////////////
 
 	// Synthesiable version
+	logic cs_ireg;
+	always @(posedge !clk) 
+		cs_ireg <= n_cs;
 	logic [3:0] m_ad_out;
 	lcc_adcsim i_adcsim(
 		.clk( !clk ),
 		.reset( reset ),
 		.ad_in( { 12'd0, ad_vcap, ad_vout, ad_iout } ),
 		.ad_out( m_ad_out[3:0] ),
-		.ad_cs( n_cs )
+		.ad_cs( cs_ireg )
 	);
 
 	// Models amplification
@@ -316,9 +319,11 @@ module lcc_tb( );
 	
 `define USE_SYNTH_ADSSIM
 `ifdef USE_SYNTH_ADSSIM
-	assign data[1] = m_ad_out[2];
-	assign data[0] = m_ad_out[0];
-	assign data[3] = m_ad_out[1];
+	always_ff @(negedge clk) begin
+		data[1] <= m_ad_out[2];
+		data[0] <= m_ad_out[0];
+		data[3] <= m_ad_out[1];
+	end
 `else
 	// ADC sampling and transmission.
 	logic [11:0] sh_vcap;
