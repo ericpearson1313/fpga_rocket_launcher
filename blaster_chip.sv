@@ -177,9 +177,10 @@ parameter COIL_IND_UH = 390;
 	);
 	
 	// Model of ADC
-	// regsiter CS input
-	always @(negedge ad_sclk) 
-		cs_ireg <= ad_cs;
+
+	// IO regsiter CS input
+	logic cs_ireg;
+	in_reg i_ics_reg( .inclock( !ad_sclk ), .dout( cs_ireg ), .pad_in( ad_cs ));
 		
 	logic [3:0] m_ad_out;
 	lcc_adcsim i_adcsim(
@@ -190,15 +191,12 @@ parameter COIL_IND_UH = 390;
 		.ad_cs( cs_ireg )
 	);
 	
-	// registger outputs
-	always @(negedge ad_sclk) begin
-		ad_sdata_a[0] <= m_ad_out[1];
-		ad_sdata_a[1] <= m_ad_out[0];
-		ad_sdata_b[0] <= 1'b0;
-		ad_sdata_b[1] <= m_ad_out[2];
-	end
-		
-
+	// IO registger ADC outputs
+	out_reg i_odreg1( .outclock( !ad_sclk ), .din( m_ad_out[1] ), .pad_out( ad_sdata_a[0] ));
+	out_reg i_odreg2( .outclock( !ad_sclk ), .din( m_ad_out[0] ), .pad_out( ad_sdata_a[1] ));
+	out_reg i_odreg3( .outclock( !ad_sclk ), .din( 1'b0        ), .pad_out( ad_sdata_b[0] ));
+	out_reg i_odreg4( .outclock( !ad_sclk ), .din( m_ad_out[2] ), .pad_out( ad_sdata_b[1] ));
+	
 	/////////////////////////////////
 	/////////////////////////////////
 	////
@@ -222,6 +220,14 @@ parameter COIL_IND_UH = 390;
 	// and the 6 adc pins, expanded to 12 bit adc channels
 	logic [11:0] mad_a0, mad_a1, mad_b0, mad_b1;
 	logic mad_strobe;	
+	// The simulator runs on its own timebase
+	// Generate an internal strobe;
+	logic [3:0] madcnt;
+	always @(posedge clk) begin
+		madcnt <= madcnt+1;
+		mad_strobe <= ( madcnt == 15 ) ? 1'b1 : 1'b0;
+	end
+	
 	
 	// Connect isolation varaibles up to I/O pins
 	assign m_mute		=  !iset[0]			;

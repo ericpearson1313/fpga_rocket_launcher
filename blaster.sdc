@@ -1,6 +1,6 @@
 derive_pll_clocks -create_base_clocks
 
-#create_clock -period 20.833 -waveform {0.000 10.416} -name clk_in clk_in
+create_clock -period 20.4 -waveform {0.000 10.2} -name ad_sclk ad_sclk
 
 #create_generated_clock -source clk_in -divide_by 8                 -duty_cycle 50.00 -name {_spll|altpll_component|auto_generated|pll1|clk[0]}   clk_out
 #create_generated_clock -source clk_in                              -duty_cycle 50.00 -name {_spll|altpll_component|auto_generated|pll1|clk[1]}       clk
@@ -27,3 +27,6 @@ derive_clock_uncertainty
 #Ignore paths from base clock clk[1] to video clocks clk[3], clk[4] for now
 set_false_path -from [get_clocks {_spll|altpll_component|auto_generated|pll1|clk[1]}] -to [get_clocks {_spll|altpll_component|auto_generated|pll1|clk[3]}]
 set_false_path -from [get_clocks {_spll|altpll_component|auto_generated|pll1|clk[1]}] -to [get_clocks {_spll|altpll_component|auto_generated|pll1|clk[4]}]
+
+#Ignore paths from clk to ad_sclk, design will handle it
+set_false_path -from [get_clocks {_spll|altpll_component|auto_generated|pll1|clk[1]}] -to [get_clocks {ad_sclk}] 
