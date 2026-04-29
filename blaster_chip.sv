@@ -168,7 +168,7 @@ parameter COIL_IND_UH = 390;
 		// virtual simulaiton inputs
 		.burn		( 1'b0 ),
 		// ADC outputs
-		.ad_iout	( ad_icap ),
+		.ad_iout	( ad_iout ),
 		.ad_vout	( ad_vout ),
 		.ad_vcap	( ad_vcap ),
 		// Monitoring outputs

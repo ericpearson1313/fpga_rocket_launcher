@@ -74,11 +74,11 @@ module lcc_syssim #(
 	// 16777216.0 = (1<<24)
 	// 65536.0 = (1<<16)
 
-	localparam ADC_CHARGE_PER_CYCLE = ( 268435456.0 * ADC_DN_PER_JOULE * CH_RATE ) / ( 1000000.0 * CLOCK_FREQ_MHZ );
-	localparam ADC_DUMP_CONST = ( 268435456.0 * 512.0 ) / ( R_DUMP * CAP_UF * CLOCK_FREQ_MHZ );
-	localparam ADC_COIL_CONST = ( 16777216.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP   ) / ( COIL_UH * CLOCK_FREQ_MHZ );
-	localparam ADC_CAP_CONST  = ( 268435456.0 * 512.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_JOULE ) / ( 1000000.0 * ADC_DN_PER_AMP * CLOCK_FREQ_MHZ);
-	localparam ADC_OUT_CONST  = ( 65536.0 *  R ) / ( ADC_DN_PER_AMP * ADC_VOLTS_PER_DN );
+	localparam ADC_CHARGE_PER_CYCLE = int'(( 268435456.0 * ADC_DN_PER_JOULE * CH_RATE ) / ( 1000000.0 * CLOCK_FREQ_MHZ ));
+	localparam ADC_DUMP_CONST = int'(( 268435456.0 * 512.0 ) / ( R_DUMP * CAP_UF * CLOCK_FREQ_MHZ ));
+	localparam ADC_COIL_CONST = int'(( 16777216.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP   ) / ( COIL_UH * CLOCK_FREQ_MHZ ));
+	localparam ADC_CAP_CONST  = int'(( 268435456.0 * 512.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_JOULE ) / ( 1000000.0 * ADC_DN_PER_AMP * CLOCK_FREQ_MHZ));
+	localparam ADC_OUT_CONST  = int'(( 65536.0 *  R ) / ( ADC_DN_PER_AMP * ADC_VOLTS_PER_DN ));
 
 	// Cap Energy to voltage rom
 	logic [11:0] vcap_rom [63:0]; // unsigned 6 MSBs as input
@@ -90,11 +90,11 @@ module lcc_syssim #(
 		for( int ii = 0; ii < 64; ii++ ) 
 			//$display( "vcap_rom[%d] = %d, Ecap=%f J Vcap=%f V", ii, vcap_rom[ii], ii*32.0/ADC_DN_PER_JOULE, vcap_rom[ii]*ADC_VOLTS_PER_DN );
 			$display( "vcap_rom[%0d] = 12'd%0d;", ii, vcap_rom[ii] );
-		$display("ADC_CHARGE_PER_CYCLE = %f", ADC_CHARGE_PER_CYCLE );
-		$display("ADC_DUMP_CONST = %f", ADC_DUMP_CONST );
-		$display("ADC_COIL_CONST = %f", ADC_COIL_CONST );
-		$display("ADC_CAP_CONST = %f", ADC_CAP_CONST );
-		$display("ADC_OUT_CONST = %f", ADC_OUT_CONST );
+		$display("ADC_CHARGE_PER_CYCLE = %d", ADC_CHARGE_PER_CYCLE );
+		$display("ADC_DUMP_CONST = %d", ADC_DUMP_CONST );
+		$display("ADC_COIL_CONST = %d", ADC_COIL_CONST );
+		$display("ADC_CAP_CONST = %d", ADC_CAP_CONST );
+		$display("ADC_OUT_CONST = %d", ADC_OUT_CONST );
 	end
 	/* synopsys translate_on */
 	always_comb begin
