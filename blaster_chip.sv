@@ -247,7 +247,7 @@ parameter COIL_IND_UH = 390;
 	logic m_pwm;
 	logic m_dump;
 	// and the 6 adc pins, expanded to 12 bit adc channels
-	logic [11:0] mad_a0, mad_a1, mad_b0, mad_b1;
+	logic [11:0] mad_a0, mad_a1, mad_b0, mad_b1, mad_ec;
 	logic mad_strobe;	
 	
 	
@@ -288,10 +288,12 @@ parameter COIL_IND_UH = 390;
 							m_pwm		,	
 							m_dump		};	
 							
-	assign mad_a0 = ad_iout;
-	assign mad_a1 = ad_vcap;
-	assign mad_b0 = ad_icap;
-	assign mad_b1 = ad_vcap;
+	// from 2'scomp to adc flip polarity for legacy.
+	assign mad_a0 = ad_iout ^ 12'h7ff;
+	assign mad_a1 = ad_vcap ^ 12'h7ff;
+	assign mad_b0 = ad_icap ^ 12'h7ff;
+	assign mad_b1 = ad_vcap ^ 12'h7ff;
+	assign mad_ec = ad_ecap ^ 12'h7ff;
 		
 	// clip inputs to +ve
 	logic [10:0] vout, vcap, iout, vbat;
@@ -520,15 +522,15 @@ parameter COIL_IND_UH = 390;
 	always @(posedge clk) begin
 		mad_strobe_d <= { mad_strobe_d[1:0], mad_strobe & psram_ready}; 
 		if( mad_strobe ) begin
-		mad_data <= {{ ad_ecap[11:8], mad_a0[11:1],lcc_mon[7] },
-						 { ad_ecap[7:4] , mad_a1[11:1],lcc_mon[6] },
-						 { ad_ecap[3:1] ,lcc_mon[5], mad_b0[11:1],lcc_mon[4] }, 
+		mad_data <= {{ mad_ec[11:8], mad_a0[11:1],lcc_mon[7] },
+						 { mad_ec[7:4] , mad_a1[11:1],lcc_mon[6] },
+						 { mad_ec[3:1] ,lcc_mon[5], mad_b0[11:1],lcc_mon[4] }, 
 						 { 1'b0, lcc_mon[3:1], mad_b1[11:1], lcc_mon[0] } };
 		end else begin
 			mad_data <= mad_data;
 		end
 	end
-	assign wrfifo_data = ( mad_strobe ) ? { ad_ecap[11:8], mad_a0[11:1],lcc_mon[7] } :
+	assign wrfifo_data = ( mad_strobe ) ? { mad_ec[11:8], mad_a0[11:1],lcc_mon[7] } :
 			               ( mad_strobe_d[0] ) ? mad_data[2] :
 			               ( mad_strobe_d[1] ) ? mad_data[1] :
 			               ( mad_strobe_d[2] ) ? mad_data[0] : 16'h0048;
