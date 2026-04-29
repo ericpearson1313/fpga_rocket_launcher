@@ -30,3 +30,10 @@ set_false_path -from [get_clocks {_spll|altpll_component|auto_generated|pll1|clk
 
 #Ignore paths from clk to ad_sclk, design will handle it
 set_false_path -from [get_clocks {_spll|altpll_component|auto_generated|pll1|clk[1]}] -to [get_clocks {ad_sclk}] 
+
+#input delay for CS
+set_input_delay -min 1.4 -clock ad_sclk -clock_fall [get_ports {ad_cs}]
+set_input_delay -max 15  -clock ad_sclk -clock_fall [get_ports {ad_cs}]
+#output delays for data bits
+set_output_delay -min 3.5 -clock ad_sclk -clock_fall [get_ports {ad_sdata_*}]
+set_output_delay -max 9.5 -clock ad_sclk -clock_fall [get_ports {ad_sdata_*}]

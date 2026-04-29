@@ -176,6 +176,35 @@ parameter COIL_IND_UH = 390;
 		.ad_ecap	( ad_ecap )
 	);
 	
+	// The system model runs continuousely on clk,
+	// but adc samples every 16, so we'll just create an arbitrary ad_strobe for 
+	// sampling use, and some holding registers
+	
+	logic ad_strobe;
+	logic ad_toggle;
+	logic [3:0] strobe_cnt;
+	logic [11:0] had_vcap, had_vout, had_iout;
+	always @(posedge clk) begin
+			strobe_cnt <= strobe_cnt + 1;
+			had_vcap <= ( &strobe_cnt ) ? ad_vcap : had_vcap;
+			had_vout <= ( &strobe_cnt ) ? ad_vout : had_vout;
+			had_iout <= ( &strobe_cnt ) ? ad_iout : had_iout;
+			ad_strobe <= &strobe_cnt;
+			ad_toggle <= ad_toggle ^ (&strobe_cnt);
+	end
+	
+	// triggered by toggle, move held values into cc regs
+	// the CC regs are updated and continuously valid for arbitrary sampleing
+	// clock domain crdossing
+	logic [11:0] cc_vcap, cc_vout, cc_iout;
+	logic [3:0] tog_del;
+	always @(posedge !ad_sclk ) begin
+		tog_del <= { tog_del[2] ^ tog_del[1], tog_del[1:0] , ad_toggle };
+		cc_vcap <= ( tog_del[3] ) ? had_vcap : cc_vcap;
+		cc_vout <= ( tog_del[3] ) ? had_vout : cc_vout;
+		cc_iout <= ( tog_del[3] ) ? had_iout : cc_iout;
+	end
+
 	// Model of ADC
 
 	// IO regsiter CS input
@@ -186,7 +215,7 @@ parameter COIL_IND_UH = 390;
 	lcc_adcsim i_adcsim(
 		.clk( !ad_sclk ),
 		.reset( reset ),
-		.ad_in( { 12'd0, ad_vcap, ad_vout, ad_iout } ), // TODO clock domain crossing
+		.ad_in( { 12'd0, cc_vcap, cc_vout, cc_iout } ), 
 		.ad_out( m_ad_out[3:0] ),
 		.ad_cs( cs_ireg )
 	);
@@ -220,14 +249,9 @@ parameter COIL_IND_UH = 390;
 	// and the 6 adc pins, expanded to 12 bit adc channels
 	logic [11:0] mad_a0, mad_a1, mad_b0, mad_b1;
 	logic mad_strobe;	
-	// The simulator runs on its own timebase
-	// Generate an internal strobe;
-	logic [3:0] madcnt;
-	always @(posedge clk) begin
-		madcnt <= madcnt+1;
-		mad_strobe <= ( madcnt == 15 ) ? 1'b1 : 1'b0;
-	end
 	
+	
+	assign mad_strobe = ad_strobe; // 1 in 16
 	
 	// Connect isolation varaibles up to I/O pins
 	assign m_mute		=  !iset[0]			;
