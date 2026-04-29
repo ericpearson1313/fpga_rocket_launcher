@@ -38,8 +38,8 @@ module blaster_chip
 	// External A/D Converters (2.5v)
 	input logic        ad_cs,  		// system sim input
 	input logic		  ad_sclk, 			// system sim input
-	output  logic  [1:0] ad_sdata_a, // system sim output
-	output  logic  [1:0] ad_sdata_b, // system sim output
+	input  logic  [1:0] ad_sdata_a, // system sim output
+	input  logic  [1:0] ad_sdata_b, // system sim output
 	// adc diag signals, not connected on lcc Dev board
 	input  logic        CIdiag,
 	input  logic        CVdiag,
@@ -221,10 +221,10 @@ parameter COIL_IND_UH = 390;
 	);
 	
 	// IO registger ADC outputs
-	out_reg i_odreg1( .outclock( !ad_sclk ), .din( m_ad_out[1] ), .pad_out( ad_sdata_a[0] ));
-	out_reg i_odreg2( .outclock( !ad_sclk ), .din( m_ad_out[0] ), .pad_out( ad_sdata_a[1] ));
-	out_reg i_odreg3( .outclock( !ad_sclk ), .din( 1'b0        ), .pad_out( ad_sdata_b[0] ));
-	out_reg i_odreg4( .outclock( !ad_sclk ), .din( m_ad_out[2] ), .pad_out( ad_sdata_b[1] ));
+	//out_reg i_odreg1( .outclock( !ad_sclk ), .din( m_ad_out[1] ), .pad_out( ad_sdata_a[0] ));
+	//out_reg i_odreg2( .outclock( !ad_sclk ), .din( m_ad_out[0] ), .pad_out( ad_sdata_a[1] ));
+	//out_reg i_odreg3( .outclock( !ad_sclk ), .din( 1'b0        ), .pad_out( ad_sdata_b[0] ));
+	//out_reg i_odreg4( .outclock( !ad_sclk ), .din( m_ad_out[2] ), .pad_out( ad_sdata_b[1] ));
 	
 	/////////////////////////////////
 	/////////////////////////////////
