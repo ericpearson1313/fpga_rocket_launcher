@@ -82,19 +82,89 @@ module lcc_syssim #(
 
 	// Cap Energy to voltage rom
 	logic [11:0] vcap_rom [63:0]; // unsigned 6 MSBs as input
+	/* synopsys translate_off */
 	initial begin
 		for( int ee = 16; ee < 2048; ee+=32 )
 			vcap_rom[ee>>5] = $sqrt( ( 2.0 * ee * 1000000.0 ) / ( ADC_DN_PER_JOULE * CAP_UF ) ) / ADC_VOLTS_PER_DN;
-		/* synopsys translate_off */
+		// Generate verilog to init this array ($sqrt not understood by synth tool, sigh!
 		for( int ii = 0; ii < 64; ii++ ) 
-			$display( "vcap_rom[%d] = %d, Ecap=%f J Vcap=%f V", ii, vcap_rom[ii], ii*32.0/ADC_DN_PER_JOULE, vcap_rom[ii]*ADC_VOLTS_PER_DN );
+			//$display( "vcap_rom[%d] = %d, Ecap=%f J Vcap=%f V", ii, vcap_rom[ii], ii*32.0/ADC_DN_PER_JOULE, vcap_rom[ii]*ADC_VOLTS_PER_DN );
+			$display( "vcap_rom[%0d] = 12'd%0d;", ii, vcap_rom[ii] );
 		$display("ADC_CHARGE_PER_CYCLE = %f", ADC_CHARGE_PER_CYCLE );
 		$display("ADC_DUMP_CONST = %f", ADC_DUMP_CONST );
 		$display("ADC_COIL_CONST = %f", ADC_COIL_CONST );
 		$display("ADC_CAP_CONST = %f", ADC_CAP_CONST );
 		$display("ADC_OUT_CONST = %f", ADC_OUT_CONST );
-		/* synopsys translate_on */
 	end
+	/* synopsys translate_on */
+	always_comb begin
+vcap_rom[0] = 12'd139;
+vcap_rom[1] = 12'd241;
+vcap_rom[2] = 12'd312;
+vcap_rom[3] = 12'd369;
+vcap_rom[4] = 12'd418;
+vcap_rom[5] = 12'd462;
+vcap_rom[6] = 12'd502;
+vcap_rom[7] = 12'd540;
+vcap_rom[8] = 12'd575;
+vcap_rom[9] = 12'd607;
+vcap_rom[10] = 12'd639;
+vcap_rom[11] = 12'd668;
+vcap_rom[12] = 12'd697;
+vcap_rom[13] = 12'd724;
+vcap_rom[14] = 12'd750;
+vcap_rom[15] = 12'd776;
+vcap_rom[16] = 12'd800;
+vcap_rom[17] = 12'd824;
+vcap_rom[18] = 12'd848;
+vcap_rom[19] = 12'd870;
+vcap_rom[20] = 12'd892;
+vcap_rom[21] = 12'd914;
+vcap_rom[22] = 12'd935;
+vcap_rom[23] = 12'd955;
+vcap_rom[24] = 12'd975;
+vcap_rom[25] = 12'd995;
+vcap_rom[26] = 12'd1014;
+vcap_rom[27] = 12'd1033;
+vcap_rom[28] = 12'd1052;
+vcap_rom[29] = 12'd1070;
+vcap_rom[30] = 12'd1088;
+vcap_rom[31] = 12'd1106;
+vcap_rom[32] = 12'd1123;
+vcap_rom[33] = 12'd1141;
+vcap_rom[34] = 12'd1157;
+vcap_rom[35] = 12'd1174;
+vcap_rom[36] = 12'd1191;
+vcap_rom[37] = 12'd1207;
+vcap_rom[38] = 12'd1223;
+vcap_rom[39] = 12'd1238;
+vcap_rom[40] = 12'd1254;
+vcap_rom[41] = 12'd1269;
+vcap_rom[42] = 12'd1285;
+vcap_rom[43] = 12'd1300;
+vcap_rom[44] = 12'd1315;
+vcap_rom[45] = 12'd1329;
+vcap_rom[46] = 12'd1344;
+vcap_rom[47] = 12'd1358;
+vcap_rom[48] = 12'd1372;
+vcap_rom[49] = 12'd1386;
+vcap_rom[50] = 12'd1400;
+vcap_rom[51] = 12'd1414;
+vcap_rom[52] = 12'd1428;
+vcap_rom[53] = 12'd1441;
+vcap_rom[54] = 12'd1455;
+vcap_rom[55] = 12'd1468;
+vcap_rom[56] = 12'd1481;
+vcap_rom[57] = 12'd1494;
+vcap_rom[58] = 12'd1507;
+vcap_rom[59] = 12'd1520;
+vcap_rom[60] = 12'd1533;
+vcap_rom[61] = 12'd1545;
+vcap_rom[62] = 12'd1558;
+vcap_rom[63] = 12'd1570;
+	end
+
+
 	always_ff @(posedge clk) vcap <= vcap_rom[ ecap[38-:6] ];
 
 	// Cap current is just gated coil current
