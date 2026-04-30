@@ -303,9 +303,9 @@ parameter COIL_IND_UH = 390;
 							
 	// from 2'scomp to adc flip polarity for legacy.
 	assign mad_a0 = ad_iout ^ 12'h7ff;
-	assign mad_a1 = ad_vout ^ 12'h7ff;
+	assign mad_a1 = ad_vcap ^ 12'h7ff;
 	assign mad_b0 = ad_icap ^ 12'h7ff;
-	assign mad_b1 = ad_vcap ^ 12'h7ff;
+	assign mad_b1 = ad_vout ^ 12'h7ff;
 	assign mad_ec = ad_ecap ^ 12'h7ff;
 		
 	// clip inputs to +ve
