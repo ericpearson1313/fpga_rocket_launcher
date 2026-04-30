@@ -1,6 +1,6 @@
 // 128 column, 60 rows.  Even lines are ascii. Odd lines are color code, 0-F, <blank also 0>
 //-------------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|
-  LCC Emulator/Analyzer 3MHZ 4CH 12BIT 32MByte 1.3s Trace Buf, 800x480x60hz WVGA
+  LCC System Simulator 3MHZ 4CH 12BIT 32MByte 1.3s Trace Buf, 800x480x60hz WVGA
   44444444444444444444400
 
 
@@ -26,7 +26,7 @@
  3333333333333333
 
 333
-  Vbat  5.6V/div 
+  Icap  2.5A/div 
  4444444444444444
 
 444
@@ -34,19 +34,19 @@
  5555555555555555
 
 555
- Est Iout  2.5A/div
+ Est Ecap  2.5J/div
  6666666666666666666
 
 666
-  Vout* 6.4V/div                                                                                                Beep Codes 
+  Vout* 6.4V/div
  7777777777777777
-                                                                                                               1-OK 
+
 777
-  Iout* 150mA/div                                                                                                2-HI >20$
+  Iout* 150mA/div
  88888888888888888
-                                                                                                               3-OPEN
+
 888
-  Vbat* 350mV/div
+  Icap* 150mA/div
  99999999999999999
                                        
 999
