@@ -145,8 +145,14 @@ parameter ADC_DN_PER_AMP = 205;
 parameter CLOCK_FREQ_MHZ = 48;  // 48 or 24 Mhz
 parameter COIL_IND_UH = 390;
 
-// System model
-
+	/////////////////////////////////
+	/////////////////////////////////
+	////
+	////     SYSTEM SIMULATION MODEL
+	////
+	/////////////////////////////////
+	/////////////////////////////////
+	
 	logic [11:0] ad_iout, ad_vout, ad_vcap, ad_icap, ad_ecap;
 	lcc_syssim #(
     	.ADC_VOLTS_PER_DN		( ADC_VOLTS_PER_DN ), 
@@ -155,7 +161,7 @@ parameter COIL_IND_UH = 390;
 		.CLOCK_FREQ_MHZ		( CLOCK_FREQ_MHZ   ), 
 		.COIL_UH					( 390 ),
 		.CAP_UF             	( 200 ),
-		.CH_RATE					( 3.0 ), // normally 2.5 J/s
+		.CH_RATE					( 2.5 ), // normally 2.5 J/s
 		.R_DUMP					( 3300.0), // normally 3k3
 		.R							( 2.0) // resistance ohms
 	) i_intsim (
@@ -304,7 +310,7 @@ parameter COIL_IND_UH = 390;
 	// from 2'scomp to adc flip polarity for legacy.
 	assign mad_a0 = ad_iout ^ 12'h7ff;
 	assign mad_a1 = ad_vcap ^ 12'h7ff;
-	assign mad_b0 = ad_icap ^ 12'h7ff;
+	assign mad_b0 = ad_ecap ^ 12'h7ff;
 	assign mad_b1 = ad_vout ^ 12'h7ff;
 	assign mad_ec = ad_ecap ^ 12'h7ff;
 		
