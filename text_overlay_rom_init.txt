@@ -1,6 +1,6 @@
 // 128 column, 60 rows.  Even lines are ascii. Odd lines are color code, 0-F, <blank also 0>
 //-------------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|
-  LCC System Simulator 3MHZ 4CH 12BIT 32MByte 1.3s Trace Buf, 800x480x60hz WVGA
+  LCC System SIMULATOR 3MHZ 4CH 12BIT 32MByte 1.3s Trace Buf, 800x480x60hz WVGA
   44444444444444444444400
 
 
@@ -26,7 +26,7 @@
  3333333333333333
 
 333
-  Icap  2.5A/div 
+  Ecap  2.5J/div 
  4444444444444444
 
 444
@@ -34,7 +34,7 @@
  5555555555555555
 
 555
- Est Ecap  2.5J/div
+ Est
  6666666666666666666
 
 666
@@ -46,7 +46,7 @@
  88888888888888888
 
 888
-  Icap* 150mA/div
+  Ecap* 150mJ/div
  99999999999999999
                                        
 999
