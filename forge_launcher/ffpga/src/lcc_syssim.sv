@@ -47,6 +47,7 @@ module lcc_syssim #(
 	parameter	COIL_UH				= 390, // coil in uH
 	parameter 	CAP_UF				= 200,
 	parameter   CH_RATE				= 30.0, // Joule/sec
+    parameter	CH_INIT             = 1500,
 	parameter   R_DUMP 				= 300.0, // Dump resistor in ohms
 	parameter   R      				= 2.0 // igniter resistance in ohms
 	) (
@@ -164,7 +165,7 @@ vcap_rom[63] = 12'd1570;
 		if( reset ) begin
 			iout <= 40'd0;
 			vout <= 12'd0;
-			ecap <= 40'd0;
+			ecap <= ((CH_INIT)<<(40-12));
 		end else if( dump ) begin
 			iout <= 40'd0;
 			vout <= 12'd0;
