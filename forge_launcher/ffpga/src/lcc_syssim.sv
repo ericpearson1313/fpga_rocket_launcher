@@ -21,12 +21,16 @@ module lcc_adcsim (
 	logic [19:0] cs_trig;
 	assign cs_trig[18:0] =  cs_del[19:0] &~{ cs_del[18:0], ad_cs };
 	logic [3:0][11:0] hold;
-	always_ff @(posedge clk)
-		for( int ii = 0; ii < 4; ii++ )
-			hold[ii] <= ( cs_trig[0] ) ? ( ad_in[ii] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[ii][10:0], 1'b0 } : hold[ii];
-	always_comb 
-		for( int jj = 0; jj < 4; jj++ )
-			ad_out[jj] = hold[jj][11];
+	always_ff @(posedge clk) begin
+		hold[0] <= ( cs_trig[0] ) ? ( ad_in[0] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[0][10:0], 1'b0 } : hold[0];
+		hold[1] <= ( cs_trig[0] ) ? ( ad_in[1] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[1][10:0], 1'b0 } : hold[1];
+		hold[2] <= ( cs_trig[0] ) ? ( ad_in[2] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[2][10:0], 1'b0 } : hold[2];
+		hold[3] <= ( cs_trig[0] ) ? ( ad_in[3] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[3][10:0], 1'b0 } : hold[3];
+	end
+	assign ad_out[0] = hold[0][11];
+	assign ad_out[1] = hold[1][11];
+	assign ad_out[2] = hold[2][11];
+	assign ad_out[3] = hold[3][11];
 endmodule
 
 // Primary synthesiable model of the coil current and capacitor energy

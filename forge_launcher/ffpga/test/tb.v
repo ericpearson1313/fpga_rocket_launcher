@@ -1,6 +1,6 @@
+// vim: ts=4:
 `default_nettype none
 `timescale 1ns / 1ps
-// vim: ts=4:
 
 /* This testbench just instantiates the module and makes some convenient wires
    that can be driven / tested by the cocotb test.py.
@@ -52,9 +52,10 @@ module tb ();
 
  // add the integer system model used on test stand fpga
  // scale down R,C and increate the charge rate to shorted sim
- // syssim monitors the dut outputs, and gives the adc system response
+ // syssim monitors the dut outputs simulates the system and provides state
 
-     lcc_syssim #(
+	logic [11:0] ad_iout, ad_vout, ad_icap, ad_vcap, ad_ecap;
+    lcc_syssim #(
         .ADC_VOLTS_PER_DN   ( 0.2005 ),
         .ADC_DN_PER_AMP     ( 205 ),
         .ADC_DN_PER_JOULE   ( 205 ), 
@@ -74,12 +75,40 @@ module tb ();
         // virtual simulaiton inputs
         .burn   ( ui_in[7] ), // sim control not used by hardware
         // ADC outputs
-        .ad_iout    ( sys_sim[2] ), 
-        .ad_vout    ( sys_sim[3] ),
-        .ad_vcap    ( sys_sim[4] ),
+        .ad_iout    ( ad_iout ),  // eventual sys_sim[2] ), 
+        .ad_vout    ( ad_vout ),  // eventual sys_sim[3] ),
+        .ad_vcap    ( ad_vcap ),  // eventual sys_sim[4] ),
         // Monitoring outputs
-        .ad_icap    ( ),
-        .ad_ecap    ( )
+        .ad_icap    ( ad_icap ),
+        .ad_ecap    ( ad_ecap )
     );
+
+
+   	/////////////////////
+    // AD7352 Model     
+    /////////////////////
+
+	// sim pad register of CS
+    logic cs_ireg;
+    always @(posedge !clk)
+        cs_ireg <= uo_out[6];
+
+ 	// synthesisiable ADC models to feed system data into LCC
+    logic [3:0] m_ad_out;
+    lcc_adcsim i_adcsim(
+        .clk( !clk ),
+        .reset( !rst_n ),
+        .ad_in( { 12'd0, ad_vcap, ad_vout, ad_iout } ),
+        .ad_out( m_ad_out[3:0] ),
+        .ad_cs( cs_ireg )
+    );
+
+	// sim out pad output reg for data
+    always_ff @(posedge !clk) begin
+        sys_sim[2] <= m_ad_out[0];
+        sys_sim[3] <= m_ad_out[1];
+        sys_sim[4] <= m_ad_out[2];
+    end
+
 
 endmodule
