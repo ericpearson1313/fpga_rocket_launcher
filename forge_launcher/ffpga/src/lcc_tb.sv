@@ -129,20 +129,18 @@ module lcc_tb( );
 		$display("PWM negedge seen");
 		
 		// Burnthrough igniter (leave some cap energy for dump)
-		for( int ii = 0; ii < 60*MSEC; ii++ ) @(negedge clk); 
+		for( int ii = 0; ii < 40*MSEC; ii++ ) @(negedge clk); 
 		$display("Igniter Burn Through");
 		burn = 1;
 
-		// Should arm drop
-		while( !dump ) @(negedge clk); // wait for dump to rise
-		$display("Dump Begun");
-
-		// Should seen arm low
-		while( arm_led ) @(negedge clk); // wait for arm to drop
-		$display("ARM off");
-
-		// final wait
-		for( int ii = 0; ii < 10*MSEC; ii++ ) @(negedge clk); 
+		// test the cap voltage integer
+		for( int ii = 0; ii < 1*MSEC; ii++ ) @(negedge clk); 
+		if( ad_vcap > 12'd300 && ad_vcap < 12'd400 )
+		$display("PASS: vcap final test");
+		else
+		$display("FAIL: vcap final test");
+		
+		for( int ii = 0; ii < 1*MSEC; ii++ ) @(negedge clk); 
 		$display("Full lanch cycle simulation complate");
 		$finish();
 	end // fire		
@@ -153,14 +151,14 @@ module lcc_tb( );
 	// System Model     
 	/////////////////////	
 	
-	parameter R = 2.0; // Load resistance
+	parameter R = 10.0; // Load resistance
 	parameter R_DUMP = 300.0; // dump resistance f(real is 3k3)
 	parameter CAP_VOLTAGE = 320.0;
 	parameter COIL_UH = 390.0;
 	parameter FREQ_MHZ = 48;
 	parameter PERIOD_NS = 20.8;
 	parameter CAP_UF = 200.0;  // 200uF
-	parameter CH_RATE = 30.0; //  Joule/sec (real 3.0)
+	parameter CH_RATE = 50.0; //  Joule/sec (real 3.0)
 
 	// integer system model for inclusion in fpga
 	// to build a chip tester system simulator. 
@@ -178,6 +176,7 @@ module lcc_tb( );
 		.COIL_UH			( COIL_UH ),
 		.CAP_UF             ( CAP_UF ),
 		.CH_RATE			( CH_RATE ), // normally 2.5 J/s
+		.CH_INIT            ( 1900 ),
 		.R_DUMP				( R_DUMP ), // normally 3k3
 		.R					( R ) // resistance ohms
 	) i_intsim (
