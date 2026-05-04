@@ -426,9 +426,12 @@ always_ff @(posedge clk)
 
 // Data input shift regisers MSB first
 reg [3:0][11:0] ad_sreg;
-always_ff @(posedge clk)
-	for( int ii =  0; ii < 4; ii++ ) 
-		ad_sreg[ii] <= { ad_sreg[ii][10:0], ad_ireg[ii] };
+always_ff @(posedge clk) begin
+		ad_sreg[0] <= { ad_sreg[0][10:0], ad_ireg[0] };
+		ad_sreg[1] <= { ad_sreg[1][10:0], ad_ireg[1] };
+		ad_sreg[2] <= { ad_sreg[2][10:0], ad_ireg[2] };
+		ad_sreg[3] <= { ad_sreg[3][10:0], ad_ireg[3] };
+end
 
 // Data hold registers
 logic ad_hold_en;
