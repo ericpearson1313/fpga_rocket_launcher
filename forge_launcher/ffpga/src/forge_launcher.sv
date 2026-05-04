@@ -54,7 +54,7 @@ module forge_launcher
 	logic [25:0] count = 0;
 	initial count = 0;
 	always_ff @(posedge clk) 
-	count <= count + 1;
+	count <= ( reset ) ? 0 : count + 1;
 
 	// monitor outputs for Display
 	logic [11:0] 	ad_iout; 
@@ -92,9 +92,15 @@ initial fire_count = 0;
 initial fire_flag = 0;
 initial fire_done = 0;
 always_ff @(posedge clk) begin
+	if( reset ) begin
+	fire_count <= 0;
+	fire_flag <= 0;
+	fire_done <= 0;
+	end else begin
 	fire_count <= ( fire_count == 0 && !fire_button_debounce ) ? 0 : fire_count + 1; // committed when past debounce
 	fire_flag <= ( fire_count >= PWM_START && fire_count < PWM_END && !fire_done ) ? 1'b1 : 1'b0;
 	fire_done <= ( fire_count == PWM_END ) ? 1'b1 : fire_done;
+	end
 end
 
 assign dump = fire_done; // always dump after firing
@@ -110,6 +116,11 @@ initial charge_reg = 0;
 initial continuity = 0;
 initial one_time = 0;
 always_ff @( posedge clk ) begin
+  if( reset ) begin
+		one_time <= 0;
+		charge_reg <= 0;
+		continuity <= 0;
+  end else begin
 	one_time <= ( one_time == 3 ) ? 3 : ( one_time == 0 && !count[16] ) ? 0 : one_time + 1;
 	if( one_time == 2 ) begin
 		charge_reg <= 1;//auto_mode;
@@ -124,6 +135,7 @@ always_ff @( posedge clk ) begin
 		charge_reg <= charge_reg;
 		continuity <= continuity;	
 	end
+  end
 end
 
 assign lt3420_charge = charge_reg;
@@ -135,6 +147,11 @@ logic [7:0] tone_cnt;
 logic cont_tone, first_tone;
 logic spk_en, spk_toggle;
 always_ff @(posedge clk) begin
+  if( reset ) begin
+		spk_toggle <= 0;
+		spk_en <= 0;
+		tone_cnt <= 0;
+  end else begin
 	if( tone_cnt == 0 ) begin
 		spk_toggle <= !spk_toggle;
 		{spk_en, tone_cnt} <= 	( fire_button_debounce               ) ? { 1'b1, 8'h2C } :
@@ -144,6 +161,7 @@ always_ff @(posedge clk) begin
 		spk_en <= spk_en;
 		spk_toggle <= spk_toggle;
 	end
+  end
 end
 
 assign speaker = spk_toggle & spk_en ; 
@@ -257,6 +275,7 @@ end
 forge_adc_module_4ch  _adc (
 	// Input clock
 	.clk( clk ),
+	.reset( reset ),
 	// External A/D interface
 	.ad_cs		( ad_cs ),
 	.ad_sdata 	( { ad_s_vout, 1'b0, ad_s_vcap, ad_s_iout } ),
@@ -274,6 +293,7 @@ forge_adc_module_4ch  _adc (
 forge_model_coil #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_UH ) _model (
 	// Input clock
 	.clk( clk ),
+	.reset( reset ),
 	// PWM input
 	.pwm( pwm ),
 	// Votlage Inputs
@@ -288,6 +308,7 @@ forge_model_coil #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ, COIL_IND_U
 logic res_pwm;
 forge_igniter_continuity #( ADC_VOLTS_PER_DN, ADC_DN_PER_AMP, CLOCK_FREQ_MHZ ) _res_cont (
 	.clk( clk ),
+	.reset( reset ),
 	// Votlage and Current Inputs
 	.valid_in( ad_strobe ),
 	.v_in( ad_vout ), // ADC Vout
@@ -389,6 +410,7 @@ module forge_adc_module_4ch
 (
 	// Input clock,
 	input logic clk,
+	input logic reset,
 	
 	// External A/D Converters (2.5v)
 	output logic        ad_cs,
@@ -412,7 +434,7 @@ parameter ADCS_SEL = 15;  // early CS output cycle
 
 reg [3:0] sample_div = 0;
 initial sample_div = 0;
-always_ff @(posedge clk) sample_div <= sample_div + 1;
+always_ff @(posedge clk) sample_div <= ( reset ) ? 0 : sample_div + 1;
 
 // ad_cs reg is to be I/O_reg
 // ad_cs is active during sample_div == 0;
@@ -466,6 +488,7 @@ module forge_model_coil
 (
 	// Input clock, reset
 	input logic clk,
+	input reset,
 	// ADC voltage inputs (sample and held )
 	input logic [11:0] vcap, // ADC native signed format. +-401V gives -+2000DN
 	input logic [11:0] vout, // -.2005V/DN, about 5 digital number steps per volt
@@ -512,15 +535,6 @@ always_comb begin
 /* verilator lint_on REALCVT */
 end
 
-/* synopsys translate_off */
-initial begin
-	@(posedge clk);
-	@(posedge clk);
-	for( int ii = 0; ii < 64; ii++ )
-		$display(" rom[%d] = %d;", ii, deltai_rom[ii] );
-end
-/* synopsys translate_on */
-
 logic [15:0] deltai;
 always_ff @(posedge clk) deltai <= deltai_rom[(deltav[12])?0:deltav[10-:6]]; // 6 msb bits 
 
@@ -552,6 +566,7 @@ module forge_igniter_continuity
 (
 	// System
 	input logic clk,
+	input reset,
 	
 	// ADC Inputs (output I,V)
 	input logic valid_in,
