@@ -11,7 +11,7 @@ module tb ();
   initial begin
     $dumpfile("tb.fst");
     $dumpvars(0, tb);
-    #1;
+    //#1;
   end
 
   // Wire up the inputs and outputs:
@@ -29,7 +29,7 @@ module tb ();
 `endif
 
   // sim test signals fed into DUT
-  logic [4:2] sys_sim; // in lieu of ui_in[4:2]
+  logic adc_vout, adc_vcap, adc_iout; // in lieu of ui_in[4:2]
 
   // Replace tt_um_example with your module name:
   tt_um_eric_lcc user_project (
@@ -40,7 +40,7 @@ module tb ();
       .VGND(VGND),
 `endif
 
-      .ui_in  ({ui_in[7:5], sys_sim[4:2], ui_in[1:0]} ),    // Dedicated inputs
+      .ui_in  ({ui_in[7:5], adc_vcap, adc_vout, adc_iout, ui_in[1:0]} ),    // Dedicated inputs
       .uo_out (uo_out),   // Dedicated outputs
       .uio_in (uio_in),   // IOs: Input path
       .uio_out(uio_out),  // IOs: Output path
@@ -61,8 +61,9 @@ module tb ();
         .ADC_DN_PER_JOULE   ( 205 ), 
         .CLOCK_FREQ_MHZ     ( 48 ),
         .COIL_UH            ( 390.0 ),
-        .CAP_UF             ( 2.0 ), // normally 200.0, 
+        .CAP_UF             ( 200.0 ), // normally 200.0, 
         .CH_RATE            ( 50 ), // normally 2.5 J/s
+        .CH_INIT            ( 1900 ), // start energy, almost full, take 3ms to charge
         .R_DUMP             ( 30 ), // normally 3k3
         .R                  ( 3 ) // resistance ohms
     ) i_intsim (
@@ -105,9 +106,9 @@ module tb ();
 
 	// sim out pad output reg for data
     always_ff @(posedge !clk) begin
-        sys_sim[2] <= m_ad_out[0];
-        sys_sim[3] <= m_ad_out[1];
-        sys_sim[4] <= m_ad_out[2];
+        adc_iout <= m_ad_out[0];
+        adc_vout <= m_ad_out[1];
+        adc_vcap <= m_ad_out[2];
     end
 
 
