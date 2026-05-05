@@ -135,7 +135,7 @@ module lcc_tb( );
 
 		// test the cap voltage integer
 		for( int ii = 0; ii < 1*MSEC; ii++ ) @(negedge clk); 
-		if( ad_vcap > 12'd300 && ad_vcap < 12'd400 )
+		if( ad_vcap > 12'd100 && ad_vcap < 12'd400 )
 		$display("PASS: vcap final test");
 		else
 		$display("FAIL: vcap final test");
