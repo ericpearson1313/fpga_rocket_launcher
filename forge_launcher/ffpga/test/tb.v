@@ -30,6 +30,13 @@ module tb ();
 
   // sim test signals fed into DUT
   logic adc_vout, adc_vcap, adc_iout; // in lieu of ui_in[4:2]
+  logic charge, pwm, dump, arm_led, cont_led, speaker;
+  assign arm_led = uo_out[0];
+  assign cont_led= uo_out[1];
+  assign speaker = uo_out[2];
+  assign charge  = uo_out[3];
+  assign pwm	 = uo_out[4];
+  assign dump	 = uo_out[5];
 
   // Replace tt_um_example with your module name:
   tt_um_eric_lcc user_project (
@@ -62,10 +69,10 @@ module tb ();
         .CLOCK_FREQ_MHZ     ( 48 ),
         .COIL_UH            ( 390.0 ),
         .CAP_UF             ( 200.0 ), // normally 200.0, 
-        .CH_RATE            ( 50 ), // normally 2.5 J/s
+        .CH_RATE            ( 50.0 ), // normally 2.5 J/s
         .CH_INIT            ( 1900 ), // start energy, almost full, take 3ms to charge
-        .R_DUMP             ( 30 ), // normally 3k3
-        .R                  ( 3 ) // resistance ohms
+        .R_DUMP             ( 300.0 ), // normally 3k3
+        .R                  ( 10.0 ) // resistance ohms
     ) i_intsim (
         .clk    ( clk ),
         .reset  ( !rst_n ),

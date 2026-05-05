@@ -30,56 +30,59 @@ async def test_project(dut):
 
     # charge should rise after reset
     cocotb.log.info("Charge = %s", dut.uo_out.value[3] )
+    assert dut.uo_out.value[3] == 0
     while dut.uo_out.value[3] != 1:
-        await FallingEdge( dut.clk )
+        await ClockCycles(dut.clk, 1)
     cocotb.log.info("Charge started")
     cocotb.log.info("Charge = %s", dut.uo_out.value[3] )
+    assert dut.uo_out.value[3] == 1
+    assert dut.uo_out.value[5] == 0 # dump is still zero
+    assert int(dut.ad_vcap.value) > 1000
+    assert int(dut.ad_vcap.value) < 2000
 
     # wait for charge to complete and arm led high
     while dut.uo_out.value[3] == 1:
-        await FallingEdge( dut.clk )
+        await ClockCycles(dut.clk, 1)
     cocotb.log.info("Charge done, arm_led %s", dut.uo_out.value[0] )
-
-    await Timer(1, unit="ms")
-    cocotb.log.info("1ms exit")
-    cocotb.pass_test() # FINISH
+    assert dut.uo_out.value[0] == 1
 
     # wait for speaker tone
-    await RisingEdge(dut.uo_out.value[2] )
+    while dut.uo_out.value[2] == 1:
+        await ClockCycles(dut.clk, 1)
     cocotb.log.info("ontinuity tone, cont_led %s", dut.uo_out.value[1] );
 
-    # wait 50ms and assert /launch button
-    await Timer(50, unit="ms")
+    # wait 1ms and assert /launch button
+    await Timer(1, unit="ms")
     cocotb.log.info("Press Button")
-    dut.ui_in.value[0] = 0
+    dut.ui_in.value = 2 #bits 0,1 are active low
 
     # wait 6ms for debounce and de-assert launch
-    await Timer(50, unit="ms")
+    await Timer(6, unit="ms")
     cocotb.log.info("Release Button");
-    dut.ui_in.value[0] = 1
+    dut.ui_in.value = 3 #bits 0,1 are active low
 
     # should see pwm on/off
-    await RisingEdge(dut.uo_out.value[4] )
+    while dut.uo_out.value[4] == 0:
+        await ClockCycles(dut.clk, 1)
     cocotb.log.info("PWM posedge seen")
-    await FallingEdge(dut.uo_out.value[4] )
+    while dut.uo_out.value[4] == 1:
+        await ClockCycles(dut.clk, 1)
     cocotb.log.info("PWM negedge seen")
 
     # wait some time and then assert burn through
-    await Timer(50, unit="ms")
+    await Timer(40, unit="ms")
     cocotb.log.info("gniter Burn Through")
     dut.ui_in.value[7] = 1
 
-    # wait for dump to rise (1.3sec)
-    await RisingEdge(dut.uo_out.value[5])
-    cocotb.log.info("Dump Begin");
-
-    # wait to see arm low 
-    await FallingEdge(dut.uo_out.value[0])
-    cocotb.log.info("Arm Off");
-
+    # wait and test remaining energy in cap
+    await Timer(1, unit="ms")
+    assert int(dut.ad_vcap.value) > 100 
+    assert int(dut.ad_vcap.value) < 400 
+    assert dut.uo_out.value[5] == 0 # dump is still zero
+    
     # if we reach here it works
+    await Timer(1, unit="ms")
     cocotb.log.info("Full lanch cycle simulation complate");
-    cocotb.pass_test()
 
 @cocotb.test()
 async def compare_reference(dut):
