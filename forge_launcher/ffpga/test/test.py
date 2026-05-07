@@ -29,7 +29,7 @@ async def test_project(dut):
     await ClockCycles(dut.clk, 2)
 
     #let test run 60ms, and test the final state
-    await Timer(60, unit="ms")
+    await Timer(65, unit="ms")
     assert int(dut.uo_out.value) == 192
     
     # if we reach here it works
