@@ -9,6 +9,24 @@ Years of itteratively building launch controllers has not yet acheived personal 
 This repo contains my design files for a digital, capacitive discharch, launch controller. It was designed as a one-off fully instrumented 
 launch controller based on a FPGA which enables built in oscilloscope-like capture and HDMI display. This provides aid in bring-up, observation of algorithm improvements and field analysis during fail-to-launch scenarios to understand how a launch fails (and adjust the design algorithms accordingly, and repeat). 
 
+### Updates / Branches
+
+Well this project has evolved alot. I've now implemented it as a chip:
+
+![lccst_chip](lccst_tt.png "Tiny Tapeout of Lauch control chip - 130nm 3x2 tile")
+
+A quick outline of the different branches that have evolved. The readme docs on the branches are non existant so far.
+
+- main : the fpga launch controller release (V6 = 7298ded) is in regular use.
+- lcc_1K : isolated the MVP core and implemented it on a tiny 1k FPGA
+- lcc_emu : is the full lauch controller ported to the lcc development board, and then re factoted to use the lcc_1k core and instrument it.
+- lcc_mon : is a stand alone monitor that jsut looks at the signals of the LCC. Used to validate correct in system opeation
+- lcc_syssim : is a system simulator (in progress) that connects to an LCC to test it.
+- lcc_tt : is Tiny Tapeout chip in 130nm on a 0.2 x 0.16 mm die (1x2)
+- lccst_tt : is a Tiny Tapeout chip including a full self test (3x2) is 0.2 x 0.48, much larger but still tiny.
+
+The original devlopement doc, where it all started, continues below
+
 # Digital Model Rocket Launch Controller
 
 A FPGA based model rocket digital launch controller.
