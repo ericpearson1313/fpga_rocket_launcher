@@ -185,24 +185,31 @@ vcap_rom[63] = 12'd1570;
 		end else if( dump ) begin
 			iout <= 40'd0;
 			vout <= 12'd0;
-			ecap <= ecap - ((ecap[39-:12] * ADC_DUMP_CONST)>>9);
+			//ecap <= ecap - ((ecap[39-:12] * ADC_DUMP_CONST)>>9);
+			ecap <= ecap - ((ecap[39-:12] * 47722)>>9);
 		end else if( charge ) begin
 			iout <= 40'd0;
 			vout <= 12'd0;
-			ecap <= ecap + ADC_CHARGE_PER_CYCLE;
+			//ecap <= ecap + ADC_CHARGE_PER_CYCLE;
+			ecap <= ecap + 57322;
 		end else if( burn ) begin
 			iout <= 40'd0;
 			vout <= 12'h7FF; // max V flyback
 			ecap <= ecap;
 		end else if( pwm ) begin
 	//$display("ecap %x vcap %x, iout %x, VI %x, dE %x",ecap, vcap, iout, (24'd1 * vcap * iout[39-:12]), ((( 24'd1 * vcap * iout[39-:12] ) * ADC_CAP_CONST)>>9) );
-			iout <= iout + ((( vcap - vout ) * ADC_COIL_CONST)<<4 ) ;
-			ecap <= ecap - ((( 24'd1 * vcap * iout[39-:12] ) * ADC_CAP_CONST)>>9);
-			vout <= ( iout[39-:12] * ADC_OUT_CONST ) >> 16;
+			//iout <= iout + ((( vcap - vout ) * ADC_COIL_CONST)<<4 ) ;
+			iout <= iout + ((( vcap - vout ) * 36837)<<4 ) ;
+			//ecap <= ecap - ((( 24'd1 * vcap * iout[39-:12] ) * ADC_CAP_CONST)>>9);
+			ecap <= ecap - ((( 24'd1 * vcap * iout[39-:12] ) * 574)>>9);
+			//vout <= ( iout[39-:12] * ADC_OUT_CONST ) >> 16;
+			vout <= ( iout[39-:12] * 15945) >> 16;
 		end else /* !pwm */ begin
-			iout <= iout - (( vout * ADC_COIL_CONST )<<4);
+			//iout <= iout - (( vout * ADC_COIL_CONST )<<4);
+			iout <= iout - (( vout * 36837)<<4);
 			ecap <= ecap;
-			vout <= ( iout[39-:12] * ADC_OUT_CONST ) >> 16;
+			//vout <= ( iout[39-:12] * ADC_OUT_CONST ) >> 16;
+			vout <= ( iout[39-:12] * 15945) >> 16;
 		end 
 	end
 
