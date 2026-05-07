@@ -21,7 +21,6 @@ module tt_um_eric_lcc (
   	// Unused outputs assigned to 0.
   	assign uio_out = 0;
   	assign uio_oe  = 0;
-	assign uo_out[7] = 0;
 	
   	// Suppress unused signals warning
   	wire _unused_ok = &{ena, ui_in[6:5], uio_in};
@@ -140,7 +139,7 @@ module tt_um_eric_lcc (
 
 	logic test_run;
 	logic [21:0] test_cnt;
-	logic [11:0] exit_flag;
+	logic [ 4:0] exit_flag;
 	always @(posedge clk) begin
 		test_cnt <= ( !rst_n ) ? 0 : ( test_run ) ? test_cnt + 1 : test_cnt;
 		test_run <= ( !rst_n ) ? 1 : ( (|exit_flag) || test_cnt[21-:4] == 4'd12 ) ? 0 : test_run;
@@ -157,7 +156,15 @@ module tt_um_eric_lcc (
     // at 56 ms assert burn
 	assign burn = ( test_cnt >= 56*48000 ) ? 1'b1 : 1'b0;
 
+	// Sample the output currents at 2, 4, 6, 8 amps
+	assign exit_flag[0] = ( test_cnt == 20*48000 && ( ad_iout < 300 || ad_iout > 500 ) ) ? 1'b1 : 1'b0;
+	assign exit_flag[1] = ( test_cnt == 30*48000 && ( ad_iout < 700 || ad_iout > 900 ) ) ? 1'b1 : 1'b0;
+	assign exit_flag[2] = ( test_cnt == 40*48000 && ( ad_iout < 900 || ad_iout >1200 ) ) ? 1'b1 : 1'b0;
+	assign exit_flag[3] = ( test_cnt == 50*48000 && ( ad_iout <1300 || ad_iout >1500 ) ) ? 1'b1 : 1'b0;
+
+	// Measure final values of cap voltage at 57ms
+	assign exit_flag[4] = ( test_cnt == 57*48000 && ( ad_vcap < 300 || ad_vcap > 400 ) ) ? 1'b1 : 1'b0;
+
 	// The exit criteria is determiend by counter and a state comparison
-	assign exit_flag = 0;
 
 endmodule 

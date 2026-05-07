@@ -184,7 +184,7 @@ vcap_rom[63] = 12'd1570;
 			ecap <= ecap + ADC_CHARGE_PER_CYCLE;
 		end else if( burn ) begin
 			iout <= 40'd0;
-			vout <= vcap;
+			vout <= 12'h7FF; // max V flyback
 			ecap <= ecap;
 		end else if( pwm ) begin
 	//$display("ecap %x vcap %x, iout %x, VI %x, dE %x",ecap, vcap, iout, (24'd1 * vcap * iout[39-:12]), ((( 24'd1 * vcap * iout[39-:12] ) * ADC_CAP_CONST)>>9) );

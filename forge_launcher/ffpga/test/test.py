@@ -30,8 +30,7 @@ async def test_project(dut):
 
     #let test run 60ms, and test the final state
     await Timer(60, unit="ms")
-    assert dut.uo_out.value > 175
-    assert dut.uo_out.value < 192
+    assert int(dut.uo_out.value) == 192
     
     # if we reach here it works
     await Timer(1, unit="ms")
