@@ -87,11 +87,19 @@ module lcc_syssim #(
 	// 16777216.0 = (1<<24)
 	// 65536.0 = (1<<16)
 
-	localparam ADC_CHARGE_PER_CYCLE = int'(( 268435456.0 * ADC_DN_PER_JOULE * CH_RATE ) / ( 1000000.0 * CLOCK_FREQ_MHZ ));
-	localparam ADC_DUMP_CONST = int'(( 268435456.0 * 512.0 ) / ( R_DUMP * CAP_UF * CLOCK_FREQ_MHZ ));
-	localparam ADC_COIL_CONST = int'(( 16777216.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP   ) / ( COIL_UH * CLOCK_FREQ_MHZ ));
-	localparam ADC_CAP_CONST  = int'(( 268435456.0 * 512.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_JOULE ) / ( 1000000.0 * ADC_DN_PER_AMP * CLOCK_FREQ_MHZ));
-	localparam ADC_OUT_CONST  = int'(( 65536.0 *  R ) / ( ADC_DN_PER_AMP * ADC_VOLTS_PER_DN ));
+	localparam [15:0] ADC_CHARGE_PER_CYCLE = int'(( 268435456.0 * ADC_DN_PER_JOULE * CH_RATE ) / ( 1000000.0 * CLOCK_FREQ_MHZ ));
+	localparam [17:0] ADC_DUMP_CONST = int'(( 268435456.0 * 512.0 ) / ( R_DUMP * CAP_UF * CLOCK_FREQ_MHZ ));
+	localparam [15:0] ADC_COIL_CONST = int'(( 16777216.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_AMP   ) / ( COIL_UH * CLOCK_FREQ_MHZ ));
+	localparam [15:0] ADC_CAP_CONST  = int'(( 268435456.0 * 512.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_JOULE ) / ( 1000000.0 * ADC_DN_PER_AMP * CLOCK_FREQ_MHZ));
+	localparam [15:0] ADC_OUT_CONST  = int'(( 65536.0 *  R ) / ( ADC_DN_PER_AMP * ADC_VOLTS_PER_DN ));
+
+//initial begin
+//	$display("ADC_CHARGE_PER_CYCLE = %d", ADC_CHARGE_PER_CYCLE);
+//	$display("ADC_DUMP_CONST = %d", ADC_DUMP_CONST);
+//	$display("ADC_COIL_CONST = %d", ADC_COIL_CONST);
+//	$display("ADC_CAP_CONST = %d", ADC_CAP_CONST);
+//	$display("ADC_OUT_CONST = %d", ADC_OUT_CONST);
+//end
 
 	// Cap Energy to voltage rom
 	logic [11:0] vcap_rom [63:0]; // unsigned 6 MSBs as input
