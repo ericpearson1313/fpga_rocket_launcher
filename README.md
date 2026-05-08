@@ -22,8 +22,10 @@ A quick outline of the different branches that have evolved. The readme docs on 
 - lcc_emu : is the full lauch controller ported to the lcc development board, and then re factoted to use the lcc_1k core and instrument it.
 - lcc_mon : is a stand alone monitor that jsut looks at the signals of the LCC. Used to validate correct in system opeation
 - lcc_syssim : is a system simulator (in progress) that connects to an LCC to test it.
-- lcc_tt : is Tiny Tapeout chip in 130nm on a 0.2 x 0.16 mm die (1x2)
-- lccst_tt : is a Tiny Tapeout chip including a full self test (3x2) is 0.2 x 0.48, much larger but still tiny.
+- lcc_tt : is Tiny Tapeout chip in 130nm on a 0.2 x 0.16 mm die (1x2), it almost fit on a 1x1 tile, but not quite, so utilization is low.
+- lccst_tt : is a Tiny Tapeout chip including a full self test (2x2) is 320x200um. The self test logic (a full system simulation) is almost 3x larger than the core, but gives me self test.
+
+[3D Chip viewer of the actual chip - way cool!](https://gds-viewer.tinytapeout.com/?model=https://ericpearson1313.github.io/tt_eric_launch/tinytapeout.oas&pdk=sky130A)
 
 The original devlopement doc, where it all started, continues below
 
