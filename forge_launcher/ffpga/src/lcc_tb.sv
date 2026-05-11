@@ -177,6 +177,7 @@ module lcc_tb( );
 		.CLOCK_FREQ_MHZ		( CLOCK_FREQ_MHZ   ), 
 		.COIL_UH			( COIL_UH ),
 		.CAP_UF             ( CAP_UF ),
+		.CH_INIT            ( 0 ), 
 		.CH_RATE			( CH_RATE ), // normally 2.5 J/s
 		.R_DUMP				( R_DUMP ), // normally 3k3
 		.R					( R ) // resistance ohms

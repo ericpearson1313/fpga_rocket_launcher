@@ -17,16 +17,28 @@ module lcc_adcsim (
 
 	logic [19:0] cs_del;
 	always_ff @(posedge clk)
+	  if( reset ) begin
+		cs_del <= 0;
+	  end else begin
 		cs_del <= { cs_del[18:0], ad_cs };
+	  end
 	logic [19:0] cs_trig;
 	assign cs_trig[18:0] =  cs_del[19:0] &~{ cs_del[18:0], ad_cs };
 	logic [3:0][11:0] hold;
-	always_ff @(posedge clk)
-		for( int ii = 0; ii < 4; ii++ )
-			hold[ii] <= ( cs_trig[0] ) ? ( ad_in[ii] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[ii][10:0], 1'b0 } : hold[ii];
-	always_comb 
-		for( int jj = 0; jj < 4; jj++ )
-			ad_out[jj] = hold[jj][11];
+	always_ff @(posedge clk) begin
+	  if( reset ) begin
+		hold <= 0;
+	  end else begin
+		hold[0] <= ( cs_trig[0] ) ? ( ad_in[0] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[0][10:0], 1'b0 } : hold[0];
+		hold[1] <= ( cs_trig[0] ) ? ( ad_in[1] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[1][10:0], 1'b0 } : hold[1];
+		hold[2] <= ( cs_trig[0] ) ? ( ad_in[2] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[2][10:0], 1'b0 } : hold[2];
+		hold[3] <= ( cs_trig[0] ) ? ( ad_in[3] ^ 12'h800 ) : ( |cs_trig[12-:12] ) ? { hold[3][10:0], 1'b0 } : hold[3];
+	  end
+	end
+	assign ad_out[0] = hold[0][11];
+	assign ad_out[1] = hold[1][11];
+	assign ad_out[2] = hold[2][11];
+	assign ad_out[3] = hold[3][11];
 endmodule
 
 // Primary synthesiable model of the coil current and capacitor energy
@@ -43,6 +55,7 @@ module lcc_syssim #(
 	parameter	COIL_UH				= 390, // coil in uH
 	parameter 	CAP_UF				= 200,
 	parameter   CH_RATE				= 30.0, // Joule/sec
+    parameter	CH_INIT             = 1500,
 	parameter   R_DUMP 				= 300.0, // Dump resistor in ohms
 	parameter   R      				= 2.0 // igniter resistance in ohms
 	) (
@@ -80,6 +93,7 @@ module lcc_syssim #(
 	localparam ADC_CAP_CONST  = int'(( 268435456.0 * 512.0 * ADC_VOLTS_PER_DN * ADC_DN_PER_JOULE ) / ( 1000000.0 * ADC_DN_PER_AMP * CLOCK_FREQ_MHZ));
 	localparam ADC_OUT_CONST  = int'(( 65536.0 *  R ) / ( ADC_DN_PER_AMP * ADC_VOLTS_PER_DN ));
 
+
 	// Cap Energy to voltage rom
 	logic [11:0] vcap_rom [63:0]; // unsigned 6 MSBs as input
 	/* synopsys translate_off */
@@ -97,7 +111,7 @@ module lcc_syssim #(
 		$display("ADC_OUT_CONST = %d", ADC_OUT_CONST );
 	end
 	/* synopsys translate_on */
-	always_comb begin
+	initial	begin
 vcap_rom[0] = 12'd139;
 vcap_rom[1] = 12'd241;
 vcap_rom[2] = 12'd312;
@@ -175,7 +189,7 @@ vcap_rom[63] = 12'd1570;
 		if( reset ) begin
 			iout <= 40'd0;
 			vout <= 12'd0;
-			ecap <= 40'd0;
+			ecap <= ((CH_INIT)<<(40-12));
 		end else if( dump ) begin
 			iout <= 40'd0;
 			vout <= 12'd0;
@@ -186,7 +200,7 @@ vcap_rom[63] = 12'd1570;
 			ecap <= ecap + ADC_CHARGE_PER_CYCLE;
 		end else if( burn ) begin
 			iout <= 40'd0;
-			vout <= vcap;
+			vout <= 12'h7FF; // max V flyback
 			ecap <= ecap;
 		end else if( pwm ) begin
 	//$display("ecap %x vcap %x, iout %x, VI %x, dE %x",ecap, vcap, iout, (24'd1 * vcap * iout[39-:12]), ((( 24'd1 * vcap * iout[39-:12] ) * ADC_CAP_CONST)>>9) );
