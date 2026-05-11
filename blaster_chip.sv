@@ -161,6 +161,7 @@ parameter COIL_IND_UH = 390;
 		.CLOCK_FREQ_MHZ		( CLOCK_FREQ_MHZ   ), 
 		.COIL_UH					( 390 ),
 		.CAP_UF             	( 200 ),
+		.CH_INIT             ( 0   ),
 		.CH_RATE					( 2.5 ), // normally 2.5 J/s
 		.R_DUMP					( 3300.0), // normally 3k3
 		.R							( 2.0) // resistance ohms
@@ -172,7 +173,7 @@ parameter COIL_IND_UH = 390;
 		.charge 	( lt3420_charge ),
 		.pwm		( pwm 			 ),
 		// virtual simulaiton inputs
-		.burn		( 1'b0 ),
+		.burn		( 1'b0 ), // TODO create burn through scenarios.
 		// ADC outputs
 		.ad_iout	( ad_iout ),
 		.ad_vout	( ad_vout ),
