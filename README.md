@@ -11,9 +11,19 @@ launch controller based on a FPGA which enables built in oscilloscope-like captu
 
 ### Updates / Branches
 
-Well this project has evolved alot. I've now implemented it as a chip:
+Well this project has evolved alot. 
 
-![lccst_chip](lccst_tt.png "Tiny Tapeout of Lauch control chip - 130nm 3x2 tile")
+The launch controller, fully instrumented, gave me alot of observations of sucessful and failed operations. Burn-through makes this a unique control problem, and when obsereved closely is quite chaotic. Through itterative development and testing I updated the control algorithms and circuits. Alot more testing is needed, but the fpga core 'seems' solid, and my understanding of the initiation process has expanded greatly (and I can see alot more to understand).
+
+Given the core fpga algorithms now for a simple handheld launch controller with rock solid operation.  
+
+Integrating a chip deep within a simple device needs the insight of the development logic (ie hdmi) required tooling(fpgas) to breakout, connect, emulate, monitor, and simulating the system, and test the devices. This required a base architecture and plan to take advantage of the simple interconnect (a dozen I/O signals) available using the algorithm. Since this might be some effort,
+planning went into the I/O so that it could address a number of device types in case I wanted to re-use it. The handheld controller was designed and is being trialled.
+
+About this time the TinyTapeout.com course occured. This was an opportunity to move the core logic from Fpga to Asic. The same tooling could be used with an Asic too. 
+
+An ASIC was deveoped integrating the launch control chip core. The system model was used as part of the verification test bench. With some time to spare a BIST (built in self test) was added which contained the system model and runs a 65ms truncated system simulation to self validate the hardware. [3D Chip viewer of the actual chip - way cool!](https://gds-viewer.tinytapeout.com/?model=https://ericpearson1313.github.io/tt_eric_launch/tinytapeout.oas&pdk=sky130A)
+
 
 A quick outline of the different branches that have evolved. The readme docs on the branches are non existant so far.
 
@@ -24,8 +34,6 @@ A quick outline of the different branches that have evolved. The readme docs on 
 - lcc_syssim : is a system simulator (in progress) that connects to an LCC to test it.
 - lcc_tt : is Tiny Tapeout chip in 130nm on a 0.2 x 0.16 mm die (1x2), it almost fit on a 1x1 tile, but not quite, so utilization is low.
 - lccst_tt : is a Tiny Tapeout chip including a full self test (2x2) is 320x200um. The self test logic (a full system simulation) is almost 3x larger than the core, but gives me self test.
-
-[3D Chip viewer of the actual chip - way cool!](https://gds-viewer.tinytapeout.com/?model=https://ericpearson1313.github.io/tt_eric_launch/tinytapeout.oas&pdk=sky130A)
 
 The original devlopement doc, where it all started, continues below
 
@@ -372,7 +380,9 @@ Next steps for the minimalist fpga launch controller will be parts ordering, pcb
 
 Its a good point to pause and consider things. So I'm going to loop back and re-examine everything before committing to the next design...
 
+# A Chip ...
 
+![lccst_chip](lccst_tt.png "Tiny Tapeout of Lauch control chip - 130nm 3x2 tile")
 
 
 
